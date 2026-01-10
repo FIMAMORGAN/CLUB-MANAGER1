@@ -19,89 +19,16 @@
     </style>
 </head>
 <body>
-    <div id="app"></div>
-    <script>
-        const config = {
-            firebase: {
-                apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
-                authDomain: "clubpro-system.firebaseapp.com",
-                projectId: "clubpro-system",
-                storageBucket: "clubpro-system.firebasestorage.app",
-                messagingSenderId: "825897406218",
-                appId: "1:825897406218:web:a660e48a120361247934f3"
-            }
-        };
-
-        firebase.initializeApp(config.firebase);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-
-        let state = { role: null, userName: '', phone: '', reservations: [] };
-
-        async function login(val) {
-            const clean = val.trim();
-            if (!clean) return;
-
-            if (clean.toLowerCase() === 'res') {
-                updateState({ role: 'admin', userName: 'מנהל', phone: 'ADMIN' });
-                localStorage.setItem('club_role', 'admin');
-            } else if (clean.length >= 10) {
-                const userDoc = await db.collection('users').doc(clean).get();
-                if (userDoc.exists) {
-                    const data = userDoc.data();
-                    updateState({ role: 'promoter', userName: data.name, phone: clean });
-                    localStorage.setItem('club_role', 'promoter');
-                    localStorage.setItem('club_phone', clean);
-                    localStorage.setItem('club_name', data.name);
-                } else {
-                    const name = prompt("שם מלא לרישום יחצן חדש:");
-                    if (name) {
-                        await db.collection('users').doc(clean).set({ name, phone: clean });
-                        updateState({ role: 'promoter', userName: name, phone: clean });
-                    }
-                }
-            }
-        }
-
-        function updateState(newData) {
-            state = { ...state, ...newData };
-            render();
-        }
-
-        function render() {
-            const root = document.getElementById('app');
-            
-            if (!state.role) {
-                root.innerHTML = `
-                    <div class="h-screen flex items-center justify-center p-4">
-                        <div class="w-full max-w-md glass p-10 rounded-[2.5rem] text-center border border-white/10">
-                            <h2 class="text-4xl font-black mb-2 italic uppercase text-white">CLUB<span class="text-amber-500">PRO</span></h2>
-                            <p class="text-slate-500 text-sm mb-8 font-bold tracking-widest uppercase">Staff Portal</p>
-                            <input id="login-input" type="text" placeholder="קוד כניסה או טלפון" 
-                                class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 mb-4 text-center text-white text-xl outline-none">
-                            <button onclick="login(document.getElementById('login-input').value)" 
-                                class="w-full btn-amber py-5 rounded-2xl text-lg shadow-2xl shadow-amber-500/20">LOGIN</button>
-                        </div>
-                    </div>`;
-                return;
-            }
-
-            root.innerHTML = `
-                <div class="flex flex-col h-screen overflow-hidden">
-                    <header class="p-6 flex justify-between items-center border-b border-white/5 bg-slate-950">
-                        <div class="font-black italic text-xl uppercase">Club<span class="text-amber-500">Pro</span></div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-xs font-bold text-slate-400">${state.userName}</span>
-                            <button onclick="localStorage.clear(); location.reload();" class="text-slate-500"><i data-lucide="log-out" size="18"></i></button>
-                        </div>
-                    </header>
-                    <main class="flex-1 overflow-y-auto p-4 space-y-3">
-                        ${state.reservations.map(res => `
-                            <div class="glass p-4 rounded-2xl flex items-center justify-between ${res.arrived ? 'arrived' : ''}">
-                                <div class="text-right">
-                                    <p class="font-bold text-white">${res.name}</p>
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">${res.type} | ${res.pax} PAX | ${res.promoterName || 'Admin'}</p>
-                                </div>
-                                ${state.role === 'admin' ? `
-                                    <input type="checkbox" ${res.arrived ? 'checked' : ''} 
-                                        onchange="db.collection('reservations').doc('${res.id}').update({arrived
+    <div id="app">
+        <div class="h-screen flex items-center justify-center p-4">
+            <div class="w-full max-w-md glass p-10 rounded-[2.5rem] text-center border border-white/10">
+                <h2 class="text-4xl font-black mb-2 italic uppercase text-white">CLUB<span class="text-amber-500">PRO</span></h2>
+                <p class="text-slate-500 text-sm mb-8 font-bold tracking-widest uppercase">Staff Portal</p>
+                <input id="login-input" type="text" placeholder="קוד כניסה או טלפון" 
+                    class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 mb-4 text-center text-white text-xl outline-none">
+                <button class="w-full btn-amber py-5 rounded-2xl text-lg shadow-2xl shadow-amber-500/20">LOGIN</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
