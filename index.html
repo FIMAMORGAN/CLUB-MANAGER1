@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClubPro V12 - Stable System</title>
+    <title>ClubPro V12 - Original Stable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -15,7 +15,6 @@
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; transition: all 0.2s; }
         .btn-amber:active { transform: scale(0.95); }
-        input { outline: none; }
         .arrived { border-right: 4px solid #22c55e !important; background: rgba(34, 197, 94, 0.05) !important; }
     </style>
 </head>
@@ -37,12 +36,7 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        let state = {
-            role: null,
-            userName: '',
-            phone: '',
-            reservations: []
-        };
+        let state = { role: null, userName: '', phone: '', reservations: [] };
 
         async function login(val) {
             const clean = val.trim();
@@ -84,7 +78,7 @@
                             <h2 class="text-4xl font-black mb-2 italic uppercase text-white">CLUB<span class="text-amber-500">PRO</span></h2>
                             <p class="text-slate-500 text-sm mb-8 font-bold tracking-widest uppercase">Staff Portal</p>
                             <input id="login-input" type="text" placeholder="קוד כניסה או טלפון" 
-                                class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 mb-4 text-center text-white text-xl">
+                                class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 mb-4 text-center text-white text-xl outline-none">
                             <button onclick="login(document.getElementById('login-input').value)" 
                                 class="w-full btn-amber py-5 rounded-2xl text-lg shadow-2xl shadow-amber-500/20">LOGIN</button>
                         </div>
@@ -95,48 +89,19 @@
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden">
                     <header class="p-6 flex justify-between items-center border-b border-white/5 bg-slate-950">
-                        <div class="font-black italic text-xl">CLUB<span class="text-amber-500">PRO</span></div>
+                        <div class="font-black italic text-xl uppercase">Club<span class="text-amber-500">Pro</span></div>
                         <div class="flex items-center gap-4">
                             <span class="text-xs font-bold text-slate-400">${state.userName}</span>
                             <button onclick="localStorage.clear(); location.reload();" class="text-slate-500"><i data-lucide="log-out" size="18"></i></button>
                         </div>
                     </header>
                     <main class="flex-1 overflow-y-auto p-4 space-y-3">
-                        ${state.reservations.length === 0 ? '<p class="text-center text-slate-600 mt-10">אין הזמנות כרגע</p>' : ''}
                         ${state.reservations.map(res => `
                             <div class="glass p-4 rounded-2xl flex items-center justify-between ${res.arrived ? 'arrived' : ''}">
-                                <div>
+                                <div class="text-right">
                                     <p class="font-bold text-white">${res.name}</p>
                                     <p class="text-[10px] text-slate-500 uppercase font-bold">${res.type} | ${res.pax} PAX | ${res.promoterName || 'Admin'}</p>
                                 </div>
                                 ${state.role === 'admin' ? `
                                     <input type="checkbox" ${res.arrived ? 'checked' : ''} 
-                                        onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})"
-                                        class="w-6 h-6 rounded-lg accent-green-500">
-                                ` : ''}
-                            </div>
-                        `).join('')}
-                    </main>
-                </div>`;
-            lucide.createIcons();
-        }
-
-        auth.onAuthStateChanged(user => {
-            if (!user) { auth.signInAnonymously(); return; }
-            db.collection('reservations').onSnapshot(snap => {
-                updateState({ reservations: snap.docs.map(d => ({ id: d.id, ...d.data() })) });
-            });
-            const savedRole = localStorage.getItem('club_role');
-            if (savedRole) {
-                updateState({ 
-                    role: savedRole, 
-                    phone: localStorage.getItem('club_phone') || 'ADMIN',
-                    userName: localStorage.getItem('club_name') || 'מנהל'
-                });
-            } else {
-                render();
-            }
-        });
-    </script>
-</body>
-</html>
+                                        onchange="db.collection('reservations').doc('${res.id}').update({arrived
