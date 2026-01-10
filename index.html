@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClubPro V12 - Stable</title>
+    <title>ClubPro V12 - Original Stable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -11,9 +11,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; text-align: right; }
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; }
+        .arrived { border-right: 4px solid #22c55e !important; background: rgba(34, 197, 94, 0.05) !important; }
     </style>
 </head>
 <body>
@@ -33,7 +34,7 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        let state = { role: null, reservations: [], userPhone: '' };
+        let state = { role: null, userName: '', phone: '', reservations: [] };
 
         async function login(val) {
             const clean = val.trim();
@@ -44,17 +45,21 @@
             } else if (clean.length >= 10) {
                 const userDoc = await db.collection('users').doc(clean).get();
                 if (userDoc.exists) {
+                    const d = userDoc.data();
                     state.role = 'promoter';
-                    state.userPhone = clean;
+                    state.userName = d.name;
+                    state.phone = clean;
                     localStorage.setItem('club_role', 'promoter');
                     localStorage.setItem('club_phone', clean);
+                    localStorage.setItem('club_name', d.name);
                     render();
                 } else {
-                    const name = prompt("שם יחצן חדש:");
-                    if(name) {
+                    const name = prompt("שם מלא לרישום יחצן:");
+                    if (name) {
                         await db.collection('users').doc(clean).set({ name, phone: clean });
                         state.role = 'promoter';
-                        state.userPhone = clean;
+                        state.userName = name;
+                        state.phone = clean;
                         render();
                     }
                 }
@@ -66,7 +71,7 @@
             if (!state.role) {
                 root.innerHTML = `
                     <div class="h-screen flex items-center justify-center p-4">
-                        <div class="w-full max-w-md glass p-10 rounded-[2rem] text-center">
+                        <div class="w-full max-w-md glass p-10 rounded-[2rem] text-center border border-white/10">
                             <h2 class="text-3xl font-black mb-8 italic uppercase text-white">Staff Login</h2>
                             <input id="login-input" type="text" placeholder="קוד או טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white text-xl outline-none">
                             <button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl">LOGIN</button>
@@ -74,17 +79,23 @@
                     </div>`;
                 return;
             }
+
             root.innerHTML = `
-                <div class="p-4">
-                    <header class="flex justify-between items-center mb-6 text-white font-black italic">
-                        <div>CLUB<span class="text-amber-500">PRO</span></div>
-                        <button onclick="localStorage.clear(); location.reload();" class="text-xs text-slate-500 underline">יציאה</button>
+                <div class="flex flex-col h-screen p-4">
+                    <header class="flex justify-between items-center mb-6">
+                        <div class="font-black italic text-xl uppercase">Club<span class="text-amber-500">Pro</span></div>
+                        <button onclick="localStorage.clear(); location.reload();" class="text-slate-500 text-xs underline">יציאה</button>
                     </header>
-                    <div class="space-y-4">
+                    <div class="flex-1 overflow-y-auto space-y-3">
                         ${state.reservations.map(r => `
-                            <div class="glass p-4 rounded-2xl flex justify-between items-center">
-                                <div><p class="font-bold text-lg">${r.name}</p><p class="text-xs text-slate-400">${r.type} | ${r.pax} PAX</p></div>
-                                <div class="text-amber-500 font-black">${r.arrived ? 'הגיע' : ''}</div>
+                            <div class="glass p-4 rounded-2xl flex justify-between items-center ${r.arrived ? 'arrived' : ''}">
+                                <div>
+                                    <p class="font-bold text-white">${r.name}</p>
+                                    <p class="text-[10px] text-slate-400">${r.type} | ${r.pax} PAX | ${r.promoterName || ''}</p>
+                                </div>
+                                ${state.role === 'admin' ? `
+                                    <input type="checkbox" ${r.arrived?'checked':''} onchange="db.collection('reservations').doc('${r.id}').update({arrived: this.checked})" class="w-6 h-6 accent-green-500">
+                                ` : ''}
                             </div>
                         `).join('')}
                     </div>
@@ -96,11 +107,3 @@
             db.collection('reservations').onSnapshot(snap => {
                 state.reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 render();
-            });
-            const savedRole = localStorage.getItem('club_role');
-            if (savedRole) { state.role = savedRole; render(); }
-            render();
-        });
-    </script>
-</body>
-</html>
