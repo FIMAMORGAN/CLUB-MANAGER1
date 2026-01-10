@@ -173,48 +173,4 @@
             };
 
             return `
-                <div class="max-w-6xl mx-auto space-y-4">
-                    <div class="flex justify-between items-center"><h2 class="text-xl font-black italic">ניהול אדמין</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-sm shadow-xl">+ הזמנה חדשה (Admin)</button></div>
-                    ${state.isAdding ? renderBookingForm() : `
-                        <div class="grid grid-cols-2 gap-2 text-center">
-                            <div class="glass p-3 rounded-xl border border-blue-500/20"><p class="text-[9px] text-slate-500 uppercase">מוזמנים בשולחן</p><p class="text-2xl font-black text-blue-400">${stats.tPax}</p></div>
-                            <div class="glass p-3 rounded-xl border border-purple-500/20"><p class="text-[9px] text-slate-500 uppercase">מוזמנים בבר</p><p class="text-2xl font-black text-purple-400">${stats.bPax}</p></div>
-                            <div class="glass p-3 rounded-xl"><p class="text-[9px] text-slate-500 uppercase">סה"כ PAX</p><p class="text-xl font-black">${stats.pax}</p></div>
-                            <div class="glass p-3 rounded-xl border border-green-500/30"><p class="text-[9px] text-slate-500 uppercase font-bold">Z סופי</p><p class="text-xl font-black text-green-400">₪${stats.z}</p></div>
-                        </div>
-                        <div class="mt-6">
-                            ${renderSection('שולחנות', 'table')}
-                            ${renderSection('בר', 'bar')}
-                            ${renderSection('כניסה חינם', 'free')}
-                        </div>
-                    `}
-                </div>
-            `;
-        }
-
-        function renderBookingForm() {
-            let min = state.formData.manualPrice || (state.formData.type === 'free' ? 0 : Number(state.formData.pax) * 300);
-            return `
-                <div class="glass p-6 rounded-2xl space-y-4 animate-in">
-                    <div class="grid grid-cols-2 gap-2"><input required placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm"><input required placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-left text-white outline-none text-sm" dir="ltr"></div>
-                    <input type="date" value="${state.formData.eventDate}" onchange="updateState({formData: {...state.formData, eventDate: this.value}})" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none">
-                    <div class="flex gap-1">${['table','bar','free'].map(t => `<button type="button" onclick="updateState({formData: {...state.formData, type: '${t}', manualPrice: t==='free'?0:null}})" class="flex-1 py-2 rounded-lg border text-[11px] font-black ${state.formData.type===t?'bg-amber-500 text-black border-amber-500':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'שולחן':t==='bar'?'בר':'חינם'}</button>`).join('')}</div>
-                    <div class="grid grid-cols-2 gap-2 text-center"><div><label class="text-[10px] text-slate-500 uppercase">PAX</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-center"></div><div><label class="text-[10px] text-amber-500 font-bold uppercase">MIN ₪</label><input type="number" value="${min}" oninput="state.formData.manualPrice = Number(this.value)" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-500 text-center font-bold"></div></div>
-                    <textarea placeholder="הערות להזמנה..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm h-20">${state.formData.notes || ''}</textarea>
-                    <div class="flex justify-end gap-3 pt-2"><button type="button" onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500">ביטול</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl uppercase">Confirm</button></div>
-                </div>
-            `;
-        }
-
-        function editBooking(res) { updateState({ isAdding: true, editingId: res.id, formData: { ...res, manualPrice: res.manualPrice || null } }); }
-
-        auth.onAuthStateChanged(user => {
-            if (!user) { auth.signInAnonymously(); return; }
-            db.collection('reservations').onSnapshot(snap => { updateState({ reservations: snap.docs.map(d => ({ id: d.id, ...d.data() })) }); });
-            const savedRole = localStorage.getItem('club_role');
-            if (savedRole) updateState({ role: savedRole, userName: localStorage.getItem('club_name'), phone: localStorage.getItem('club_phone') });
-            else render();
-        });
-    </script>
-</body>
-</html>
+                <div class="max-w-6xl mx-
