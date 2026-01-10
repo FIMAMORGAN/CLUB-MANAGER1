@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClubPro V13 - Power Admin</title>
+    <title>ClubPro V13T - Power Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -119,16 +119,16 @@
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden text-right">
                     <header class="bg-slate-950 p-4 border-b border-white/5 flex justify-between items-center">
-                        <div class="flex items-center gap-2 font-black italic text-xl">CLUB<span class="text-amber-500">PRO</span></div>
+                        <div class="flex items-center gap-2 font-black italic text-xl uppercase tracking-tighter">CLUB<span class="text-amber-500">PRO</span></div>
                         <button onclick="logout()" class="text-slate-500"><i data-lucide="log-out" size="18"></i></button>
                     </header>
                     <div class="bg-slate-900 p-3 border-b border-white/5 flex items-center justify-between">
-                        <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value, showAllFuture: false})" class="bg-white/5 border border-white/10 rounded-xl p-2 text-white text-sm outline-none">
-                        <button onclick="updateState({showAllFuture: !state.showAllFuture})" class="text-xs font-bold ${state.showAllFuture ? 'text-amber-500' : 'text-slate-500'}">
-                            ${state.showAllFuture ? 'חזור' : 'כל העתידיות'}
+                        <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value, showAllFuture: false})" class="bg-white/5 border border-white/10 rounded-xl p-2 text-white text-sm outline-none font-bold">
+                        <button onclick="updateState({showAllFuture: !state.showAllFuture})" class="text-xs font-bold ${state.showAllFuture ? 'text-amber-500' : 'text-slate-500'} uppercase tracking-widest">
+                            ${state.showAllFuture ? 'Back' : 'Future'}
                         </button>
                     </div>
-                    <main class="flex-1 overflow-y-auto p-4">
+                    <main class="flex-1 overflow-y-auto p-4 bg-slate-950/50">
                         ${state.role === 'promoter' ? renderPromoter() : renderAdmin()}
                     </main>
                 </div>
@@ -147,19 +147,19 @@
 
             return `
                 <div class="max-w-4xl mx-auto space-y-6">
-                    <div class="flex justify-between items-center"><h2 class="text-xl font-black italic">הזמנות שלי</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-sm">+ חדש</button></div>
+                    <div class="flex justify-between items-center"><h2 class="text-xl font-black italic uppercase">My Bookings</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-sm uppercase">+ New</button></div>
                     ${state.isAdding ? renderBookingForm() : `
                         <div class="space-y-3">
                             ${list.map(res => `
                                 <div class="glass p-4 rounded-xl flex justify-between items-center ${res.arrived ? 'arrived' : ''}">
                                     <div class="text-right">
                                         <p class="font-bold text-white">${res.name} ${res.arrived ? '✅' : ''}</p>
-                                        <p class="text-[10px] text-slate-500 uppercase">${res.pax} PAX | ${res.type} | ${res.eventDate}</p>
+                                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">${res.pax} PAX | ${res.type} | ${res.eventDate}</p>
                                     </div>
                                     <div class="flex gap-1">
                                         <button onclick='sendWhatsApp(${JSON.stringify(res)})' class="text-green-500 p-2"><i data-lucide="message-circle" size="18"></i></button>
                                         <button onclick='editBooking(${JSON.stringify(res)})' class="text-amber-500 p-2"><i data-lucide="edit-3" size="18"></i></button>
-                                        <button onclick="db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-2"><i data-lucide="trash-2" size="18"></i></button>
+                                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-2"><i data-lucide="trash-2" size="18"></i></button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -173,21 +173,21 @@
             let min = state.formData.manualPrice;
             if (min === null) min = (state.formData.type === 'free') ? 0 : (Number(state.formData.pax) * 300);
             return `
-                <div class="glass p-6 rounded-2xl text-right space-y-4">
+                <div class="glass p-6 rounded-2xl text-right space-y-4 border border-white/5">
                     <div class="grid grid-cols-2 gap-2">
                         <input required placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm">
                         <input required placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-left text-white outline-none text-sm" dir="ltr">
                     </div>
-                    <input type="date" value="${state.formData.eventDate}" onchange="updateState({formData: {...state.formData, eventDate: this.value}})" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none">
+                    <input type="date" value="${state.formData.eventDate}" onchange="updateState({formData: {...state.formData, eventDate: this.value}})" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none font-bold">
                     <div class="flex gap-1">
-                        ${['table','bar','free'].map(t => `<button type="button" onclick="updateState({formData: {...state.formData, type: '${t}', manualPrice: '${t}'==='free'?0:null}})" class="flex-1 py-2 rounded-lg border text-[10px] font-bold ${state.formData.type===t?'bg-amber-500 text-black border-amber-500':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'שולחן':t==='bar'?'בר':'חינם'}</button>`).join('')}
+                        ${['table','bar','free'].map(t => `<button type="button" onclick="updateState({formData: {...state.formData, type: '${t}', manualPrice: '${t}'==='free'?0:null}})" class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase tracking-tighter ${state.formData.type===t?'bg-amber-500 text-black border-amber-500':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'Table':t==='bar'?'Bar':'Free'}</button>`).join('')}
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div class="text-center"><label class="text-[10px] text-slate-500 uppercase">PAX</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-center"></div>
-                        <div class="text-center"><label class="text-[10px] text-amber-500 uppercase">Min ₪</label><input type="number" value="${min}" oninput="state.formData.manualPrice = Number(this.value)" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-500 text-center font-bold"></div>
+                        <div class="text-center"><label class="text-[10px] text-slate-500 uppercase font-black">PAX</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-center font-bold"></div>
+                        <div class="text-center"><label class="text-[10px] text-amber-500 uppercase font-black">Min ₪</label><input type="number" value="${min}" oninput="state.formData.manualPrice = Number(this.value)" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-500 text-center font-black"></div>
                     </div>
                     <textarea placeholder="הערות להזמנה..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm h-16">${state.formData.notes || ''}</textarea>
-                    <div class="flex justify-end gap-3 pt-2"><button type="button" onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500">ביטול</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl">אשר הזמנה</button></div>
+                    <div class="flex justify-end gap-3 pt-2"><button type="button" onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 text-xs font-bold uppercase">Cancel</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl uppercase">Confirm</button></div>
                 </div>
             `;
         }
@@ -210,7 +210,7 @@
                 if (groupList.length === 0) return '';
                 return `
                     <div class="mt-4">
-                        <div class="group-header p-2 mb-2 font-black text-amber-500 text-xs uppercase">${title}</div>
+                        <div class="group-header p-2 mb-2 font-black text-amber-500 text-[10px] uppercase tracking-widest">${title}</div>
                         ${groupList.map(res => renderAdminRow(res)).join('')}
                     </div>
                 `;
@@ -218,56 +218,8 @@
 
             return `
                 <div class="max-w-6xl mx-auto space-y-4">
-                    <div class="flex justify-between items-center"><h2 class="text-xl font-black italic">ניהול מועדון</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-sm">+ חדש (Admin)</button></div>
+                    <div class="flex justify-between items-center"><h2 class="text-xl font-black italic uppercase">Management</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-xs uppercase">+ Admin Entry</button></div>
                     ${state.isAdding ? renderBookingForm() : `
                         <div class="grid grid-cols-2 gap-2">
-                            <div class="glass p-3 rounded-xl text-center"><p class="text-[8px] text-slate-500 uppercase">סה"כ מוזמנים</p><p class="text-xl font-black">${stats.pax}</p></div>
-                            <div class="glass p-3 rounded-xl text-center border-green-500/30 border"><p class="text-[8px] text-slate-500 uppercase">Z מצטבר</p><p class="text-xl font-black text-green-400">₪${stats.z}</p></div>
-                            <div class="glass p-3 rounded-xl text-center"><p class="text-[8px] text-slate-500 uppercase">שולחנות (PAX)</p><p class="text-lg font-black text-blue-400">${stats.tableCount} (${stats.tablePax})</p></div>
-                            <div class="glass p-3 rounded-xl text-center"><p class="text-[8px] text-slate-500 uppercase">בר (PAX)</p><p class="text-lg font-black text-purple-400">${stats.barCount} (${stats.barPax})</p></div>
-                        </div>
-                        <div class="glass rounded-xl overflow-hidden mt-4">
-                            ${renderGroup('שולחנות', 'table')}
-                            ${renderGroup('בר', 'bar')}
-                            ${renderGroup('כניסה חינם', 'free')}
-                            ${list.length === 0 ? '<p class="p-10 text-center opacity-20">אין הזמנות</p>' : ''}
-                        </div>
-                    `}
-                </div>
-            `;
-        }
-
-        function renderAdminRow(res) {
-            return `
-                <div class="flex items-center justify-between p-3 border-b border-white/5 ${res.arrived ? 'bg-green-500/5 arrived' : ''}">
-                    <div class="flex items-center gap-3">
-                        <input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-4 h-4 accent-green-500">
-                        <div class="text-right">
-                            <p class="font-bold text-white text-xs">${res.name} (${res.pax}) <span class="text-[8px] text-amber-500">${res.promoterName}</span></p>
-                            <p class="text-[9px] text-slate-400 italic">Min: ₪${res.minOrder} ${res.notes ? '| ' + res.notes : ''}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-14 bg-black border border-white/10 rounded p-1 text-center text-green-400 text-xs outline-none">
-                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-600/50"><i data-lucide="x-circle" size="16"></i></button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function editBooking(res) { updateState({ isAdding: true, editingId: res.id, formData: { ...res, manualPrice: res.manualPrice || null } }); }
-
-        auth.onAuthStateChanged(user => {
-            if (!user) { auth.signInAnonymously(); return; }
-            state.user = user;
-            db.collection('reservations').onSnapshot(snap => { 
-                const newData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                updateState({ reservations: newData }); 
-            });
-            const savedRole = localStorage.getItem('club_role');
-            if (savedRole) updateState({ role: savedRole, userName: localStorage.getItem('club_name'), phone: localStorage.getItem('club_phone') });
-            else render();
-        });
-    </script>
-</body>
-</html>
+                            <div class="glass p-3 rounded-xl text-center border border-white/5"><p class="text-[8px] text-slate-500 uppercase font-black">Total Pax</p><p class="text-xl font-black">${stats.pax}</p></div>
+                            <div class="glass p-3 rounded-xl text-center border-green-500/30 border"><p class="text-[8px] text-slate-500 uppercase font-black tracking-widest text-green-500">Revenue Z</p><p class="text-xl font
