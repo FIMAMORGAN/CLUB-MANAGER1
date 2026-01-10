@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClubPro V13T - Power Admin Fixed</title>
+    <title>ClubPro V14 - Finance Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -41,7 +41,7 @@
 
         let state = {
             user: null, role: null, userName: '', phone: '', reservations: [],
-            isAdding: false, editingId: null, showAllFuture: false,
+            isAdding: false, editingId: null, showAllFuture: false, showSummary: false,
             selectedDate: todayStr,
             formData: { type: 'table', pax: 1, clientName: '', clientPhone: '', manualPrice: null, eventDate: todayStr, notes: '' }
         };
@@ -129,7 +129,7 @@
                         </button>
                     </div>
                     <main class="flex-1 overflow-y-auto p-4 bg-slate-950/50">
-                        ${state.role === 'promoter' ? renderPromoter() : renderAdmin()}
+                        ${state.role === 'promoter' ? renderPromoter() : (state.showSummary ? renderSummary() : renderAdmin())}
                     </main>
                 </div>
             `;
@@ -146,7 +146,7 @@
             else list = list.sort((a,b) => a.eventDate.localeCompare(b.eventDate));
 
             return `
-                <div class="max-w-4xl mx-auto space-y-6">
+                <div class="max-w-4xl mx-auto space-y-6 text-right">
                     <div class="flex justify-between items-center"><h2 class="text-xl font-black italic uppercase">My Bookings</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-sm uppercase">+ New</button></div>
                     ${state.isAdding ? renderBookingForm() : `
                         <div class="space-y-3">
@@ -175,19 +175,19 @@
             return `
                 <div class="glass p-6 rounded-2xl text-right space-y-4 border border-white/5">
                     <div class="grid grid-cols-2 gap-2">
-                        <input required placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm">
-                        <input required placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-left text-white outline-none text-sm" dir="ltr">
+                        <input required placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm font-bold">
+                        <input required placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-left text-white outline-none text-sm font-bold" dir="ltr">
                     </div>
                     <input type="date" value="${state.formData.eventDate}" onchange="updateState({formData: {...state.formData, eventDate: this.value}})" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none font-bold">
                     <div class="flex gap-1">
                         ${['table','bar','free'].map(t => `<button type="button" onclick="updateState({formData: {...state.formData, type: '${t}', manualPrice: '${t}'==='free'?0:null}})" class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase tracking-tighter ${state.formData.type===t?'bg-amber-500 text-black border-amber-500':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'Table':t==='bar'?'Bar':'Free'}</button>`).join('')}
                     </div>
                     <div class="grid grid-cols-2 gap-2">
-                        <div class="text-center text-right"><label class="text-[10px] text-slate-500 uppercase font-black">PAX</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-center font-bold"></div>
-                        <div class="text-center text-right"><label class="text-[10px] text-amber-500 uppercase font-black">Min ₪</label><input type="number" value="${min}" oninput="state.formData.manualPrice = Number(this.value)" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-500 text-center font-black"></div>
+                        <div class="text-center"><label class="text-[10px] text-slate-500 uppercase font-black">PAX</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-center font-bold"></div>
+                        <div class="text-center"><label class="text-[10px] text-amber-500 uppercase font-black">Min ₪</label><input type="number" value="${min}" oninput="state.formData.manualPrice = Number(this.value)" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-500 text-center font-black"></div>
                     </div>
-                    <textarea placeholder="הערות להזמנה..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm h-16">${state.formData.notes || ''}</textarea>
-                    <div class="flex justify-end gap-3 pt-2"><button type="button" onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 text-xs font-bold uppercase">Cancel</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl uppercase">Confirm</button></div>
+                    <textarea placeholder="הערות להזמנה..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm h-16 font-bold">${state.formData.notes || ''}</textarea>
+                    <div class="flex justify-end gap-3 pt-2"><button type="button" onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 text-xs font-bold uppercase">Cancel</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl uppercase font-black">Confirm</button></div>
                 </div>
             `;
         }
@@ -218,28 +218,103 @@
 
             return `
                 <div class="max-w-6xl mx-auto space-y-4 text-right">
-                    <div class="flex justify-between items-center"><h2 class="text-xl font-black italic uppercase text-right">Management</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-xs uppercase">+ Admin Entry</button></div>
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-black italic uppercase">Management</h2>
+                        <div class="flex gap-2">
+                            <button onclick="updateState({showSummary: true})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase">הצג סיכום הכנסות</button>
+                            <button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-xs uppercase">+ Admin Entry</button>
+                        </div>
+                    </div>
                     ${state.isAdding ? renderBookingForm() : `
                         <div class="grid grid-cols-2 gap-2">
                             <div class="glass p-3 rounded-xl text-center border border-white/5"><p class="text-[8px] text-slate-500 uppercase font-black">Total Pax</p><p class="text-xl font-black">${stats.pax}</p></div>
-                            <div class="glass p-3 rounded-xl text-center border-green-500/30 border text-right"><p class="text-[8px] text-slate-500 uppercase font-black tracking-widest text-green-500 text-center">Revenue Z</p><p class="text-xl font-black text-green-400 text-center">₪${stats.z}</p></div>
-                            <div class="glass p-3 rounded-xl text-center border border-white/5"><p class="text-[8px] text-slate-500 uppercase font-black">Table (Pax)</p><p class="text-lg font-black text-blue-400">${stats.tableCount} (${stats.tablePax})</p></div>
-                            <div class="glass p-3 rounded-xl text-center border border-white/5"><p class="text-[8px] text-slate-500 uppercase font-black">Bar (Pax)</p><p class="text-lg font-black text-purple-400">${stats.barCount} (${stats.barPax})</p></div>
+                            <div class="glass p-3 rounded-xl text-center border-green-500/30 border"><p class="text-[8px] text-slate-500 uppercase font-black tracking-widest text-green-500">Revenue Z</p><p class="text-xl font-black text-green-400">₪${stats.z}</p></div>
                         </div>
                         <div class="glass rounded-2xl overflow-hidden mt-4 border border-white/5">
                             ${renderGroup('Tables', 'table')}
                             ${renderGroup('Bar', 'bar')}
                             ${renderGroup('Free Entry', 'free')}
-                            ${list.length === 0 ? '<p class="p-10 text-center opacity-20 font-black uppercase tracking-widest text-center">No Bookings</p>' : ''}
                         </div>
                     `}
                 </div>
             `;
         }
 
+        function renderSummary() {
+            const dayList = state.reservations.filter(r => r.eventDate === state.selectedDate && r.status === 'active');
+            const summary = {};
+            
+            dayList.forEach(r => {
+                const p = r.promoterName || 'Admin';
+                if (!summary[p]) summary[p] = { count: 0, pax: 0, z: 0 };
+                summary[p].count++;
+                summary[p].pax += Number(r.pax || 0);
+                summary[p].z += Number(r.actualRevenue || 0);
+            });
+
+            const totalZ = Object.values(summary).reduce((acc, curr) => acc + curr.z, 0);
+
+            return `
+                <div class="max-w-4xl mx-auto space-y-6 text-right">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xl font-black italic uppercase tracking-tighter text-amber-500">סיכום יחצנים - ${state.selectedDate}</h2>
+                        <button onclick="updateState({showSummary: false})" class="text-slate-500 text-xs font-black">חזור לניהול</button>
+                    </div>
+                    
+                    <div class="glass rounded-2xl overflow-hidden border border-white/10">
+                        <table class="w-full text-sm text-right">
+                            <thead class="bg-white/5 text-[10px] uppercase font-black text-slate-400">
+                                <tr>
+                                    <th class="p-4">שם יחצן</th>
+                                    <th class="p-4">הזמנות</th>
+                                    <th class="p-4">PAX</th>
+                                    <th class="p-4 text-green-400">סה"כ Z</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                ${Object.entries(summary).map(([name, data]) => `
+                                    <tr>
+                                        <td class="p-4 font-bold text-white">${name}</td>
+                                        <td class="p-4 text-slate-400">${data.count}</td>
+                                        <td class="p-4 text-slate-400">${data.pax}</td>
+                                        <td class="p-4 font-black text-green-400">₪${data.z}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot class="bg-green-500/10 font-black">
+                                <tr>
+                                    <td colspan="3" class="p-4 text-white">סה"כ הכנסה לערב זה:</td>
+                                    <td class="p-4 text-green-400 text-lg">₪${totalZ}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <button onclick="sendSummaryEmail('${state.selectedDate}', ${JSON.stringify(summary)})" class="w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-xl font-black flex items-center justify-center gap-2 transition-all">
+                        <i data-lucide="mail"></i> שלח סיכום במייל לניהול
+                    </button>
+                </div>
+            `;
+        }
+
+        function sendSummaryEmail(date, summary) {
+            const recipient = "MORGAN.FIMA@GMAIL.COM";
+            const subject = `דוח הכנסות מועדון - ${date}`;
+            let body = `סיכום הכנסות לתאריך: ${date}\n\n`;
+            
+            Object.entries(summary).forEach(([name, data]) => {
+                body += `${name}: ${data.count} הזמנות | ${data.pax} PAX | סה"כ Z: ₪${data.z}\n`;
+            });
+            
+            const total = Object.values(summary).reduce((acc, curr) => acc + curr.z, 0);
+            body += `\n--------------------------\nסה"כ הכנסה כללית: ₪${total}`;
+            
+            window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        }
+
         function renderAdminRow(res) {
             return `
-                <div class="flex items-center justify-between p-3 border-b border-white/5 ${res.arrived ? 'bg-green-500/5 arrived' : ''} text-right">
+                <div class="flex items-center justify-between p-3 border-b border-white/5 ${res.arrived ? 'bg-green-500/5 arrived' : ''}">
                     <div class="flex items-center gap-3">
                         <input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-4 h-4 rounded accent-green-500">
                         <div class="text-right">
