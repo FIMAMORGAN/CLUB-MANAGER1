@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClubPro V15.6 - Summary & PAX Pro</title>
+    <title>ClubPro V15.7 - Full View & Delete</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -43,7 +43,7 @@
         let state = {
             user: null, role: null, userName: '', phone: '', reservations: [],
             isAdding: false, editingId: null, showSummary: false,
-            selectedDate: todayStr,
+            selectedDate: '', // ריק מציג את כל העתידיות
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, eventDate: todayStr, notes: '' }
         };
 
@@ -121,13 +121,19 @@
         function render() {
             const root = document.getElementById('app');
             if (!state.role) {
-                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4"><div class="w-full max-w-md glass p-10 rounded-[2rem] text-center border border-white/10"><h2 class="text-3xl font-black mb-8 italic uppercase text-white tracking-widest">Staff Login</h2><input id="login-input" type="text" placeholder="קוד / טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white text-xl outline-none"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black">Login</button></div></div>`;
+                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4"><div class="w-full max-w-md glass p-10 rounded-[2rem] text-center border border-white/10"><h2 class="text-3xl font-black mb-8 italic uppercase text-white tracking-widest text-white">Staff Login</h2><input id="login-input" type="text" placeholder="קוד / טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white text-xl outline-none font-bold"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black">Login</button></div></div>`;
                 return;
             }
 
-            let list = state.reservations.filter(r => r.status === 'active' && r.eventDate === state.selectedDate);
+            let list = state.reservations.filter(r => r.status === 'active');
+            if (state.selectedDate) {
+                list = list.filter(r => r.eventDate === state.selectedDate);
+            } else {
+                list = list.filter(r => r.eventDate >= todayStr); // הצגת כל העתידיות מהיום והלאה
+            }
             if (state.role !== 'admin') list = list.filter(r => r.promoterId === state.phone);
-            
+            list = list.sort((a,b) => a.eventDate.localeCompare(b.eventDate));
+
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden text-right">
                     <header class="bg-slate-950 p-4 border-b border-white/5 flex justify-between items-center text-white">
@@ -136,8 +142,10 @@
                     </header>
                     <div class="bg-slate-900 p-3 border-b border-white/5 flex items-center justify-between px-4">
                         <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-amber-500 font-black uppercase">לאיזה תאריך ההזמנה?</span>
                             <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value})" class="bg-white/5 border border-white/10 rounded-xl p-2 text-white text-sm outline-none font-bold">
                         </div>
+                        ${state.selectedDate ? '<button onclick="updateState({selectedDate: \'\'})" class="text-[10px] font-black text-blue-400">הצג הכל</button>' : ''}
                     </div>
                     <main class="flex-1 overflow-y-auto p-4 bg-slate-950/50">
                         ${state.showSummary ? renderSummary(list) : (state.isAdding ? renderBookingForm() : (state.role === 'admin' ? renderAdmin(list) : renderPromoter(list)))}
@@ -155,17 +163,21 @@
                     <h2 class="text-amber-500 font-black uppercase text-center">${state.editingId ? 'עריכת הזמנה' : 'הזמנה חדשה'}</h2>
                     <input placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none font-bold">
                     <input placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-left text-white outline-none font-bold" dir="ltr">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-[10px] text-amber-500 font-black pr-1">לאיזה תאריך ההזמנה?</span>
+                        <input type="date" value="${state.formData.eventDate}" onchange="state.formData.eventDate = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none font-bold text-right">
+                    </div>
                     <div class="flex gap-1">
                         ${['table','bar','free'].map(t => `<button type="button" onclick="state.formData.type='${t}'; render();" class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase ${state.formData.type===t?'bg-amber-500 text-black border-amber-500':'bg-white/5 text-slate-400 border-white/10'}">${t}</button>`).join('')}
                     </div>
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="grid grid-cols-2 gap-2 text-white">
                         <div><label class="text-[10px] text-slate-500 uppercase font-black">PAX</label><input type="number" value="${state.formData.pax}" oninput="updatePax(this.value)" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-center font-bold"></div>
                         <div><label class="text-[10px] text-amber-500 uppercase font-black">Min ₪</label><input id="min-price-input" type="number" value="${min}" oninput="state.formData.manualPrice = this.value" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-500 text-center font-black"></div>
                     </div>
-                    <textarea placeholder="הערות..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right h-16 font-bold text-white">${state.formData.notes || ''}</textarea>
-                    <div class="flex justify-between items-center pt-2">
-                        <button type="button" onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 font-black uppercase text-xs font-black">ביטול</button>
-                        <button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl uppercase font-black">אשר ושמור</button>
+                    <textarea placeholder="הערות..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right h-16 font-bold">${state.formData.notes || ''}</textarea>
+                    <div class="flex justify-between items-center pt-2 font-black">
+                        <button type="button" onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 uppercase text-xs">ביטול</button>
+                        <button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl uppercase">אשר ושמור</button>
                     </div>
                 </div>
             `;
@@ -181,18 +193,18 @@
             const renderGroup = (title, type) => {
                 const groupList = list.filter(r => r.type === type);
                 if (groupList.length === 0) return '';
-                return `<div class="mt-4"><div class="group-header p-2 mb-2 font-black text-amber-500 text-[10px] uppercase tracking-widest">${title}</div>${groupList.map(r => renderRow(r, true)).join('')}</div>`;
+                return `<div class="mt-4"><div class="group-header p-2 mb-2 font-black text-amber-500 text-[10px] uppercase tracking-widest text-right">${title}</div>${groupList.map(r => renderRow(r, true)).join('')}</div>`;
             };
             return `
                 <div class="space-y-4">
                     <div class="flex justify-between gap-2">
-                        <button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-[10px] font-black uppercase">סיכום יחצנים</button>
-                        <button onclick="updateState({isAdding: true})" class="flex-1 btn-amber py-3 rounded-xl text-[10px] font-black uppercase">הזמנה חדשה</button>
+                        <button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-[10px] font-black uppercase shadow-lg">סיכום יחצנים</button>
+                        <button onclick="updateState({isAdding: true})" class="flex-1 btn-amber py-3 rounded-xl text-[10px] font-black uppercase shadow-lg">הזמנה חדשה</button>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                         <div class="glass p-2 rounded-xl text-center"><p class="text-[8px] text-slate-500 font-black">TABLE PAX</p><p class="text-lg font-black text-white">${stats.tablePax}</p></div>
                         <div class="glass p-2 rounded-xl text-center"><p class="text-[8px] text-slate-500 font-black">BAR PAX</p><p class="text-lg font-black text-white">${stats.barPax}</p></div>
-                        <div class="glass p-2 rounded-xl text-center border-green-500/30 border"><p class="text-[8px] text-green-500 font-black">TOTAL Z</p><p class="text-lg font-black text-green-400">₪${stats.z}</p></div>
+                        <div class="glass p-2 rounded-xl text-center border-green-500/30 border text-center"><p class="text-[8px] text-green-500 font-black">TOTAL Z</p><p class="text-lg font-black text-green-400">₪${stats.z}</p></div>
                     </div>
                     <div class="glass rounded-2xl overflow-hidden mt-4 border border-white/5">
                         ${renderGroup('Tables', 'table')} ${renderGroup('Bar', 'bar')} ${renderGroup('Free Entry', 'free')}
@@ -202,23 +214,24 @@
         }
 
         function renderPromoter(list) {
-            return `<div class="space-y-6"><div class="flex justify-between items-center"><h2 class="text-xl font-black italic uppercase text-white">My List</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-sm uppercase font-black">+ New</button></div><div class="space-y-3">${list.map(r => renderRow(r, false)).join('')}</div></div>`;
+            return `<div class="space-y-6"><div class="flex justify-between items-center text-right text-white"><h2 class="text-xl font-black italic uppercase">My List (Future)</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-sm uppercase font-black">+ New</button></div><div class="space-y-3">${list.map(r => renderRow(r, false)).join('')}</div></div>`;
         }
 
         function renderRow(res, isAdmin) {
             return `
                 <div class="flex items-center justify-between p-3 border-b border-white/5 ${res.arrived ? 'bg-green-500/5 arrived' : ''}">
-                    <div class="flex items-center gap-3">
-                        ${isAdmin ? `<input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-4 h-4 accent-green-500">` : ''}
-                        <div>
-                            <p class="font-bold text-white text-xs font-black">${res.name} (${res.pax}) <span class="text-[8px] text-amber-500">[${res.promoterName}]</span></p>
-                            <p class="text-[9px] text-slate-400 font-bold italic">Min: ₪${res.minOrder} ${res.notes ? '| ' + res.notes : ''}</p>
+                    <div class="flex items-center gap-3 text-right">
+                        ${isAdmin ? `<input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-4 h-4 rounded accent-green-500">` : ''}
+                        <div class="text-right">
+                            <p class="font-bold text-white text-xs font-black">${res.name} (${res.pax}) <span class="text-[8px] text-amber-500 uppercase font-black">[${res.promoterName}]</span></p>
+                            <p class="text-[9px] text-slate-400 font-bold italic">${res.eventDate} | Min: ₪${res.minOrder}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-1">
-                        ${isAdmin ? `<input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-12 bg-black border border-white/10 rounded p-1 text-center text-green-400 text-[10px] font-bold outline-none">` : ''}
-                        <button onclick="sendWhatsApp('${res.id}')" class="text-green-500 p-1"><i data-lucide="message-circle" size="14"></i></button>
-                        <button onclick="startEdit('${res.id}')" class="text-amber-500 p-1"><i data-lucide="edit-3" size="14"></i></button>
+                        ${isAdmin ? `<input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-12 bg-black border border-white/10 rounded p-1 text-center text-green-400 text-[10px] font-bold outline-none font-bold">` : ''}
+                        <button onclick="sendWhatsApp('${res.id}')" class="text-green-500 p-1 hover:bg-green-500/10 rounded"><i data-lucide="message-circle" size="14"></i></button>
+                        <button onclick="startEdit('${res.id}')" class="text-amber-500 p-1 hover:bg-amber-500/10 rounded"><i data-lucide="edit-3" size="14"></i></button>
+                        <button onclick="if(confirm('למחוק הזמנה?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1 hover:bg-red-500/10 rounded"><i data-lucide="trash-2" size="14"></i></button>
                     </div>
                 </div>
             `;
@@ -232,23 +245,20 @@
                 summary[p].count++;
                 summary[p].z += Number(r.actualRevenue || 0);
             });
-            
             let totalComm = 0;
-            let whatsappText = `סיכום עמלות - ${state.selectedDate}:\n\n`;
-            
+            let whatsappText = `סיכום עמלות - ${state.selectedDate || 'כללי'}:\n\n`;
             const tableRows = Object.entries(summary).map(([name, data]) => {
                 const comm = (data.z * 0.1).toFixed(0);
                 totalComm += Number(comm);
                 whatsappText += `👤 ${name}\n- הזמנות: ${data.count}\n- מחזור Z: ₪${data.z}\n- עמלה: ₪${comm}\n\n`;
-                return `<tr><td class="p-4 font-black">${name}</td><td class="p-4">${data.count}</td><td class="p-4 font-black text-green-400">₪${data.z}</td><td class="p-4 font-black text-amber-500">₪${comm}</td></tr>`;
+                return `<tr><td class="p-4 font-black text-right">${name}</td><td class="p-4">${data.count}</td><td class="p-4 font-black text-green-400">₪${data.z}</td><td class="p-4 font-black text-amber-500 text-lg italic">₪${comm}</td></tr>`;
             }).join('');
-            
             whatsappText += `סה"כ עמלות לתשלום: ₪${totalComm}`;
 
             return `
-                <div class="max-w-4xl mx-auto space-y-6 text-white">
+                <div class="max-w-4xl mx-auto space-y-6 text-white text-right">
                     <div class="flex justify-between items-center">
-                        <button onclick="updateState({showSummary: false})" class="bg-red-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase">חזור</button>
+                        <button onclick="updateState({showSummary: false})" class="bg-red-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase shadow-lg">חזור</button>
                         <button onclick="shareSummaryReport(\`${whatsappText}\`)" class="bg-green-600 px-4 py-2 rounded-lg text-[10px] font-black uppercase flex items-center gap-2">שלח סיכום לבוס <i data-lucide="send" size="12"></i></button>
                     </div>
                     <div class="glass rounded-2xl overflow-hidden border border-white/10">
@@ -258,7 +268,7 @@
                             </thead>
                             <tbody class="divide-y divide-white/5">${tableRows}</tbody>
                             <tfoot class="bg-amber-500/10 font-black">
-                                <tr><td colspan="3" class="p-4 text-right">סה"כ לתשלום:</td><td class="p-4 text-amber-500 text-xl font-black">₪${totalComm}</td></tr>
+                                <tr><td colspan="3" class="p-4 text-right font-black">סה"כ לתשלום:</td><td class="p-4 text-amber-500 text-xl italic font-black">₪${totalComm}</td></tr>
                             </tfoot>
                         </table>
                     </div>
