@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClubPro V15 - Fixed & Improved</title>
+    <title>ClubPro V15.1 - Fixed Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -42,12 +42,13 @@
         let state = {
             user: null, role: null, userName: '', phone: '', reservations: [],
             isAdding: false, editingId: null, showSummary: false,
-            selectedDate: '', // ריק מציג את כל ההזמנות
+            selectedDate: '', 
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, eventDate: todayStr, notes: '' }
         };
 
         function showToast(msg, isError = false) {
             const t = document.getElementById('toast');
+            if(!t) return;
             t.innerText = msg;
             t.className = `fixed top-4 left-1/2 -translate-x-1/2 z-50 p-4 rounded-xl block font-bold shadow-2xl ${isError ? 'bg-red-600' : 'bg-green-600'} text-white`;
             setTimeout(() => t.className = 'hidden', 3000);
@@ -56,28 +57,33 @@
         async function login(val) {
             const clean = val.trim();
             if (clean.toLowerCase() === 'res') {
-                updateState({ role: 'admin', userName: 'Admin', phone: 'ADMIN' });
+                state.role = 'admin'; state.userName = 'Admin'; state.phone = 'ADMIN';
                 localStorage.setItem('club_role', 'admin');
                 localStorage.setItem('club_name', 'Admin');
                 localStorage.setItem('club_phone', 'ADMIN');
+                render();
             } else if (clean.length >= 10) {
                 const userDoc = await db.collection('users').doc(clean).get();
                 if (userDoc.exists) {
                     const d = userDoc.data();
-                    updateState({ role: 'promoter', userName: d.name, phone: clean });
+                    state.role = 'promoter'; state.userName = d.name; state.phone = clean;
                     localStorage.setItem('club_role', 'promoter');
                     localStorage.setItem('club_name', d.name);
                     localStorage.setItem('club_phone', clean);
+                    render();
                 } else {
                     const name = prompt("שם מלא לרישום:");
                     if (name) {
                         await db.collection('users').doc(clean).set({ name, phone: clean });
-                        updateState({ role: 'promoter', userName: name, phone: clean });
+                        state.role = 'promoter'; state.userName = name; state.phone = clean;
                         localStorage.setItem('club_role', 'promoter');
                         localStorage.setItem('club_name', name);
                         localStorage.setItem('club_phone', clean);
+                        render();
                     }
                 }
+            } else {
+                alert("קוד לא תקין");
             }
         }
 
@@ -100,74 +106,45 @@
             if (state.editingId) await db.collection('reservations').doc(state.editingId).update(data);
             else { data.arrived = false; await db.collection('reservations').add(data); }
             
-            updateState({ isAdding: false, editingId: null, formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, eventDate: todayStr, notes: '' } });
+            state.isAdding = false; state.editingId = null;
+            state.formData = { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, eventDate: todayStr, notes: '' };
+            render();
             showToast("נשמר בהצלחה");
-        }
-
-        function updateState(newData) { state = { ...state, ...newData }; render(); }
-
-        function sendWhatsApp(res) {
-            const text = `שלום ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים. שים לב התחלה 22:30 בכתובת נחלת בנימין 66 - ARIA TLV. על כל שינוי יש לעדכן אותנו.`;
-            const phone = res.phone.replace(/^0/, '972');
-            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
         }
 
         function render() {
             const root = document.getElementById('app');
-            if (!state.role) { root.innerHTML = renderLogin(); return; }
+            if (!state.role) {
+                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4 text-right"><div class="w-full max-w-md glass p-10 rounded-[2rem] text-center border border-white/10"><h2 class="text-3xl font-black mb-8 italic uppercase text-white tracking-widest text-center">Staff Login</h2><input id="login-input" type="text" placeholder="קוד / טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white text-xl outline-none"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black shadow-xl shadow-amber-500/10">Login</button></div></div>`;
+                return;
+            }
+
+            let list = state.reservations.filter(r => {
+                const matchDate = state.selectedDate ? r.eventDate === state.selectedDate : true;
+                const matchUser = state.role === 'admin' ? true : r.promoterId === state.phone;
+                return matchDate && matchUser && r.status === 'active';
+            });
+            list = list.sort((a,b) => a.eventDate.localeCompare(b.eventDate));
             
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden text-right">
                     <header class="bg-slate-950 p-4 border-b border-white/5 flex justify-between items-center">
-                        <div class="flex items-center gap-2 font-black italic text-xl uppercase tracking-tighter">CLUB<span class="text-amber-500">PRO</span></div>
+                        <div class="flex items-center gap-2 font-black italic text-xl uppercase tracking-tighter text-white">CLUB<span class="text-amber-500">PRO</span></div>
                         <button onclick="logout()" class="text-slate-500"><i data-lucide="log-out" size="18"></i></button>
                     </header>
                     <div class="bg-slate-900 p-3 border-b border-white/5 flex items-center justify-between px-4">
                         <div class="flex items-center gap-2">
-                            <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value})" class="bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs outline-none font-bold">
-                            <span class="text-[10px] text-slate-400 font-bold">(<--) תבחר תאריך</span>
+                            <input type="date" value="${state.selectedDate}" onchange="state.selectedDate = this.value; render();" class="bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs outline-none font-bold">
+                            <span class="text-[10px] text-slate-400 font-bold">(<--) תאריך</span>
                         </div>
-                        <button onclick="updateState({selectedDate: ''})" class="text-[10px] font-black uppercase text-amber-500">הצג הכל</button>
+                        <button onclick="state.selectedDate = ''; render();" class="text-[10px] font-black uppercase text-amber-500">הצג הכל</button>
                     </div>
                     <main class="flex-1 overflow-y-auto p-4 bg-slate-950/50">
-                        ${state.role === 'promoter' ? renderPromoter() : (state.showSummary ? renderSummary() : renderAdmin())}
+                        ${state.showSummary ? renderSummary(list) : (state.isAdding ? renderBookingForm() : (state.role === 'admin' ? renderAdmin(list) : renderPromoter(list)))}
                     </main>
                 </div>
             `;
             lucide.createIcons();
-        }
-
-        function renderLogin() {
-            return `<div class="h-screen flex items-center justify-center p-4 text-right"><div class="w-full max-w-md glass p-10 rounded-[2rem] text-center border border-white/10"><h2 class="text-3xl font-black mb-8 italic uppercase text-white tracking-widest text-center">Staff Login</h2><input id="login-input" type="text" placeholder="קוד / טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white text-xl outline-none"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black shadow-xl shadow-amber-500/10">Login</button></div></div>`;
-        }
-
-        function renderPromoter() {
-            let list = state.reservations.filter(r => r.promoterId === state.phone && r.status === 'active');
-            if (state.selectedDate) list = list.filter(r => r.eventDate === state.selectedDate);
-            list = list.sort((a,b) => a.eventDate.localeCompare(b.eventDate));
-
-            return `
-                <div class="max-w-4xl mx-auto space-y-6 text-right">
-                    <div class="flex justify-between items-center text-right"><h2 class="text-xl font-black italic uppercase text-right">My Bookings</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-sm uppercase">+ New</button></div>
-                    ${state.isAdding ? renderBookingForm() : `
-                        <div class="space-y-3">
-                            ${list.map(res => `
-                                <div class="glass p-4 rounded-xl flex justify-between items-center ${res.arrived ? 'arrived' : ''}">
-                                    <div class="text-right">
-                                        <p class="font-bold text-white">${res.name} ${res.arrived ? '✅' : ''}</p>
-                                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">${res.pax} PAX | ${res.type} | ${res.eventDate}</p>
-                                    </div>
-                                    <div class="flex gap-1">
-                                        <button onclick='sendWhatsApp(${JSON.stringify(res)})' class="text-green-500 p-2 hover:bg-green-500/10 rounded-lg"><i data-lucide="message-circle" size="18"></i></button>
-                                        <button onclick='editBooking(${JSON.stringify(res)})' class="text-amber-500 p-2 hover:bg-amber-500/10 rounded-lg"><i data-lucide="edit-3" size="18"></i></button>
-                                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-2 hover:bg-red-500/10 rounded-lg"><i data-lucide="trash-2" size="18"></i></button>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `}
-                </div>
-            `;
         }
 
         function renderBookingForm() {
@@ -175,194 +152,34 @@
             if (min === null) min = (state.formData.type === 'free') ? 0 : (Number(state.formData.pax) * 300);
             return `
                 <div class="glass p-6 rounded-2xl text-right space-y-4 border border-white/5">
-                    <div class="grid grid-cols-2 gap-2 text-right">
-                        <input required placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm font-bold">
-                        <input required placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="bg-white/5 border border-white/10 rounded-lg p-3 text-left text-white outline-none text-sm font-bold" dir="ltr">
-                    </div>
+                    <input required placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm font-bold">
+                    <input required placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-left text-white outline-none text-sm font-bold" dir="ltr">
                     <div class="flex items-center gap-2">
-                        <input type="date" value="${state.formData.eventDate}" onchange="updateState({formData: {...state.formData, eventDate: this.value}})" class="flex-1 bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none font-bold">
-                        <span class="text-[10px] text-slate-400 font-bold text-right">(<--) תאריך</span>
+                        <input type="date" value="${state.formData.eventDate}" onchange="state.formData.eventDate = this.value; render();" class="flex-1 bg-white/5 border border-white/10 rounded-lg p-3 text-white outline-none font-bold">
+                        <span class="text-[10px] text-slate-400 font-bold">(<--) תאריך</span>
                     </div>
                     <div class="flex gap-1">
-                        ${['table','bar','free'].map(t => `<button type="button" onclick="updateState({formData: {...state.formData, type: '${t}', manualPrice: '${t}'==='free'?0:null}})" class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase tracking-tighter ${state.formData.type===t?'bg-amber-500 text-black border-amber-500':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'Table':t==='bar'?'Bar':'Free'}</button>`).join('')}
+                        ${['table','bar','free'].map(t => `<button type="button" onclick="state.formData.type = '${t}'; render();" class="flex-1 py-2 rounded-lg border text-[10px] font-black uppercase tracking-tighter ${state.formData.type===t?'bg-amber-500 text-black border-amber-500':'bg-white/5 text-slate-400 border-white/10'}">${t}</button>`).join('')}
                     </div>
                     <div class="grid grid-cols-2 gap-2 text-right">
-                        <div class="text-center text-right"><label class="text-[10px] text-slate-500 uppercase font-black text-right">PAX</label><input type="text" inputmode="numeric" value="${state.formData.pax}" oninput="state.formData.pax = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-center font-bold text-right"></div>
-                        <div class="text-center text-right"><label class="text-[10px] text-amber-500 uppercase font-black text-right">Min ₪</label><input type="text" inputmode="numeric" value="${min}" oninput="state.formData.manualPrice = Number(this.value)" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-500 text-center font-black text-right"></div>
+                        <div class="text-right"><label class="text-[10px] text-slate-500 uppercase font-black">PAX</label><input type="text" inputmode="numeric" value="${state.formData.pax}" oninput="state.formData.pax = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-center font-bold"></div>
+                        <div class="text-right"><label class="text-[10px] text-amber-500 uppercase font-black">Min ₪</label><input type="text" inputmode="numeric" value="${min}" oninput="state.formData.manualPrice = Number(this.value)" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-amber-500 text-center font-black"></div>
                     </div>
-                    <textarea placeholder="הערות להזמנה..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm h-16 font-bold text-right">${state.formData.notes || ''}</textarea>
-                    <div class="flex justify-end gap-3 pt-2 text-right"><button type="button" onclick="updateState({isAdding: false, editingId: null, formData: {type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, eventDate: todayStr, notes: ''}})" class="text-slate-500 text-xs font-bold uppercase text-right">Cancel</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl uppercase font-black text-right">Confirm</button></div>
+                    <textarea placeholder="הערות..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-right outline-none text-sm h-16 font-bold">${state.formData.notes || ''}</textarea>
+                    <div class="flex justify-end gap-3 pt-2 text-right"><button type="button" onclick="state.isAdding = false; state.editingId = null; render();" class="text-slate-500 text-xs font-bold uppercase">Cancel</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-lg shadow-xl uppercase font-black text-right">Confirm</button></div>
                 </div>
             `;
         }
 
-        function renderAdmin() {
-            let list = state.reservations.filter(r => r.status === 'active');
-            if (state.selectedDate) list = list.filter(r => r.eventDate === state.selectedDate);
-            list = list.sort((a,b) => a.eventDate.localeCompare(b.eventDate));
-            
-            const stats = { pax: 0, tableCount: 0, tablePax: 0, barCount: 0, barPax: 0, z: 0 };
-            list.forEach(r => {
-                stats.pax += Number(r.pax || 0);
-                if(r.type === 'table') { stats.tableCount++; stats.tablePax += Number(r.pax || 0); }
-                if(r.type === 'bar') { stats.barCount++; stats.barPax += Number(r.pax || 0); }
-                stats.z += Number(r.actualRevenue || 0);
-            });
-
-            const renderGroup = (title, type) => {
-                const groupList = list.filter(r => r.type === type);
-                if (groupList.length === 0) return '';
-                return `
-                    <div class="mt-4">
-                        <div class="group-header p-2 mb-2 font-black text-amber-500 text-[10px] uppercase tracking-widest text-right">${title}</div>
-                        ${groupList.map(res => renderAdminRow(res)).join('')}
-                    </div>
-                `;
-            };
-
+        function renderAdmin(list) {
+            const stats = { pax: 0, z: 0 };
+            list.forEach(r => { stats.pax += Number(r.pax || 0); stats.z += Number(r.actualRevenue || 0); });
             return `
-                <div class="max-w-6xl mx-auto space-y-4 text-right">
-                    <div class="flex justify-between items-center text-right">
-                        <h2 class="text-xl font-black italic uppercase text-right tracking-widest">Management</h2>
-                        <div class="flex gap-2">
-                            <button onclick="updateState({showSummary: true})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase text-right shadow-lg font-black">צפה בסיכום יחצנים</button>
-                            <button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2 rounded-lg text-xs uppercase text-right shadow-lg font-black tracking-widest text-right">הזמנה חדשה</button>
-                        </div>
+                <div class="space-y-4">
+                    <div class="flex justify-between gap-2">
+                        <button onclick="state.showSummary = true; render();" class="flex-1 bg-blue-600 text-white py-3 rounded-xl text-[10px] font-black uppercase shadow-lg">סיכום עמלות</button>
+                        <button onclick="state.isAdding = true; render();" class="flex-1 btn-amber py-3 rounded-xl text-[10px] font-black uppercase shadow-lg">הזמנה חדשה</button>
                     </div>
-                    ${state.isAdding ? renderBookingForm() : `
-                        <div class="grid grid-cols-2 gap-2 text-right">
-                            <div class="glass p-3 rounded-xl text-center border border-white/5"><p class="text-[8px] text-slate-500 uppercase font-black text-center">Total Pax</p><p class="text-xl font-black text-center">${stats.pax}</p></div>
-                            <div class="glass p-3 rounded-xl text-center border-green-500/30 border text-center"><p class="text-[8px] text-slate-500 uppercase font-black tracking-widest text-green-500 text-center">Revenue Z</p><p class="text-xl font-black text-green-400 text-center">₪${stats.z}</p></div>
-                        </div>
-                        <div class="glass rounded-2xl overflow-hidden mt-4 border border-white/5 text-right">
-                            ${renderGroup('Tables', 'table')}
-                            ${renderGroup('Bar', 'bar')}
-                            ${renderGroup('Free Entry', 'free')}
-                            ${list.length === 0 ? '<p class="p-10 text-center opacity-20 font-black uppercase tracking-widest text-center">No Bookings</p>' : ''}
-                        </div>
-                    `}
-                </div>
-            `;
-        }
-
-        function renderSummary() {
-            const dayList = state.reservations.filter(r => r.eventDate === (state.selectedDate || todayStr) && r.status === 'active');
-            const summary = {};
-            
-            dayList.forEach(r => {
-                const p = r.promoterName || 'Admin';
-                if (!summary[p]) summary[p] = { count: 0, pax: 0, z: 0 };
-                summary[p].count++;
-                summary[p].pax += Number(r.pax || 0);
-                summary[p].z += Number(r.actualRevenue || 0);
-            });
-
-            const totalCommission = Object.values(summary).reduce((acc, curr) => acc + (curr.z * 0.1), 0);
-
-            return `
-                <div class="max-w-4xl mx-auto space-y-6 text-right">
-                    <div class="flex justify-between items-center text-right">
-                        <h2 class="text-xl font-black italic uppercase tracking-tighter text-amber-500 text-right">סיכום עמלות יחצנים - ${state.selectedDate || todayStr}</h2>
-                        <button onclick="updateState({showSummary: false})" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase text-right shadow-lg font-black">חזור לניהול</button>
-                    </div>
-                    
-                    <div class="glass rounded-2xl overflow-hidden border border-white/10 text-right">
-                        <table class="w-full text-sm text-right">
-                            <thead class="bg-white/5 text-[10px] uppercase font-black text-slate-400 text-right">
-                                <tr>
-                                    <th class="p-4 text-right">שם יחצן</th>
-                                    <th class="p-4 text-right">הזמנות</th>
-                                    <th class="p-4 text-right text-green-400 font-black">סה"כ Z</th>
-                                    <th class="p-4 text-right text-amber-500 font-black">עמלה (10%)</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-white/5 text-right">
-                                ${Object.entries(summary).map(([name, data]) => `
-                                    <tr>
-                                        <td class="p-4 font-bold text-white text-right font-black">${name}</td>
-                                        <td class="p-4 text-slate-400 text-right text-center">${data.count}</td>
-                                        <td class="p-4 font-bold text-white text-right">₪${data.z}</td>
-                                        <td class="p-4 font-black text-amber-500 text-right italic font-black text-lg">₪${(data.z * 0.1).toFixed(0)}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                            <tfoot class="bg-amber-500/10 font-black text-right">
-                                <tr>
-                                    <td colspan="3" class="p-4 text-white text-right font-black">סה"כ עמלות לתשלום (10%):</td>
-                                    <td class="p-4 text-amber-500 text-lg text-right italic font-black text-xl">₪${totalCommission.toFixed(0)}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    <button onclick="sendSummaryEmail('${state.selectedDate || todayStr}', ${JSON.stringify(summary)})" class="w-full bg-blue-600 hover:bg-blue-700 p-5 rounded-xl font-black flex items-center justify-center gap-2 transition-all text-white text-center shadow-xl uppercase font-black tracking-widest">
-                        <i data-lucide="mail"></i> שלח סיכום ופירוט עמלות לניהול
-                    </button>
-                </div>
-            `;
-        }
-
-        function sendSummaryEmail(date, summary) {
-            const recipient = "MORGAN.FIMA@GMAIL.COM";
-            const subject = encodeURIComponent(`דוח עמלות יחצנים - ${date}`);
-            let bodyText = `סיכום עמלות לתאריך: ${date}\n\n`;
-            
-            Object.entries(summary).forEach(([name, data]) => {
-                bodyText += `${name}: סה"כ Z: ₪${data.z} | עמלה (10%): ₪${(data.z * 0.1).toFixed(0)}\n`;
-            });
-            
-            const totalComm = Object.values(summary).reduce((acc, curr) => acc + (curr.z * 0.1), 0);
-            bodyText += `\n--------------------------\nסה"כ עמלות לתשלום: ₪${totalComm.toFixed(0)}`;
-            
-            window.location.href = `mailto:${recipient}?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
-        }
-
-        function renderAdminRow(res) {
-            return `
-                <div class="flex items-center justify-between p-3 border-b border-white/5 ${res.arrived ? 'bg-green-500/5 arrived' : ''} text-right">
-                    <div class="flex items-center gap-3 text-right">
-                        <input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-4 h-4 rounded accent-green-500">
-                        <div class="text-right">
-                            <p class="font-bold text-white text-xs text-right font-black">${res.name} (${res.pax}) <span class="text-[8px] text-amber-500 uppercase font-black">[${res.promoterName}]</span></p>
-                            <p class="text-[9px] text-slate-400 font-bold italic text-right">${res.eventDate} | Min: ₪${res.minOrder} ${res.notes ? '| ' + res.notes : ''}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-1 text-right">
-                        <input type="text" inputmode="numeric" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-12 bg-black border border-white/10 rounded p-1 text-center text-green-400 text-[10px] font-bold outline-none text-right">
-                        <button onclick='sendWhatsApp(${JSON.stringify(res)})' class="text-green-500 p-1 hover:bg-green-500/10 rounded"><i data-lucide="message-circle" size="14"></i></button>
-                        <button onclick='editBooking(${JSON.stringify(res)})' class="text-amber-500 p-1 hover:bg-amber-500/10 rounded"><i data-lucide="edit-3" size="14"></i></button>
-                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1 hover:bg-red-500/10 rounded"><i data-lucide="trash-2" size="14"></i></button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function editBooking(res) {
-            state.editingId = res.id;
-            state.formData = {
-                clientName: res.name || "",
-                clientPhone: res.phone || "",
-                type: res.type || "table",
-                pax: res.pax || "",
-                eventDate: res.eventDate || todayStr,
-                manualPrice: res.minOrder || null,
-                notes: res.notes || ""
-            };
-            state.isAdding = true;
-            render();
-        }
-
-        auth.onAuthStateChanged(user => {
-            if (!user) { auth.signInAnonymously(); return; }
-            state.user = user;
-            db.collection('reservations').onSnapshot(snap => { 
-                const newData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                updateState({ reservations: newData }); 
-            });
-            const savedRole = localStorage.getItem('club_role');
-            if (savedRole) updateState({ role: savedRole, userName: localStorage.getItem('club_name'), phone: localStorage.getItem('club_phone') });
-            else render();
-        });
-    </script>
-</body>
-</html>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="glass p-3 rounded-xl text-center"><p class="text-[8px] text-slate-500 uppercase font-black">Total Pax</p><p class="text-xl font-black">${stats.pax}</p></div>
+                        <div class="glass p-3 rounded-
