@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClubPro V17.3 - WhatsApp Bold Fixed</title>
+    <title>ClubPro V17.4 - Compact Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -16,8 +16,8 @@
         .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; }
         .arrived { border-right: 4px solid #22c55e !important; background: rgba(34, 197, 94, 0.05) !important; }
         .venue-card { transition: all 0.3s ease; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(30, 41, 59, 0.4); }
-        .venue-card:hover { transform: scale(1.02); border-color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
-        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 4px solid #f59e0b; }
+        .venue-card:hover { transform: scale(1.02); border-color: #f59e0b; }
+        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 3px solid #f59e0b; }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
@@ -112,14 +112,12 @@
             const vName = venues.find(v => v.id === state.venueId).name;
             let text = `*${vName.toUpperCase()} - רשימת הזמנות ${getDayName(date)} ${date}*\n`;
             text += `--------------------------\n\n`;
-
             ['table', 'bar', 'free'].forEach(type => {
                 const filtered = dayList.filter(r => r.type === type);
                 if (filtered.length > 0) {
                     text += `*${type === 'table' ? '🏠 שולחנות' : type === 'bar' ? '🍸 בר' : '🎟️ כניסות חינם'}:*\n`;
                     filtered.forEach((r, i) => {
-                        // תיקון בולד: כוכבית צמודה לשם ללא רווח
-                        text += `${i + 1}. *${r.name.trim()}* | אנשים: ${r.pax} | מינימום: ₪${r.minOrder} | יחצן: ${r.promoterName}\n`;
+                        text += `${i + 1}. *${r.name.trim()}* | PAX: ${r.pax} | Min: ₪${r.minOrder} | יחצן: ${r.promoterName}\n`;
                         if(r.notes) text += `   📝 ${r.notes}\n`;
                     });
                     text += `\n`;
@@ -131,24 +129,17 @@
         function render() {
             const root = document.getElementById('app');
             if (!state.role) {
-                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4 text-center text-white"><div class="w-full max-w-md glass p-10 rounded-[2rem] border border-white/10"><h2 class="text-3xl font-black mb-8 italic uppercase tracking-widest">Login</h2><input id="login-input" type="text" placeholder="קוד או טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white text-xl outline-none font-bold"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black shadow-xl">כניסה</button></div></div>`;
+                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4 text-center text-white"><div class="w-full max-w-md glass p-10 rounded-[2rem] border border-white/10"><h2 class="text-3xl font-black mb-8 italic uppercase tracking-widest text-white">Login</h2><input id="login-input" type="text" placeholder="קוד או טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white text-xl outline-none font-bold shadow-lg"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black shadow-xl">כניסה</button></div></div>`;
                 return;
             }
 
             if (!state.venueId) {
-                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-10"><h2 class="text-3xl font-black text-amber-500 uppercase tracking-tighter">לאיזה מקום סוגרים?</h2><div class="grid grid-cols-1 gap-6 w-full max-w-md text-white">${venues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="venue-card p-8 rounded-[2rem] text-center text-3xl font-black uppercase tracking-widest shadow-2xl">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-8 underline text-sm tracking-widest hover:text-white transition-colors">התנתק מהמערכת</button></div>`;
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white"><h2 class="text-2xl font-black text-amber-500 uppercase tracking-tighter">לאיזה מקום סוגרים?</h2><div class="grid grid-cols-1 gap-4 w-full max-w-sm">${venues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="venue-card p-6 rounded-2xl text-center text-2xl font-black uppercase tracking-widest shadow-xl">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-4 underline text-xs tracking-widest">התנתק</button></div>`;
                 return;
             }
 
             if (!state.selectedDate) {
-                root.innerHTML = `
-                    <div class="h-screen p-6 flex flex-col items-center justify-center space-y-10 text-white">
-                        <button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-xl flex items-center gap-3 border-2 border-amber-500/30 px-10 py-4 rounded-2xl bg-amber-500/5 hover:bg-amber-500 hover:text-black transition-all shadow-2xl tracking-widest uppercase"><i data-lucide="arrow-right" size="24"></i> חזרה לדף הבית</button>
-                        <h2 class="text-3xl font-black uppercase tracking-tighter">לאיזה תאריך ההזמנה?</h2>
-                        <div class="glass p-10 rounded-[2.5rem] w-full max-w-lg text-center shadow-2xl border-white/5">
-                            <input type="date" value="${todayStr}" onchange="updateState({selectedDate: this.value})" class="w-full bg-white/10 border border-white/20 rounded-2xl p-6 text-white text-3xl outline-none font-black text-center shadow-inner">
-                        </div>
-                    </div>`;
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-8 text-white"><button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-sm flex items-center gap-2 border border-amber-500/30 px-6 py-2 rounded-full bg-amber-500/5 hover:bg-amber-500 hover:text-black transition-all shadow-lg uppercase tracking-widest"><i data-lucide="arrow-right" size="18"></i> חזרה לדף הבית</button><h2 class="text-2xl font-black uppercase tracking-tighter">לאיזה תאריך ההזמנה?</h2><div class="glass p-8 rounded-[2rem] w-full max-w-md text-center shadow-xl border-white/5"><input type="date" value="${todayStr}" onchange="updateState({selectedDate: this.value})" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white text-2xl outline-none font-black text-center shadow-inner"></div></div>`;
                 lucide.createIcons();
                 return;
             }
@@ -159,18 +150,18 @@
 
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden text-right text-white">
-                    <header class="bg-slate-950 p-5 border-b border-white/5 flex justify-between items-center">
-                        <div class="font-black italic text-2xl uppercase tracking-tighter text-amber-500">${venue.name}</div>
-                        <button onclick="updateState({venueId: null, selectedDate: '', isAdding: false, showSummary: false})" class="text-amber-500 font-black text-base border-2 border-amber-500/50 px-6 py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500 hover:text-black transition-all shadow-lg tracking-widest">חזרה לדף הבית</button>
+                    <header class="bg-slate-950 p-3 border-b border-white/5 flex justify-between items-center shadow-lg">
+                        <div class="font-black italic text-lg uppercase tracking-tighter text-amber-500">${venue.name}</div>
+                        <button onclick="updateState({venueId: null, selectedDate: '', isAdding: false, showSummary: false})" class="text-amber-500 font-black text-[10px] border border-amber-500/50 px-3 py-1.5 rounded-lg bg-amber-500/5 hover:bg-amber-500 hover:text-black transition-all uppercase tracking-widest">חזרה לדף הבית</button>
                     </header>
-                    <div class="bg-slate-900 p-4 border-b border-white/5 flex items-center justify-between px-6">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs text-amber-500 font-black uppercase tracking-widest">תאריך נבחר:</span>
-                            <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value})" class="bg-white/10 border border-white/20 rounded-xl p-2.5 text-white text-sm outline-none font-black shadow-inner">
+                    <div class="bg-slate-900 p-2 border-b border-white/5 flex items-center justify-between px-4 shadow-md">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[9px] text-amber-500 font-black uppercase tracking-tighter">תאריך:</span>
+                            <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value})" class="bg-white/10 border border-white/20 rounded-lg p-1.5 text-white text-xs outline-none font-black shadow-inner">
                         </div>
-                        <div class="text-sm font-black uppercase bg-white/10 px-5 py-2 rounded-full border border-white/5">${getDayName(state.selectedDate)}</div>
+                        <div class="text-xs font-black uppercase bg-white/10 px-3 py-1 rounded-full border border-white/5">${getDayName(state.selectedDate)}</div>
                     </div>
-                    <main class="flex-1 overflow-y-auto p-4 bg-slate-950/50">
+                    <main class="flex-1 overflow-y-auto p-3 bg-slate-950/50">
                         ${state.showSummary ? renderSummary(list) : (state.isAdding ? renderForm() : (state.role === 'admin' ? renderAdmin(list) : renderPromoter(list)))}
                     </main>
                 </div>
@@ -182,22 +173,22 @@
             const stats = { tables: 0, bar: 0, z: 0 };
             list.forEach(r => { if(r.type==='table') stats.tables+=Number(r.pax); if(r.type==='bar') stats.bar+=Number(r.pax); stats.z+=Number(r.actualRevenue); });
             return `
-                <div class="space-y-6">
-                    <div class="flex justify-between gap-3">
-                        <button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-600 py-5 rounded-2xl text-xs font-black uppercase shadow-xl tracking-widest">סיכום עמלות</button>
-                        <button onclick="updateState({isAdding: true})" class="flex-1 btn-amber py-5 rounded-2xl text-xs font-black uppercase shadow-xl tracking-widest">הזמנה חדשה</button>
+                <div class="space-y-3">
+                    <div class="flex justify-between gap-2">
+                        <button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-600 py-3 rounded-xl text-[10px] font-black uppercase shadow-lg tracking-widest">סיכום עמלות</button>
+                        <button onclick="updateState({isAdding: true})" class="flex-1 btn-amber py-3 rounded-xl text-[10px] font-black uppercase shadow-lg tracking-widest">הזמנה חדשה</button>
                     </div>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div class="glass p-3 rounded-2xl text-center"><p class="text-[9px] text-slate-500 font-black uppercase">PAX TABLES</p><p class="text-2xl font-black">${stats.tables}</p></div>
-                        <div class="glass p-3 rounded-2xl text-center"><p class="text-[9px] text-slate-500 font-black uppercase">PAX BAR</p><p class="text-2xl font-black">${stats.bar}</p></div>
-                        <div class="glass p-3 rounded-2xl text-center border-green-500/30 border"><p class="text-[9px] text-green-500 font-black uppercase">TOTAL Z</p><p class="text-2xl font-black text-green-400">₪${stats.z}</p></div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="glass p-2 rounded-xl text-center"><p class="text-[7px] text-slate-500 font-black uppercase">PAX TABLES</p><p class="text-lg font-black">${stats.tables}</p></div>
+                        <div class="glass p-2 rounded-xl text-center"><p class="text-[7px] text-slate-500 font-black uppercase">PAX BAR</p><p class="text-lg font-black">${stats.bar}</p></div>
+                        <div class="glass p-2 rounded-xl text-center border-green-500/30 border"><p class="text-[7px] text-green-500 font-black uppercase">TOTAL Z</p><p class="text-lg font-black text-green-400">₪${stats.z}</p></div>
                     </div>
-                    <div class="flex justify-center"><button onclick="exportDailyList(state.selectedDate, state.reservations.filter(r => r.eventDate === state.selectedDate && r.venueId === state.venueId && r.status === 'active'))" class="bg-green-600 px-12 py-4 rounded-full font-black text-sm flex items-center gap-3 shadow-2xl hover:scale-105 transition-transform">ייצוא רשימה יומית לווצאפ <i data-lucide="share-2" size="20"></i></button></div>
-                    <div class="glass rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl">
+                    <div class="flex justify-center"><button onclick="exportDailyList(state.selectedDate, state.reservations.filter(r => r.eventDate === state.selectedDate && r.venueId === state.venueId && r.status === 'active'))" class="bg-green-600 px-6 py-2 rounded-full font-black text-[10px] flex items-center gap-2 shadow-lg tracking-widest">ייצוא לווצאפ <i data-lucide="share-2" size="12"></i></button></div>
+                    <div class="glass rounded-2xl overflow-hidden border border-white/5 shadow-xl">
                         ${['table', 'bar', 'free'].map(type => {
                             const gList = list.filter(r => r.type === type);
                             if(gList.length === 0) return '';
-                            return `<div class="p-3 border-b border-white/5"><div class="group-header p-3 mb-2 font-black text-amber-500 text-xs uppercase tracking-widest">${type.toUpperCase()}</div>${gList.map(r => renderRow(r, true)).join('')}</div>`;
+                            return `<div class="p-2 border-b border-white/5"><div class="group-header p-1.5 mb-1.5 font-black text-amber-500 text-[9px] uppercase tracking-widest">${type.toUpperCase()}</div>${gList.map(r => renderRow(r, true)).join('')}</div>`;
                         }).join('')}
                     </div>
                 </div>`;
@@ -205,30 +196,30 @@
 
         function renderRow(res, isAdmin) {
             return `
-                <div class="flex items-center justify-between p-4 border-b border-white/5 ${res.arrived ? 'bg-green-500/10 arrived' : ''}">
-                    <div class="flex items-center gap-4">
-                        ${isAdmin ? `<input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-6 h-6 accent-green-500 rounded-lg">` : ''}
+                <div class="flex items-center justify-between p-2.5 border-b border-white/5 ${res.arrived ? 'bg-green-500/10 arrived' : ''}">
+                    <div class="flex items-center gap-2">
+                        ${isAdmin ? `<input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-5 h-5 accent-green-500 rounded">` : ''}
                         <div class="text-right">
-                            <p class="font-black text-sm text-white">${res.name} (${res.pax}) <span class="text-[10px] text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full uppercase ml-1">${res.promoterName}</span></p>
-                            <p class="text-xs text-slate-400 font-bold italic mt-0.5">מינ': ₪${res.minOrder}</p>
-                            ${res.notes ? `<p class="text-[11px] text-white font-bold bg-white/5 p-2.5 rounded-xl mt-2.5 border-r-4 border-amber-500">📝 ${res.notes}</p>` : ''}
+                            <p class="font-black text-xs text-white leading-tight">${res.name} (${res.pax}) <span class="text-[8px] text-amber-500 uppercase ml-1 opacity-70">${res.promoterName}</span></p>
+                            <p class="text-[9px] text-slate-400 font-bold italic">₪${res.minOrder}</p>
+                            ${res.notes ? `<p class="text-[9px] text-white font-bold bg-white/5 p-1.5 rounded-lg mt-1 border-r-2 border-amber-500">📝 ${res.notes}</p>` : ''}
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        ${isAdmin ? `<input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-14 bg-black border border-white/20 rounded-xl p-2.5 text-center text-green-400 text-xs font-black outline-none shadow-inner">` : ''}
-                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-2.5 hover:bg-green-500/10 rounded-xl transition-all"><i data-lucide="message-circle" size="22"></i></button>
-                        <button onclick="updateState({editingId: '${res.id}', isAdding: true, formData: {clientName:'${res.name}', clientPhone:'${res.phone}', type:'${res.type}', pax:'${res.pax}', manualPrice:'${res.minOrder}', notes:'${res.notes || ''}'}})" class="text-amber-500 p-2.5 hover:bg-amber-500/10 rounded-xl transition-all"><i data-lucide="edit-3" size="22"></i></button>
-                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-2.5 hover:bg-red-500/10 rounded-xl transition-all"><i data-lucide="trash-2" size="22"></i></button>
+                    <div class="flex items-center gap-1.5">
+                        ${isAdmin ? `<input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-10 bg-black border border-white/20 rounded-lg p-1.5 text-center text-green-400 text-[9px] font-black outline-none shadow-inner">` : ''}
+                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-1.5 hover:bg-green-500/10 rounded-lg transition-all"><i data-lucide="message-circle" size="18"></i></button>
+                        <button onclick="updateState({editingId: '${res.id}', isAdding: true, formData: {clientName:'${res.name}', clientPhone:'${res.phone}', type:'${res.type}', pax:'${res.pax}', manualPrice:'${res.minOrder}', notes:'${res.notes || ''}'}})" class="text-amber-500 p-1.5 hover:bg-amber-500/10 rounded-lg transition-all"><i data-lucide="edit-3" size="18"></i></button>
+                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1.5 hover:bg-red-500/10 rounded-lg transition-all"><i data-lucide="trash-2" size="18"></i></button>
                     </div>
                 </div>`;
         }
 
         function renderPromoter(list) {
-            return `<div class="space-y-6"><div class="flex justify-between items-center p-2"><h2 class="text-2xl font-black italic uppercase tracking-tighter">ההזמנות שלי</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-10 py-4 rounded-2xl text-sm uppercase font-black tracking-widest shadow-2xl">+ חדש</button></div><div class="space-y-4">${list.length === 0 ? '<div class="text-center py-20 opacity-20 font-black uppercase text-white tracking-widest">אין הזמנות ליום זה</div>' : list.map(r => renderRow(r, false)).join('')}</div></div>`;
+            return `<div class="space-y-4"><div class="flex justify-between items-center px-1"><h2 class="text-lg font-black italic uppercase tracking-tighter">ההזמנות שלי</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-6 py-2.5 rounded-xl text-[10px] uppercase font-black shadow-lg">+ חדש</button></div><div class="space-y-2.5">${list.length === 0 ? '<div class="text-center py-10 opacity-20 font-black uppercase text-xs tracking-widest text-white">אין הזמנות</div>' : list.map(r => renderRow(r, false)).join('')}</div></div>`;
         }
 
         function renderForm() {
-            return `<div class="glass p-8 rounded-[2rem] space-y-6 border border-white/5 text-right"><h2 class="text-amber-500 font-black text-center text-2xl tracking-widest uppercase">${state.editingId ? 'עריכת הזמנה' : 'הזמנה חדשה ליום ' + getDayName(state.selectedDate)}</h2><input placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white text-right outline-none font-black text-lg shadow-inner"><input placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-left text-white outline-none font-black text-lg shadow-inner" dir="ltr"><div class="flex gap-2">${['table','bar','free'].map(t => `<button onclick="state.formData.type='${t}'; render();" class="flex-1 py-4 rounded-2xl border-2 text-xs font-black uppercase tracking-widest transition-all ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-xl scale-105':'bg-white/5 text-slate-400 border-white/10'}">${t}</button>`).join('')}</div><div class="grid grid-cols-2 gap-4"><div><label class="text-[10px] text-slate-500 font-black uppercase tracking-widest pr-2">כמות אנשים (PAX)</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax=this.value" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white text-center font-black text-xl shadow-inner"></div><div><label class="text-[10px] text-amber-500 font-black uppercase tracking-widest pr-2">מינימום ₪</label><input type="number" value="${state.formData.manualPrice || (state.formData.pax*300)}" oninput="state.formData.manualPrice=this.value" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 text-amber-500 text-center font-black text-xl shadow-inner"></div></div><textarea placeholder="הערות..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white text-right h-20 font-black text-lg shadow-inner">${state.formData.notes || ''}</textarea><div class="flex justify-between items-center pt-4"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 font-black uppercase text-sm tracking-widest hover:text-white">ביטול</button><button onclick="saveBooking(event)" class="btn-amber px-14 py-5 rounded-2xl shadow-2xl uppercase font-black text-lg hover:scale-105 transition-transform">שמור הזמנה</button></div></div>`;
+            return `<div class="glass p-6 rounded-[2rem] space-y-4 border border-white/5 text-right"><h2 class="text-amber-500 font-black text-center text-xl tracking-widest uppercase">${state.editingId ? 'עריכת הזמנה' : 'הזמנה חדשה'}</h2><input placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-right outline-none font-bold shadow-inner"><input placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-left text-white outline-none font-bold shadow-inner" dir="ltr"><div class="flex gap-2">${['table','bar','free'].map(t => `<button onclick="state.formData.type='${t}'; render();" class="flex-1 py-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-widest transition-all ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10'}">${t}</button>`).join('')}</div><div class="grid grid-cols-2 gap-3"><div><label class="text-[8px] text-slate-500 font-black uppercase tracking-widest pr-2">כמות (PAX)</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax=this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-center font-black shadow-inner"></div><div><label class="text-[8px] text-amber-500 font-black uppercase tracking-widest pr-2">מינ' ₪</label><input type="number" value="${state.formData.manualPrice || (state.formData.pax*300)}" oninput="state.formData.manualPrice=this.value" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-amber-500 text-center font-black shadow-inner"></div></div><textarea placeholder="הערות..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-right h-16 font-bold shadow-inner">${state.formData.notes || ''}</textarea><div class="flex justify-between items-center pt-2"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 font-black uppercase text-xs tracking-widest">ביטול</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-4 rounded-xl shadow-xl uppercase font-black">שמור</button></div></div>`;
         }
 
         function renderSummary(list) {
@@ -236,9 +227,9 @@
             let totalComm = 0;
             const tableRows = Object.entries(summary).map(([name, data]) => {
                 const comm = (data.z * 0.1).toFixed(0); totalComm += Number(comm);
-                return `<tr><td class="p-5 font-black text-right">${name}</td><td class="p-5 text-center">${data.count}</td><td class="p-5 font-black text-green-400 text-right">₪${data.z}</td><td class="p-5 font-black text-amber-500 text-right">₪${comm}</td></tr>`;
+                return `<tr><td class="p-4 font-black text-right text-xs">${name}</td><td class="p-4 text-center text-xs">${data.count}</td><td class="p-4 font-black text-green-400 text-right text-xs">₪${data.z}</td><td class="p-4 font-black text-amber-500 text-right text-xs">₪${comm}</td></tr>`;
             }).join('');
-            return `<div class="max-w-4xl mx-auto space-y-6"><div class="flex justify-between items-center"><button onclick="updateState({showSummary: false})" class="bg-red-700 px-8 py-3 rounded-2xl text-[10px] font-black uppercase shadow-xl tracking-widest">חזור</button><h2 class="text-xl font-black text-amber-500 uppercase tracking-widest">עמלות (10%)</h2></div><div class="glass rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl"><table class="w-full text-sm"><thead class="bg-white/5 text-[11px] uppercase font-black text-slate-400 text-right"><tr><th class="p-6">יחצן</th><th class="p-6 text-center">הזמנות</th><th class="p-6">Z סופי</th><th class="p-6 text-amber-500">עמלה</th></tr></thead><tbody class="divide-y divide-white/5">${tableRows}</tbody><tfoot class="bg-amber-500/10 font-black"><tr><td colspan="3" class="p-6 text-right uppercase tracking-widest">סה"כ לתשלום:</td><td class="p-6 text-amber-500 text-2xl italic text-right">₪${totalComm}</td></tr></tfoot></table></div></div>`;
+            return `<div class="max-w-4xl mx-auto space-y-4 text-white"><div class="flex justify-between items-center"><button onclick="updateState({showSummary: false})" class="bg-red-700 px-6 py-2 rounded-xl text-[9px] font-black uppercase shadow-lg">חזור</button><h2 class="text-lg font-black text-amber-500 uppercase tracking-widest text-white">עמלות</h2></div><div class="glass rounded-[1.5rem] overflow-hidden border border-white/10 shadow-xl"><table class="w-full text-sm text-white"><thead class="bg-white/5 text-[9px] uppercase font-black text-slate-400 text-right"><tr><th class="p-4">יחצן</th><th class="p-4 text-center">הזמנות</th><th class="p-4">Z</th><th class="p-4">עמלה</th></tr></thead><tbody class="divide-y divide-white/5">${tableRows}</tbody><tfoot class="bg-amber-500/10 font-black"><tr><td colspan="3" class="p-4 text-right uppercase text-xs tracking-widest">סה"כ לתשלום:</td><td class="p-4 text-amber-500 text-lg italic text-right font-black">₪${totalComm}</td></tr></tfoot></table></div></div>`;
         }
 
         auth.onAuthStateChanged(user => {
