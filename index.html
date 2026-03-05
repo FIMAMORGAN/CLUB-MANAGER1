@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png">
     <link rel="manifest" href="data:application/manifest+json,{'name':'ClubPro','short_name':'ClubPro','display':'standalone','start_url':'.','background_color':'#020617','theme_color':'#f59e0b','icons':[{'src':'https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png','sizes':'192x192','type':'image/png'}]}">
-    <title>ClubPro V23 - Professional Edition</title>
+    <title>ClubPro V24 - WhatsApp Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -19,9 +19,11 @@
         .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; }
         .alert-banner { background: #dc2626; color: white; padding: 12px; font-weight: 900; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; animation: slideDown 0.5s ease-out; box-shadow: 0 10px 40px rgba(220, 38, 38, 0.5); }
         @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
-        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 3px solid #f59e0b; font-size: 10px; padding: 3px 8px; color: #f59e0b; font-weight: 900; }
+        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 3px solid #f59e0b; font-size: 10px; padding: 4px 8px; color: #f59e0b; font-weight: 900; }
         .arrived-section { background: rgba(34, 197, 94, 0.05); border: 1px dashed rgba(34, 197, 94, 0.2); border-radius: 1rem; }
-        input, button, select { font-size: 12px !important; }
+        input, button, select, p, span, div { font-size: 12px !important; }
+        .text-tiny { font-size: 9px !important; }
+        .text-big { font-size: 14px !important; }
     </style>
 </head>
 <body>
@@ -114,7 +116,6 @@
             } else {
                 renderMainContent(root);
             }
-            lucide.createIcons();
         }
 
         function renderMainContent(root) {
@@ -137,42 +138,43 @@
                 <div class="flex flex-col h-screen overflow-hidden text-right text-white">
                     <header class="bg-slate-950 p-2 border-b border-white/5 flex justify-between items-center shadow-lg">
                         <div class="font-black italic text-base uppercase text-amber-500 pr-2">${venue.name}</div>
-                        <button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-[9px] border border-amber-500/50 px-3 py-1.5 rounded-lg bg-amber-500/5 uppercase">בית</button>
+                        <button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-tiny border border-amber-500/50 px-3 py-1 rounded-lg bg-amber-500/5 uppercase">בית</button>
                     </header>
-                    <div class="bg-slate-900 p-1.5 border-b border-white/5 flex items-center justify-between px-3">
-                        <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value})" class="bg-white/10 border border-white/20 rounded p-1 text-white text-[10px] outline-none font-black">
-                        <div class="text-[9px] font-black uppercase bg-white/10 px-2 py-0.5 rounded border border-white/5">יום ${daysHebrew[new Date(state.selectedDate).getDay()]}</div>
+                    <div class="bg-slate-900 p-1 border-b border-white/5 flex items-center justify-between px-3">
+                        <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value})" class="bg-white/10 border border-white/20 rounded p-1 text-white text-tiny outline-none font-black">
+                        <div class="text-tiny font-black uppercase bg-white/10 px-2 py-0.5 rounded border border-white/5">יום ${daysHebrew[new Date(state.selectedDate).getDay()]}</div>
                     </div>
                     <main class="flex-1 overflow-y-auto p-2 bg-slate-950/50 space-y-3">
                         <div class="grid grid-cols-4 gap-1">
-                            <div class="glass p-1.5 rounded-lg text-center"><p class="text-[7px] text-slate-500 font-black uppercase">שולחנות</p><p class="text-sm font-black">${stats.pendingT}</p></div>
-                            <div class="glass p-1.5 rounded-lg text-center"><p class="text-[7px] text-slate-500 font-black uppercase">בר</p><p class="text-sm font-black">${stats.pendingB}</p></div>
-                            <div class="glass p-1.5 rounded-lg text-center border-green-500/30 bg-green-500/5 text-green-400"><p class="text-[7px] font-black uppercase">בפנים</p><p class="text-sm font-black">${stats.arrivedCount}</p></div>
-                            <div class="glass p-1.5 rounded-lg text-center border-blue-500/30 text-blue-400"><p class="text-[7px] font-black uppercase">TOTAL Z</p><p class="text-sm font-black">₪${stats.totalZ}</p></div>
+                            <div class="glass p-1.5 rounded-lg text-center"><p class="text-tiny text-slate-500 font-black uppercase">שולחנות</p><p class="font-black">${stats.pendingT}</p></div>
+                            <div class="glass p-1.5 rounded-lg text-center"><p class="text-tiny text-slate-500 font-black uppercase">בר</p><p class="font-black">${stats.pendingB}</p></div>
+                            <div class="glass p-1.5 rounded-lg text-center border-green-500/30 bg-green-500/5 text-green-400"><p class="text-tiny font-black uppercase">בפנים</p><p class="font-black">${stats.arrivedCount}</p></div>
+                            <div class="glass p-1.5 rounded-lg text-center border-blue-500/30 text-blue-400"><p class="text-tiny font-black uppercase">TOTAL Z</p><p class="font-black">₪${stats.totalZ}</p></div>
                         </div>
 
                         ${state.isAdding ? renderForm() : `
-                            <button onclick="updateState({isAdding: true})" class="w-full btn-amber py-3.5 rounded-xl text-xs font-black uppercase shadow-lg">+ הוספת הזמנה חדשה</button>
+                            <button onclick="updateState({isAdding: true})" class="w-full btn-amber py-3 rounded-xl font-black uppercase shadow-lg">+ הוספת הזמנה</button>
                             
+                            ${state.role === 'admin' ? `
                             <div class="flex justify-center py-1">
-                                <button onclick="exportDailyList(state.selectedDate, pendingList)" class="bg-green-600 text-white px-10 py-2.5 rounded-full font-black text-[10px] flex items-center gap-2 shadow-2xl uppercase">ייצוא לווצאפ <i data-lucide="share-2" size="14"></i></button>
-                            </div>
+                                <button onclick="exportToWhatsApp('${venue.name}', '${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="bg-green-600 text-white px-10 py-2 rounded-full font-black text-tiny flex items-center gap-2 shadow-2xl uppercase">ייצוא לווצאפ <i data-lucide="share-2" size="14"></i></button>
+                            </div>` : ''}
 
                             <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl">
-                                <div class="bg-white/5 p-2 text-[9px] font-black uppercase tracking-widest text-slate-400">הזמנות שטרם הגיעו</div>
+                                <div class="bg-white/5 p-2 text-tiny font-black uppercase tracking-widest text-slate-400 text-center">הזמנות בחוץ</div>
                                 ${['table', 'bar', 'free'].map(type => {
                                     const gList = pendingList.filter(r => r.type === type);
                                     if(gList.length === 0) return '';
-                                    return `<div><div class="group-header uppercase">${type === 'table' ? 'שולחנות' : type === 'bar' ? 'בר' : 'כניסות חינם'}</div>${gList.map(r => renderRow(r, true)).join('')}</div>`;
+                                    return `<div><div class="group-header uppercase">${type === 'table' ? 'שולחנות' : type === 'bar' ? 'בר' : 'כניסות חינם'}</div>${gList.map(r => renderRow(r)).join('')}</div>`;
                                 }).join('')}
                             </div>
 
-                            <div class="arrived-section p-1 mt-3">
-                                <button onclick="updateState({showArrived: !state.showArrived})" class="w-full flex justify-between items-center p-3 text-green-500 font-black text-[10px] uppercase">
-                                    <span>לקוחות שכבר נכנסו (${arrivedList.length})</span>
-                                    <i data-lucide="${state.showArrived ? 'chevron-up' : 'chevron-down'}" size="16"></i>
+                            <div class="arrived-section p-1 mt-2">
+                                <button onclick="updateState({showArrived: !state.showArrived})" class="w-full flex justify-between items-center p-2 text-green-500 font-black text-tiny uppercase">
+                                    <span>לקוחות שבתוך המועדון (${arrivedList.length})</span>
+                                    <i data-lucide="${state.showArrived ? 'chevron-up' : 'chevron-down'}" size="14"></i>
                                 </button>
-                                ${state.showArrived ? arrivedList.map(r => renderRow(r, true)).join('') : ''}
+                                ${state.showArrived ? arrivedList.map(r => renderRow(r)).join('') : ''}
                             </div>
                         `}
                     </main>
@@ -180,18 +182,18 @@
             lucide.createIcons();
         }
 
-        function renderRow(res, isAdmin) {
+        function renderRow(res) {
             return `
-                <div class="flex items-center justify-between p-2 border-b border-white/5 ${res.arrived ? 'opacity-60' : ''}">
+                <div class="flex items-center justify-between p-2 border-b border-white/5 ${res.arrived ? 'opacity-50' : ''}">
                     <div class="flex items-center gap-2 text-right">
                         <input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-5 h-5 rounded accent-green-500">
                         <div>
-                            <p class="font-black text-sm text-white leading-tight">${res.name} (${res.pax})</p>
-                            <p class="text-[9px] text-slate-400 font-bold">₪${res.minOrder} | יחצן: ${res.promoterName}</p>
+                            <p class="font-black text-white leading-tight">${res.name} (${res.pax})</p>
+                            <p class="text-tiny text-slate-400 font-bold">₪${res.minOrder} | ${res.promoterName}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-0.5">
-                        ${state.role === 'admin' ? `<input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-10 bg-black border border-white/20 rounded p-1 text-center text-green-400 text-[10px] font-black outline-none shadow-inner">` : ''}
+                        ${state.role === 'admin' ? `<input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-10 bg-black border border-white/20 rounded p-1 text-center text-green-400 font-black outline-none">` : ''}
                         <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-1.5"><i data-lucide="message-circle" size="18"></i></button>
                         <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1.5"><i data-lucide="trash-2" size="18"></i></button>
                     </div>
@@ -199,15 +201,16 @@
         }
 
         function renderForm() {
-            return `<div class="glass p-5 rounded-[2rem] space-y-4 text-right shadow-2xl"><h2 class="text-amber-500 font-black text-center text-xs uppercase tracking-widest">פרטי הזמנה</h2><input placeholder="שם לקוח" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white outline-none font-bold text-base shadow-inner"><input placeholder="טלפון" type="tel" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-left text-white outline-none font-bold text-base shadow-inner" dir="ltr"><div class="flex gap-1.5">${['table','bar','free'].map(t => `<button onclick="state.formData.type='${t}'; render();" class="flex-1 py-3 rounded-xl border-2 text-[10px] font-black uppercase ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'שולחן':t==='bar'?'בר':'חינם'}</button>`).join('')}</div><div class="grid grid-cols-2 gap-3"><div><label class="text-[9px] text-slate-500 font-black uppercase pr-2">אנשים</label><input type="number" oninput="state.formData.pax=this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-center font-black text-lg"></div><div><label class="text-[9px] text-amber-500 font-black uppercase pr-2">מינימום ₪</label><input type="number" oninput="state.formData.manualPrice=this.value" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500 text-center font-black text-lg"></div></div><div class="flex justify-between items-center pt-2"><button onclick="updateState({isAdding: false})" class="text-slate-500 font-black uppercase text-xs">ביטול</button><button onclick="saveBooking(event)" class="btn-amber px-14 py-4 rounded-xl shadow-xl uppercase font-black text-xs tracking-widest">שמור</button></div></div>`;
+            return `<div class="glass p-5 rounded-[2rem] space-y-4 text-right shadow-2xl"><h2 class="text-amber-500 font-black text-center text-tiny uppercase tracking-widest">הזמנה חדשה</h2><input id="f-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white outline-none font-bold shadow-inner"><input id="f-phone" placeholder="טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-left text-white outline-none font-bold shadow-inner" dir="ltr"><div class="flex gap-1.5">${['table','bar','free'].map(t => `<button id="btn-${t}" onclick="updateFormType('${t}')" class="flex-1 py-3 rounded-xl border-2 font-black uppercase ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'שולחן':t==='bar'?'בר':'חינם'}</button>`).join('')}</div><div class="grid grid-cols-2 gap-3"><div><label class="text-tiny text-slate-500 font-black uppercase pr-2">אנשים</label><input id="f-pax" type="number" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-center font-black"></div><div><label class="text-tiny text-amber-500 font-black uppercase pr-2">מינ' ₪</label><input id="f-price" type="number" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500 text-center font-black"></div></div><div class="flex justify-between items-center pt-2"><button onclick="updateState({isAdding: false})" class="text-slate-500 font-black uppercase">ביטול</button><button onclick="saveNewBooking()" class="btn-amber px-14 py-4 rounded-xl shadow-xl uppercase font-black">שמור</button></div></div>`;
         }
 
-        function exportDailyList(date, dayList) {
-            const v = venues.find(v => v.id === state.venueId);
+        function updateFormType(t) { state.formData.type = t; render(); }
+
+        function exportToWhatsApp(vName, date, list) {
             const dName = daysHebrew[new Date(date).getDay()];
-            let text = `*${v.name.toUpperCase()} - יום ${dName} ${date}*\n--------------------------\n\n`;
+            let text = `*${vName.toUpperCase()} - יום ${dName} ${date}*\n--------------------------\n\n`;
             [{id:'table',l:'שולחנות'},{id:'bar',l:'בר'},{id:'free',l:'כניסות חינם'}].forEach(t => {
-                const filtered = dayList.filter(r => r.type === t.id);
+                const filtered = list.filter(r => r.type === t.id);
                 if (filtered.length > 0) {
                     text += `*🏠 ${t.l}:*\n`;
                     filtered.forEach((r, i) => { text += `${i + 1}. *${r.name.trim()}* | אנשים: ${r.pax} | מינ': ₪${r.minOrder} | יחצן: ${r.promoterName}\n`; });
@@ -231,12 +234,14 @@
             window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/, '972')}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        async function saveBooking(e) {
-            e.preventDefault();
+        async function saveNewBooking() {
+            const name = document.getElementById('f-name').value;
+            const pax = document.getElementById('f-pax').value;
+            if(!name || !pax) return alert("שם וכמות חובה");
             const data = {
-                venueId: state.venueId, name: state.formData.clientName, phone: state.formData.clientPhone || "",
-                type: state.formData.type, pax: Number(state.formData.pax), eventDate: state.selectedDate,
-                minOrder: Number(state.formData.manualPrice || (state.formData.pax * 300)), 
+                venueId: state.venueId, name: name, phone: document.getElementById('f-phone').value || "",
+                type: state.formData.type, pax: Number(pax), eventDate: state.selectedDate,
+                minOrder: Number(document.getElementById('f-price').value || (pax * 300)), 
                 promoterId: state.phone, promoterName: state.userName, status: 'active', arrived: false, actualRevenue: 0,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
@@ -252,6 +257,7 @@
                 lastCount = newRes.length; isFirstLoad = false;
                 updateState({ reservations: newRes }); 
             });
+            db.collection('users').onSnapshot(snap => { updateState({ users: snap.docs.map(d => ({ id: d.id, ...d.data() })) }); });
         });
     </script>
 </body>
