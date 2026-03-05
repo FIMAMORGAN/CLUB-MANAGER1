@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png">
     <link rel="manifest" href="data:application/manifest+json,{'name':'ClubPro','short_name':'ClubPro','display':'standalone','start_url':'.','background_color':'#020617','theme_color':'#f59e0b','icons':[{'src':'https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png','sizes':'192x192','type':'image/png'}]}">
-    <title>ClubPro V19 - Absolute Stable</title>
+    <title>ClubPro V20 - Custom WhatsApp</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -45,7 +45,11 @@
 
         const daysHebrew = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
         const todayStr = new Date().toISOString().split('T')[0];
-        const venues = [{ id: 'shalvata', name: 'Shalvata' }, { id: 'q_gallery', name: 'Q-GALLERY' }, { id: 'ruki_vverh', name: 'РУКИ ВВЕРХ' }];
+        const venues = [
+            { id: 'shalvata', name: 'Shalvata' },
+            { id: 'q_gallery', name: 'Q-GALLERY' },
+            { id: 'ruki_vverh', name: 'РУКИ ВВЕРХ' }
+        ];
 
         let lastCount = 0;
         let isFirstLoad = true;
@@ -141,7 +145,7 @@
                             <button onclick="sessionStorage.clear(); updateState({venueId: null, selectedDate: '', isAdding: false, showSummary: false, showUsers: false})" class="text-amber-500 font-black text-[9px] border border-amber-500/50 px-2.5 py-1 rounded-lg bg-amber-500/5 uppercase">בית</button>
                         </div>
                     </header>
-                    <div class="bg-slate-900 p-1.5 border-b border-white/5 flex items-center justify-between px-3">
+                    <div class="bg-slate-900 p-1.5 border-b border-white/5 flex items-center justify-between px-3 shadow-md">
                         <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value})" class="bg-white/10 border border-white/20 rounded p-1 text-white text-[10px] outline-none font-black">
                         <div class="text-[9px] font-black uppercase bg-white/10 px-2 py-0.5 rounded border border-white/5">יום ${daysHebrew[new Date(state.selectedDate).getDay()]}</div>
                     </div>
@@ -168,7 +172,7 @@
                         <div class="glass p-1.5 rounded-xl border-green-500/30 border text-green-400 font-black text-center"><p class="text-[7px] text-green-500 uppercase">TOTAL Z</p><p class="text-xs font-black">₪${stats.z}</p></div>
                     </div>
                     <div class="flex justify-center py-1">
-                        <button onclick="exportDailyList(state.selectedDate, list)" class="bg-green-600 text-white px-8 py-2 rounded-full font-black text-[10px] flex items-center gap-2 shadow-2xl uppercase">ייצוא לווצאפ <i data-lucide="share-2" size="12"></i></button>
+                        <button onclick="exportDailyList(state.selectedDate, list)" class="bg-green-600 text-white px-8 py-2.5 rounded-full font-black text-[10px] flex items-center gap-2 shadow-2xl uppercase">ייצוא לווצאפ <i data-lucide="share-2" size="12"></i></button>
                     </div>
                     <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl">
                         ${['table', 'bar', 'free'].map(type => {
@@ -228,8 +232,37 @@
 
         function sendWhatsAppToClient(id) {
             const res = state.reservations.find(r => r.id === id);
-            const text = `שלום ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים. מחכים לכם!`;
-            window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/, '972')}?text=${encodeURIComponent(text)}`, '_blank');
+            const vId = state.venueId;
+            let msg = "";
+
+            if (vId === 'shalvata') {
+                msg = `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים.
+התחלה 22:00
+📍 התערוכה 3, תל אביב
+https://waze.com/ul?q=התערוכה%203%20תל%20אביב&navigate=yes
+
+הזמנתך שמורה עד השעה 00:00 יש לעדכן על איחור\\אי הגעה.
+הכניסה מצד שמאל - הכניסה של Fashion Bar המתחם שלנו ישר בכניסה בצד ימין.
+נתראה ברחבה, צוות Fashion Bar.`;
+            } else if (vId === 'q_gallery') {
+                msg = `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים.
+התחלה 22:00
+📍 רוטשילד 19, תל אביב
+https://waze.com/ul?q=רוטשילד%2019%20תל%20אביב&navigate=yes
+
+הזמנתך שמורה עד השעה 00:00 יש לעדכן על איחור\\אי הגעה.
+הכניסה מצד ימין- קומה 2.`;
+            } else if (vId === 'ruki_vverh') {
+                msg = `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים.
+התחלה 22:30
+📍 טברסקי 14, תל אביב
+https://waze.com/ul?q=טברסקי%2014%20תל%20אביב&navigate=yes
+
+הזמנתך שמורה עד השעה 00:00 יש לעדכן על איחור\\אי הגעה.
+נתראה ברחבה, צוות Руки вверх.`;
+            }
+
+            window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/, '972')}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
         async function saveBooking(e) {
