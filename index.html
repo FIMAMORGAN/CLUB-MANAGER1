@@ -2,10 +2,9 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#020617">
-    <link rel="manifest" href="data:application/manifest+json,{'name':'ClubPro','short_name':'ClubPro','start_url':'.','display':'standalone','background_color':'#020617','theme_color':'#f59e0b','icons':[{'src':'https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png','sizes':'192x192','type':'image/png'}]}">
-    <title>ClubPro V17.8 - App Mode</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="data:application/manifest+json,{'name':'ClubPro','short_name':'ClubPro','display':'standalone','start_url':'.','background_color':'#020617','theme_color':'#f59e0b','icons':[{'src':'https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png','sizes':'192x192','type':'image/png'}]}">
+    <title>ClubPro V17.9 - Alert Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -13,21 +12,18 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; text-align: right; font-size: 11px; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; text-align: right; font-size: 11px; overflow-x: hidden; }
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; }
         .arrived { border-right: 3px solid #22c55e !important; background: rgba(34, 197, 94, 0.05) !important; }
-        .venue-card { transition: all 0.2s ease; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(30, 41, 59, 0.4); }
-        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 2px solid #f59e0b; font-size: 9px; padding: 2px 6px; }
-        input, button, select, textarea { font-size: 11px !important; outline: none; }
-        .alert-banner { animation: slideDown 0.4s ease-out, pulse 1.2s infinite; }
+        .alert-banner { background: #dc2626; color: white; padding: 12px; font-weight: 900; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; animation: slideDown 0.5s ease-out; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4); }
         @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 2px solid #f59e0b; font-size: 9px; padding: 2px 6px; color: #f59e0b; font-weight: 900; }
     </style>
 </head>
 <body>
     <div id="app"></div>
-    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3" preload="auto"></audio>
 
     <script>
         const config = {
@@ -62,15 +58,10 @@
             phone: localStorage.getItem('club_phone') || '',
             venueId: sessionStorage.getItem('last_venue') || null,
             selectedDate: sessionStorage.getItem('last_date') || '',
-            users: [], reservations: [], isAdding: false, editingId: null, showSummary: false, showUsers: false,
+            reservations: [], users: [], isAdding: false, editingId: null, showSummary: false, showUsers: false,
             newAlert: false,
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, notes: '' }
         };
-
-        // בקשת הרשאה להתראות
-        if ("Notification" in window && state.role === 'admin') {
-            Notification.requestPermission();
-        }
 
         function updateState(newData) { 
             state = { ...state, ...newData }; 
@@ -81,26 +72,14 @@
 
         function triggerAlert() {
             if (state.role === 'admin') {
-                // צליל ורטט
-                document.getElementById('alert-sound').play().catch(() => {});
-                if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                const audio = document.getElementById('alert-sound');
+                audio.currentTime = 0;
+                audio.play().catch(() => console.log("User must interact first"));
                 
-                // התראת מערכת (Push)
-                if (Notification.permission === "granted") {
-                    new Notification("ClubPro: הזמנה חדשה!", {
-                        body: "הזמנה חדשה נכנסה למערכת, בדוק את הדאשבורד.",
-                        icon: "https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png"
-                    });
-                }
-
-                // הצגת באנר פנימי
+                if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+                
                 updateState({ newAlert: true });
-                if (navigator.setAppBadge) navigator.setAppBadge(1).catch(() => {});
-                
-                setTimeout(() => {
-                    updateState({ newAlert: false });
-                    if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {});
-                }, 10000);
+                setTimeout(() => updateState({ newAlert: false }), 8000);
             }
         }
 
@@ -110,7 +89,7 @@
                 updateState({ role: 'admin', userName: 'Admin', phone: 'ADMIN' });
                 localStorage.setItem('club_role', 'admin');
                 localStorage.setItem('club_phone', 'ADMIN');
-                Notification.requestPermission();
+                if ("Notification" in window) Notification.requestPermission();
                 return;
             }
             if (clean.length >= 10) {
@@ -134,31 +113,15 @@
             }
         }
 
-        async function saveBooking(e) {
-            e.preventDefault();
-            const paxNum = Number(state.formData.pax);
-            let min = state.formData.manualPrice || (state.formData.type === 'free' ? 0 : paxNum * 300);
-            const data = {
-                venueId: state.venueId, name: state.formData.clientName, phone: state.formData.clientPhone,
-                type: state.formData.type, pax: paxNum, eventDate: state.selectedDate,
-                minOrder: Number(min), notes: state.formData.notes || "",
-                promoterId: state.phone, promoterName: state.userName, status: 'active',
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (state.editingId) await db.collection('reservations').doc(state.editingId).update(data);
-            else { data.arrived = false; data.actualRevenue = 0; await db.collection('reservations').add(data); }
-            updateState({ isAdding: false, editingId: null, formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, notes: '' } });
-        }
-
         function render() {
             const root = document.getElementById('app');
             if (!state.role) {
-                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4"><div class="w-full max-w-xs glass p-8 rounded-3xl border border-white/10 text-center shadow-2xl"><h2 class="text-xl font-black mb-6 uppercase text-white italic tracking-widest">ClubPro Login</h2><input id="login-input" type="text" placeholder="קוד / טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 mb-4 text-center text-white outline-none font-bold"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-3 rounded-xl uppercase font-black">כניסה</button></div></div>`;
+                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4"><div class="w-full max-w-xs glass p-10 rounded-3xl border border-white/10 text-center"><h2 class="text-xl font-black mb-8 uppercase text-white italic">CLUBPRO</h2><input id="login-input" type="text" placeholder="קוד / טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white outline-none font-bold"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black">LOGIN</button></div></div>`;
                 return;
             }
             
             root.innerHTML = `
-                ${state.newAlert ? `<div class="alert-banner fixed top-0 left-0 right-0 bg-red-600 text-white p-1.5 text-center font-black z-[100] text-[10px] shadow-2xl tracking-widest uppercase">🚨 הזמנה חדשה נכנסה!</div>` : ''}
+                ${state.newAlert ? `<div class="alert-banner">🚨 הזמנה חדשה נכנסה!</div>` : ''}
                 <div class="flex flex-col h-screen overflow-hidden text-right text-white">
                     ${!state.venueId ? renderVenueSelection() : (!state.selectedDate ? renderDateSelection() : renderMainContent())}
                 </div>
@@ -167,11 +130,11 @@
         }
 
         function renderVenueSelection() {
-            return `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4"><h2 class="text-lg font-black text-amber-500 uppercase tracking-tighter">לאיזה מקום סוגרים?</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${venues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="venue-card p-5 rounded-xl text-center text-lg font-black text-white uppercase shadow-lg border-white/10">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); sessionStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-6 underline text-[9px] tracking-widest">התנתק</button></div>`;
+            return `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4"><h2 class="text-lg font-black text-amber-500 uppercase">בחר מקום:</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${venues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-6 rounded-2xl text-center text-xl font-black text-white uppercase shadow-lg border-white/10">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); sessionStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-10 underline text-[9px]">התנתק</button></div>`;
         }
 
         function renderDateSelection() {
-            return `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white"><button onclick="sessionStorage.removeItem('last_venue'); updateState({venueId: null})" class="text-amber-500 font-black text-[10px] flex items-center gap-2 border border-amber-500/30 px-5 py-2 rounded-full uppercase tracking-widest bg-amber-500/5 shadow-lg"><i data-lucide="arrow-right" size="14"></i> חזרה</button><h2 class="text-lg font-black uppercase tracking-tighter">תאריך הזמנה:</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${todayStr}" onchange="updateState({selectedDate: this.value})" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white text-2xl outline-none font-black text-center shadow-inner"></div></div>`;
+            return `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white"><button onclick="sessionStorage.removeItem('last_venue'); updateState({venueId: null})" class="text-amber-500 font-black text-[10px] flex items-center gap-2 border border-amber-500/30 px-5 py-2 rounded-full uppercase tracking-widest bg-amber-500/5 shadow-lg"><i data-lucide="arrow-right" size="14"></i> חזרה</button><h2 class="text-lg font-black uppercase">בחר תאריך:</h2><div class="glass p-6 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${todayStr}" onchange="updateState({selectedDate: this.value})" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white text-2xl outline-none font-black text-center shadow-inner"></div></div>`;
         }
 
         function renderMainContent() {
@@ -182,11 +145,14 @@
             return `
                 <header class="bg-slate-950 p-2 border-b border-white/5 flex justify-between items-center shadow-lg">
                     <div class="font-black italic text-sm uppercase text-amber-500 pr-2">${venue ? venue.name : ''}</div>
-                    <button onclick="sessionStorage.clear(); updateState({venueId: null, selectedDate: '', isAdding: false, showSummary: false, showUsers: false})" class="text-amber-500 font-black text-[9px] border border-amber-500/50 px-3 py-1 rounded-lg bg-amber-500/5 uppercase tracking-tighter hover:bg-amber-500 hover:text-black transition-all">דף הבית</button>
+                    <div class="flex gap-2">
+                        ${state.role === 'admin' ? `<button onclick="triggerAlert()" class="p-1 text-slate-500"><i data-lucide="bell" size="14"></i></button>` : ''}
+                        <button onclick="sessionStorage.clear(); updateState({venueId: null, selectedDate: '', isAdding: false, showSummary: false, showUsers: false})" class="text-amber-500 font-black text-[9px] border border-amber-500/50 px-2.5 py-1 rounded-lg bg-amber-500/5 uppercase">דף הבית</button>
+                    </div>
                 </header>
-                <div class="bg-slate-900 p-1.5 border-b border-white/5 flex items-center justify-between px-3 shadow-md">
+                <div class="bg-slate-900 p-1.5 border-b border-white/5 flex items-center justify-between px-3">
                     <input type="date" value="${state.selectedDate}" onchange="updateState({selectedDate: this.value})" class="bg-white/10 border border-white/20 rounded p-1 text-white text-[10px] outline-none font-black">
-                    <div class="text-[9px] font-black uppercase bg-white/10 px-2 py-0.5 rounded border border-white/5">${state.selectedDate ? 'יום ' + daysHebrew[new Date(state.selectedDate).getDay()] : ''}</div>
+                    <div class="text-[9px] font-black uppercase bg-white/10 px-2 py-0.5 rounded border border-white/5">יום ${state.selectedDate ? daysHebrew[new Date(state.selectedDate).getDay()] : ''}</div>
                 </div>
                 <main class="flex-1 overflow-y-auto p-2 bg-slate-950/50">
                     ${state.showUsers ? renderUsersMGMT() : (state.showSummary ? renderSummary(list) : (state.isAdding ? renderForm() : (state.role === 'admin' ? renderAdmin(list) : renderPromoter(list))))}
@@ -200,21 +166,20 @@
             return `
                 <div class="space-y-1.5">
                     <div class="flex gap-1">
-                        <button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2 rounded-lg text-[9px] font-black uppercase shadow-lg border border-white/10 tracking-tighter">יחצנים</button>
+                        <button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2 rounded-lg text-[9px] font-black uppercase border border-white/10">יחצנים</button>
                         <button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/50 py-2 rounded-lg text-[9px] font-black uppercase border border-blue-500/30">עמלות</button>
                         <button onclick="updateState({isAdding: true})" class="flex-1 btn-amber py-2 rounded-lg text-[9px] font-black uppercase">חדש</button>
                     </div>
                     <div class="grid grid-cols-3 gap-1">
-                        <div class="glass p-1 rounded-lg text-center"><p class="text-[7px] text-slate-500 font-black uppercase">TABLES</p><p class="text-xs font-black">${stats.t}</p></div>
-                        <div class="glass p-1 rounded-lg text-center"><p class="text-[7px] text-slate-500 font-black uppercase">BAR</p><p class="text-xs font-black">${stats.b}</p></div>
-                        <div class="glass p-1 rounded-lg text-center border-green-500/30 border"><p class="text-[7px] text-green-500 font-black uppercase">TOTAL Z</p><p class="text-xs font-black text-green-400">₪${stats.z}</p></div>
+                        <div class="glass p-1.5 rounded-lg text-center"><p class="text-[7px] text-slate-500 font-black">PAX T</p><p class="text-xs font-black">${stats.t}</p></div>
+                        <div class="glass p-1.5 rounded-lg text-center"><p class="text-[7px] text-slate-500 font-black">PAX B</p><p class="text-xs font-black">${stats.b}</p></div>
+                        <div class="glass p-1.5 rounded-lg text-center border-green-500/30 border text-green-400 font-black"><p class="text-[7px] text-green-500 font-black">Z סופי</p><p class="text-xs font-black">₪${stats.z}</p></div>
                     </div>
-                    <div class="flex justify-center"><button onclick="exportDailyList(state.selectedDate, state.reservations.filter(r => r.eventDate === state.selectedDate && r.venueId === state.venueId && r.status === 'active'))" class="bg-green-600/20 text-green-400 border border-green-500/30 px-4 py-1.2 rounded-full font-black text-[9px] flex items-center gap-1 shadow-lg tracking-widest uppercase">WhatsApp List <i data-lucide="share-2" size="9"></i></button></div>
                     <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl">
                         ${['table', 'bar', 'free'].map(type => {
                             const gList = list.filter(r => r.type === type);
                             if(gList.length === 0) return '';
-                            return `<div class="border-b border-white/5"><div class="group-header font-black text-amber-500 uppercase tracking-widest shadow-inner">${type}</div>${gList.map(r => renderRow(r, true)).join('')}</div>`;
+                            return `<div><div class="group-header uppercase">${type}</div>${gList.map(r => renderRow(r, true)).join('')}</div>`;
                         }).join('')}
                     </div>
                 </div>`;
@@ -222,22 +187,39 @@
 
         function renderRow(res, isAdmin) {
             return `
-                <div class="flex items-center justify-between p-1.5 border-b border-white/5 ${res.arrived ? 'bg-green-500/10 arrived' : ''}">
+                <div class="flex items-center justify-between p-2 border-b border-white/5 ${res.arrived ? 'bg-green-500/10 arrived' : ''}">
                     <div class="flex items-center gap-1.5">
-                        ${isAdmin ? `<input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-3.5 h-3.5 accent-green-500 rounded-sm">` : ''}
+                        ${isAdmin ? `<input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-3.5 h-3.5 accent-green-500">` : ''}
                         <div class="text-right">
-                            <p class="font-black text-xs text-white leading-tight tracking-tight">${res.name} (${res.pax}) <span class="text-[7px] text-amber-500 uppercase opacity-60 font-black">${res.promoterName}</span></p>
-                            <p class="text-[8px] text-slate-400 italic font-bold">₪${res.minOrder} | 05${res.phone.slice(-9)}</p>
-                            ${res.notes ? `<p class="text-[8px] text-white bg-white/5 p-1 rounded-md mt-1 border-r border-amber-500">📝 ${res.notes}</p>` : ''}
+                            <p class="font-black text-xs text-white leading-tight">${res.name} (${res.pax}) <span class="text-[7px] text-amber-500 uppercase opacity-60 font-black">${res.promoterName}</span></p>
+                            <p class="text-[8px] text-slate-400 font-bold italic">₪${res.minOrder} | 05${res.phone.slice(-9)}</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-0.5">
-                        ${isAdmin ? `<input type="number" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-8 bg-black border border-white/20 rounded p-0.5 text-center text-green-400 text-[9px] font-black outline-none">` : ''}
-                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-1 hover:bg-green-500/5 rounded"><i data-lucide="message-circle" size="16"></i></button>
-                        <button onclick="updateState({editingId:'${res.id}', isAdding:true, formData:{clientName:'${res.name}', clientPhone:'${res.phone}', type:'${res.type}', pax:'${res.pax}', manualPrice:'${res.minOrder}', notes:'${res.notes || ''}'}})" class="text-amber-500 p-1 hover:bg-amber-500/5 rounded"><i data-lucide="edit-3" size="16"></i></button>
-                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1 hover:bg-red-500/5 rounded"><i data-lucide="trash-2" size="16"></i></button>
+                        ${isAdmin ? `<input type="number" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-9 bg-black border border-white/20 rounded p-0.5 text-center text-green-400 text-[9px] font-black outline-none">` : ''}
+                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-1"><i data-lucide="message-circle" size="16"></i></button>
+                        <button onclick="updateState({editingId:'${res.id}', isAdding:true, formData:{clientName:'${res.name}', clientPhone:'${res.phone}', type:'${res.type}', pax:'${res.pax}', manualPrice:'${res.minOrder}', notes:'${res.notes || ''}'}})" class="text-amber-500 p-1"><i data-lucide="edit-3" size="16"></i></button>
+                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1"><i data-lucide="trash-2" size="16"></i></button>
                     </div>
                 </div>`;
+        }
+
+        async function saveBooking(e) {
+            e.preventDefault();
+            const data = {
+                venueId: state.venueId, name: state.formData.clientName, phone: state.formData.clientPhone,
+                type: state.formData.type, pax: Number(state.formData.pax), eventDate: state.selectedDate,
+                minOrder: Number(state.formData.manualPrice || (state.formData.pax * 300)), 
+                notes: state.formData.notes || "", promoterId: state.phone, promoterName: state.userName, status: 'active',
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (state.editingId) await db.collection('reservations').doc(state.editingId).update(data);
+            else { data.arrived = false; data.actualRevenue = 0; await db.collection('reservations').add(data); }
+            updateState({ isAdding: false, editingId: null, formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, notes: '' } });
+        }
+
+        function renderForm() {
+            return `<div class="glass p-4 rounded-2xl space-y-3 text-right"><h2 class="text-amber-500 font-black text-center text-xs uppercase">הזמנה</h2><input placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none font-bold"><input placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-left text-white outline-none font-bold" dir="ltr"><div class="flex gap-1.5">${['table','bar','free'].map(t => `<button onclick="state.formData.type='${t}'; render();" class="flex-1 py-2 rounded-lg border text-[8px] font-black uppercase ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10'}">${t}</button>`).join('')}</div><div class="grid grid-cols-2 gap-2"><div><label class="text-[8px] text-slate-500 font-black uppercase">PAX</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax=this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-center font-black"></div><div><label class="text-[8px] text-amber-500 font-black uppercase">Min ₪</label><input type="number" value="${state.formData.manualPrice || (state.formData.pax*300)}" oninput="state.formData.manualPrice=this.value" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-2 text-amber-500 text-center font-black"></div></div><textarea placeholder="הערות..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-right h-10 font-bold">${state.formData.notes || ''}</textarea><div class="flex justify-between items-center pt-1"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 font-black uppercase text-[9px]">ביטול</button><button onclick="saveBooking(event)" class="btn-amber px-6 py-2.5 rounded-lg shadow-xl uppercase font-black text-xs">שמור</button></div></div>`;
         }
 
         function renderUsersMGMT() {
@@ -253,47 +235,7 @@
             document.getElementById('new-u-phone').value = '';
         }
 
-        async function deleteUser(id) {
-            if(confirm('למחוק?')) await db.collection('users').doc(id).delete();
-        }
-
-        function renderPromoter(list) {
-            return `<div class="space-y-3"><div class="flex justify-between items-center px-1"><h2 class="text-xs font-black italic uppercase text-white tracking-widest">My Reservations</h2><button onclick="updateState({isAdding: true})" class="btn-amber px-4 py-2 rounded-xl text-[9px] uppercase font-black shadow-lg">+ NEW</button></div><div class="space-y-1">${list.map(r => renderRow(r, false)).join('')}</div></div>`;
-        }
-
-        function renderForm() {
-            return `<div class="glass p-4 rounded-2xl space-y-3 text-right"><h2 class="text-amber-500 font-black text-center text-xs uppercase tracking-widest">${state.editingId ? 'EDIT' : 'NEW BOOKING'}</h2><input placeholder="שם לקוח" value="${state.formData.clientName}" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none font-bold shadow-inner"><input placeholder="טלפון" type="tel" value="${state.formData.clientPhone}" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-left text-white outline-none font-bold shadow-inner" dir="ltr"><div class="flex gap-1.5">${['table','bar','free'].map(t => `<button onclick="state.formData.type='${t}'; render();" class="flex-1 py-2 rounded-xl border-2 text-[8px] font-black uppercase tracking-widest transition-all ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10'}">${t}</button>`).join('')}</div><div class="grid grid-cols-2 gap-2"><div><label class="text-[8px] text-slate-500 font-black uppercase tracking-widest">PAX</label><input type="number" value="${state.formData.pax}" oninput="state.formData.pax=this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-center font-black"></div><div><label class="text-[8px] text-amber-500 font-black uppercase tracking-widest">Min ₪</label><input type="number" value="${state.formData.manualPrice || (state.formData.pax*300)}" oninput="state.formData.manualPrice=this.value" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-2 text-amber-500 text-center font-black"></div></div><textarea placeholder="הערות..." oninput="state.formData.notes = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-right h-10 font-bold">${state.formData.notes || ''}</textarea><div class="flex justify-between items-center pt-1"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-500 font-black uppercase text-[9px]">ביטול</button><button onclick="saveBooking(event)" class="btn-amber px-10 py-3 rounded-xl shadow-xl uppercase font-black text-xs tracking-widest">שמור</button></div></div>`;
-        }
-
-        function renderSummary(list) {
-            const summary = {}; list.forEach(r => { const p = r.promoterName || 'Admin'; if (!summary[p]) summary[p] = { count: 0, z: 0 }; summary[p].count++; summary[p].z += Number(r.actualRevenue || 0); });
-            let totalComm = 0;
-            const tableRows = Object.entries(summary).map(([name, data]) => {
-                const comm = (data.z * 0.1).toFixed(0); totalComm += Number(comm);
-                return `<tr><td class="p-2 font-black text-[10px]">${name}</td><td class="p-2 text-center text-[9px]">${data.count}</td><td class="p-2 font-black text-green-400 text-[10px]">₪${data.z}</td><td class="p-2 font-black text-amber-500 text-[10px]">₪${comm}</td></tr>`;
-            }).join('');
-            return `<div class="max-w-4xl mx-auto space-y-2"><div class="flex justify-between items-center"><button onclick="updateState({showSummary: false})" class="bg-red-700/50 text-white px-3 py-1.5 rounded text-[9px] font-black uppercase">חזור</button><h2 class="text-[10px] font-black text-amber-500 uppercase tracking-widest italic">Commissions (10%)</h2></div><div class="glass rounded-xl overflow-hidden border border-white/10 shadow-xl"><table class="w-full text-white"><thead class="bg-white/5 text-[8px] uppercase font-black text-slate-400 text-right"><tr><th class="p-2">יחצן</th><th class="p-2 text-center">הזמנות</th><th class="p-2">Z סופי</th><th class="p-2">עמלה</th></tr></thead><tbody class="divide-y divide-white/5">${tableRows}</tbody><tfoot class="bg-amber-500/10 font-black"><tr><td colspan="3" class="p-2 text-right uppercase text-[9px]">סה"כ:</td><td class="p-2 text-amber-500 text-xs text-right font-black font-black">₪${totalComm}</td></tr></tfoot></table></div></div>`;
-        }
-
-        function exportDailyList(date, dayList) {
-            const v = venues.find(v => v.id === state.venueId);
-            const vName = v ? v.name : '';
-            const dName = daysHebrew[new Date(date).getDay()];
-            let text = `*${vName.toUpperCase()} - רשימת הזמנות יום ${dName} ${date}*\n`;
-            text += `--------------------------\n\n`;
-            ['table', 'bar', 'free'].forEach(type => {
-                const filtered = dayList.filter(r => r.type === type);
-                if (filtered.length > 0) {
-                    text += `*${type === 'table' ? '🏠 שולחנות' : type === 'bar' ? '🍸 בר' : '🎟️ כניסות חינם'}:*\n`;
-                    filtered.forEach((r, i) => {
-                        text += `${i + 1}. *${r.name.trim()}* | PAX: ${r.pax} | Min: ₪${r.minOrder} | יחצן: ${r.promoterName}\n`;
-                        if(r.notes) text += `   📝 ${r.notes}\n`;
-                    });
-                    text += `\n`;
-                }
-            });
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-        }
+        async function deleteUser(id) { if(confirm('למחוק?')) await db.collection('users').doc(id).delete(); }
 
         function sendWhatsAppToClient(id) {
             const res = state.reservations.find(r => r.id === id);
@@ -305,9 +247,7 @@
             if (!user) { auth.signInAnonymously(); return; }
             db.collection('reservations').onSnapshot(snap => { 
                 const newRes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (!isFirstLoad && newRes.length > lastCount) {
-                    triggerAlert();
-                }
+                if (!isFirstLoad && newRes.length > lastCount) triggerAlert();
                 lastCount = newRes.length;
                 isFirstLoad = false;
                 updateState({ reservations: newRes }); 
