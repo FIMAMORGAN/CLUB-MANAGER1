@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הזמנת מקום - ClubPro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #020617; color: white; }
+        .gold-gradient { background: linear-gradient(45deg, #f59e0b, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md bg-slate-900/50 p-8 rounded-[2.5rem] border border-white/10 backdrop-blur-xl shadow-2xl">
+        <h1 class="text-3xl font-black text-center mb-2 gold-gradient">RESERVE A TABLE</h1>
+        <p class="text-slate-400 text-center text-sm mb-8 italic uppercase tracking-widest">Premium Nightlife Experience</p>
+
+        <form id="orderForm" class="space-y-4">
+            <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1 pr-2">בחר מועדון</label>
+                <select id="venue" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none focus:border-amber-500 transition-all">
+                    <option value="shalvata">Shalvata</option>
+                    <option value="q_gallery">Q-GALLERY</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1 pr-2">תאריך</label>
+                    <input type="date" id="date" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1 pr-2">כמות אנשים</label>
+                    <input type="number" id="pax" placeholder="0" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none">
+                </div>
+            </div>
+
+            <input type="text" id="name" placeholder="שם מלא" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none">
+            <input type="tel" id="phone" placeholder="מספר טלפון" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none" dir="ltr">
+
+            <button type="submit" class="w-full bg-amber-500 text-black font-black py-5 rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-all mt-4 uppercase">שלח בקשה להזמנה</button>
+        </form>
+    </div>
+
+    <script>
+        const config = {
+            apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
+            authDomain: "clubpro-system.firebaseapp.com",
+            projectId: "clubpro-system",
+            storageBucket: "clubpro-system.firebasestorage.app",
+            messagingSenderId: "825897406218",
+            appId: "1:825897406218:web:a660e48a120361247934f3"
+        };
+        firebase.initializeApp(config);
+        const db = firebase.firestore();
+
+        document.getElementById('orderForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                venueId: document.getElementById('venue').value,
+                eventDate: document.getElementById('date').value,
+                pax: Number(document.getElementById('pax').value),
+                status: 'pending', // סטטוס ממתין
+                promoterName: 'אתר הזמנות',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection('reservations').add(data);
+            alert('בקשתך התקבלה! נציג יחזור אליך לאישור סופי בוואטסאפ.');
+            e.target.reset();
+        };
+    </script>
+</body>
+</html>
