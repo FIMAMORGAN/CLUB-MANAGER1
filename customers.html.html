@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Customer Database | CLUBPRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #020617; color: white; margin: 0; }
+        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .star-active { color: #f59e0b; fill: #f59e0b; }
+        .star-inactive { color: #334155; }
+        input::placeholder { color: #64748b; }
+    </style>
+</head>
+<body class="p-4 pb-20">
+    <div class="max-w-2xl mx-auto space-y-6">
+        <div class="flex justify-between items-center py-4">
+            <div>
+                <h1 class="text-2xl font-black text-amber-500 uppercase italic">Customer CRM</h1>
+                <p id="customer-count" class="text-[10px] text-slate-500 font-bold">טוען נתונים...</p>
+            </div>
+            <button onclick="location.href='index.html'" class="glass p-2 rounded-xl text-slate-400">
+                <i data-lucide="home" size="20"></i>
+            </button>
+        </div>
+
+        <div class="relative group">
+            <i data-lucide="search" class="absolute right-4 top-4 text-slate-500 group-focus-within:text-amber-500 transition-colors" size="20"></i>
+            <input type="text" id="searchInput" oninput="renderCustomers()" placeholder="חיפוש לפי שם או טלפון..." 
+                class="w-full bg-slate-900 border border-white/10 rounded-2xl p-4 pr-12 outline-none focus:border-amber-500/50 transition-all font-bold">
+        </div>
+
+        <div id="customerList" class="space-y-3">
+            </div>
+    </div>
+
+    <div id="editModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="glass w-full max-w-sm rounded-[2.5rem] p-8 space-y-6">
+            <h2 id="modalName" class="text-xl font-black text-amber-500">עריכת לקוח</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] uppercase text-slate-500 block mb-1">הערה קבועה</label>
+                    <textarea id="modalNotes" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm outline-none h-24 font-bold"></textarea>
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase text-slate-500 block mb-2">דירוג לקוח</label>
+                    <div id="starRating" class="flex gap-2 justify-center">
+                        </div>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeModal()" class="flex-1 py-3 text-slate-500 font-bold uppercase text-xs">ביטול</button>
+                <button onclick="saveCustomerDetails()" class="flex-[2] bg-amber-500 text-black py-3 rounded-xl font-black uppercase shadow-lg">שמור שינויים</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
+            authDomain: "clubpro-system.firebaseapp.com",
+            projectId: "clubpro-system",
+            storageBucket: "clubpro-system.firebasestorage.app",
+            messagingSenderId: "825897406218",
+            appId: "1:825897406218:web:a660e48a120361247934f3"
+        };
+        firebase.initializeApp(config);
+        const db = firebase.firestore();
+
+        let allCustomers = [];
+        let editingCustomerId = null;
+        let tempRating = 1;
+
+        // טעינת לקוחות בזמן אמת
+        db.collection('customers').onSnapshot(snap => {
+            allCustomers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            document.getElementById('customer-count').innerText = `${allCustomers.length} לקוחות רשומים במאגר`;
+            renderCustomers();
+        });
+
+        function renderCustomers() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const list = document.getElementById('customerList');
+            
+            const filtered = allCustomers.filter(c => 
+                c.name.toLowerCase().includes(query) || c.id.includes(query)
+            ).sort((a,b) => (b.visits || 0) - (a.visits || 0));
+
+            list.innerHTML = filtered.map(c => `
+                <div class="glass p-4 rounded-2xl flex justify-between items-center hover:border-white/20 transition-all">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <p class="font-black text-white text-base">${c.name}</p>
+                            <div class="flex text-amber-500">${'★'.repeat(c.rating || 1)}${'☆'.repeat(5-(c.rating || 1))}</div>
+                        </div>
+                        <p class="text-xs text-slate-400 font-bold leading-none">${c.id} | ${c.visits || 0} ביקורים</p>
+                        ${c.permanentNotes ? `<p class="text-[10px] text-amber-500/80 bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/10 inline-block mt-1">📝 ${c.permanentNotes}</p>` : ''}
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-left pr-3 border-r border-white/10">
+                            <p class="text-[8px] text-slate-500 uppercase font-black">Total Z</p>
+                            <p class="text-xs font-black text-green-400">₪${c.totalSpent || 0}</p>
+                        </div>
+                        <button onclick="openEditModal('${c.id}')" class="text-slate-500 hover:text-white transition-colors">
+                            <i data-lucide="edit-3" size="18"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function openEditModal(id) {
+            const c = allCustomers.find(item => item.id === id);
+            editingCustomerId = id;
+            document.getElementById('modalName').innerText = c.name;
+            document.getElementById('modalNotes').value = c.permanentNotes || '';
+            tempRating = c.rating || 1;
+            updateStarUI();
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function updateStarUI() {
+            const container = document.getElementById('starRating');
+            container.innerHTML = [1,2,3,4,5].map(i => `
+                <i data-lucide="star" onclick="tempRating = ${i}; updateStarUI();" 
+                   class="cursor-pointer transition-all ${i <= tempRating ? 'star-active' : 'star-inactive'}" size="28"></i>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        async function saveCustomerDetails() {
+            const notes = document.getElementById('modalNotes').value;
+            await db.collection('customers').doc(editingCustomerId).update({
+                permanentNotes: notes,
+                rating: tempRating
+            });
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.add('hidden');
+            editingCustomerId = null;
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
