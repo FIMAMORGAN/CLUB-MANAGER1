@@ -3,89 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro | Compact Map</title>
+    <title>ClubPro | Master Map V49</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        body { background-color: #020617; color: white; font-family: sans-serif; margin: 0; padding-bottom: 50px; }
-        .map-layout { 
-            position: relative; 
-            width: 360px; /* רוחב מושלם לכל טלפון */
-            margin: 0 auto; 
-            height: 700px;
-            background: #020617;
-        }
-        .obj {
-            position: absolute;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 6px; font-weight: 900; font-size: 11px;
-            cursor: pointer; transition: all 0.2s;
-            border: 1px solid rgba(255,255,255,0.1);
-            transform: translate(-50%, -50%);
-        }
+        body { background-color: #020617; color: white; font-family: sans-serif; margin: 0; }
+        .map-layout { position: relative; width: 360px; margin: 0 auto; height: 750px; background: #020617; }
+        .obj { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-weight: 900; font-size: 10px; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); transform: translate(-50%, -50%); }
         .status-free { background: #1e293b; color: #64748b; }
         .status-taken { background: #ef4444; color: white; border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
-        .vip { border: 1.5px solid #f59e0b; color: #f59e0b; }
-        .bar-main { background: #0f172a; border: 2px solid #334155; border-radius: 12px; color: #334155; font-size: 14px; }
+        .vip-arch { border: 2px solid #f59e0b; color: #f59e0b; border-radius: 50% 50% 0 0; border-bottom: none; }
+        .vip-rect { border: 1.5px solid #f59e0b; color: #f59e0b; }
+        .bar-main { background: #0f172a; border: 2px solid #334155; border-radius: 8px; color: #334155; font-size: 12px; }
         .dj { background: #3b82f6; color: white; border: none; }
-        .label { position: absolute; font-size: 10px; font-weight: 900; color: #334155; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <div class="p-4 flex justify-between items-center bg-slate-900 border-b border-white/5 sticky top-0 z-50">
-        <h1 class="text-lg font-black italic text-amber-500">CLUBPRO <span class="text-white text-[10px] not-italic opacity-50">COMPACT</span></h1>
+    <div class="p-4 flex justify-between items-center bg-slate-900 sticky top-0 z-50">
+        <h1 class="text-lg font-black italic text-amber-500">CLUBPRO <span class="text-white text-[10px] not-italic opacity-50">V49</span></h1>
         <button onclick="location.href='index.html'" class="bg-slate-800 p-2 rounded-lg text-amber-500"><i data-lucide="home" size="18"></i></button>
     </div>
 
     <div class="map-layout">
         
-        <div onclick="book('T11')" id="T11" class="obj status-free" style="top: 50px; left: 40px; width: 45px; height: 40px;">T11</div>
-        <div onclick="book('T10')" id="T10" class="obj status-free" style="top: 50px; left: 95px; width: 45px; height: 40px;">T10</div>
-        <div onclick="book('T9')" id="T9" class="obj status-free" style="top: 50px; left: 150px; width: 45px; height: 40px;">T9</div>
-        <div onclick="book('T8')" id="T8" class="obj status-free" style="top: 50px; left: 205px; width: 45px; height: 40px;">T8</div>
+        <div onclick="book('T11')" id="T11" class="obj status-free" style="top: 40px; left: 40px; width: 40px; height: 35px;">T11</div>
+        <div onclick="book('T10')" id="T10" class="obj status-free" style="top: 40px; left: 90px; width: 40px; height: 35px;">T10</div>
+        <div onclick="book('T9')" id="T9" class="obj status-free" style="top: 40px; left: 140px; width: 40px; height: 35px;">T9</div>
+        <div onclick="book('T8')" id="T8" class="obj status-free" style="top: 40px; left: 190px; width: 40px; height: 35px;">T8</div>
+        <div onclick="book('T7')" id="T7" class="obj status-free vip-rect" style="top: 50px; left: 290px; width: 90px; height: 60px;">T7 VIP</div>
 
-        <div onclick="book('T7')" id="T7" class="obj status-free vip" style="top: 65px; left: 300px; width: 100px; height: 70px;">T7 VIP</div>
+        <div class="obj dj" style="top: 150px; left: 300px; width: 60px; height: 60px;">DJ</div>
 
-        <div class="obj dj" style="top: 170px; left: 310px; width: 70px; height: 70px;">DJ</div>
+        <div onclick="book('VIP13')" id="VIP13" class="obj status-free vip-arch" style="top: 140px; left: 40px; width: 45px; height: 35px;">VIP13</div>
+        <div onclick="book('VIP14')" id="VIP14" class="obj status-free vip-arch" style="top: 320px; left: 40px; width: 45px; height: 35px;">VIP14</div>
+        <div onclick="book('VIP15_A')" id="VIP15_A" class="obj status-free vip-arch" style="top: 500px; left: 40px; width: 45px; height: 35px;">VIP15</div>
 
-        <div class="obj bar-main" style="top: 250px; left: 160px; width: 180px; height: 60px;">בר</div>
+        <div class="obj bar-main" style="top: 230px; left: 160px; width: 140px; height: 50px;">בר</div>
         
-        <div onclick="book('S1')" id="S1" class="obj status-free rounded-full" style="top: 250px; left: 55px; width: 22px; height: 22px;">S1</div>
-        <div onclick="book('S2')" id="S2" class="obj status-free rounded-full" style="top: 220px; left: 55px; width: 22px; height: 22px;">S2</div>
-        <div onclick="book('S3')" id="S3" class="obj status-free rounded-full" style="top: 210px; left: 85px; width: 22px; height: 22px;">S3</div>
-        <div onclick="book('S4')" id="S4" class="obj status-free rounded-full" style="top: 210px; left: 115px; width: 22px; height: 22px;">S4</div>
-        <div onclick="book('S5')" id="S5" class="obj status-free rounded-full" style="top: 210px; left: 145px; width: 22px; height: 22px;">S5</div>
-        <div onclick="book('S6')" id="S6" class="obj status-free rounded-full" style="top: 210px; left: 175px; width: 22px; height: 22px;">S6</div>
-        <div onclick="book('S7')" id="S7" class="obj status-free rounded-full" style="top: 210px; left: 205px; width: 22px; height: 22px;">S7</div>
-        <div onclick="book('S8')" id="S8" class="obj status-free rounded-full" style="top: 290px; left: 260px; width: 22px; height: 22px;">S8</div>
+        <div onclick="book('S1')" id="S1" class="obj status-free rounded-full" style="top: 255px; left: 80px; width: 20px; height: 20px;">S1</div>
+        <div onclick="book('S2_L')" id="S2_L" class="obj status-free rounded-full" style="top: 215px; left: 80px; width: 20px; height: 20px;">S2</div>
+        <div onclick="book('S2')" id="S2" class="obj status-free rounded-full" style="top: 195px; left: 100px; width: 20px; height: 20px;">S2</div>
+        <div onclick="book('S3')" id="S3" class="obj status-free rounded-full" style="top: 195px; left: 125px; width: 20px; height: 20px;">S3</div>
+        <div onclick="book('S4')" id="S4" class="obj status-free rounded-full" style="top: 195px; left: 150px; width: 20px; height: 20px;">S4</div>
+        <div onclick="book('S5')" id="S5" class="obj status-free rounded-full" style="top: 195px; left: 175px; width: 20px; height: 20px;">S5</div>
+        <div onclick="book('S6')" id="S6" class="obj status-free rounded-full" style="top: 195px; left: 200px; width: 20px; height: 20px;">S6</div>
+        <div onclick="book('S7')" id="S7" class="obj status-free rounded-full" style="top: 195px; left: 225px; width: 20px; height: 20px;">S7</div>
+        <div onclick="book('S9')" id="S9" class="obj status-free rounded-full" style="top: 195px; left: 250px; width: 20px; height: 20px;">S9</div>
+        <div onclick="book('S10')" id="S10" class="obj status-free rounded-full" style="top: 195px; left: 275px; width: 20px; height: 20px;">S10</div>
+        <div onclick="book('S12')" id="S12" class="obj status-free rounded-full" style="top: 195px; left: 300px; width: 20px; height: 20px;">S12</div>
+        <div onclick="book('S10_R')" id="S10_R" class="obj status-free rounded-full" style="top: 215px; left: 320px; width: 20px; height: 20px;">S10</div>
+        <div onclick="book('S9_R')" id="S9_R" class="obj status-free rounded-full" style="top: 235px; left: 320px; width: 20px; height: 20px;">S9</div>
+        <div onclick="book('S8')" id="S8" class="obj status-free rounded-full" style="top: 255px; left: 320px; width: 20px; height: 20px;">S8</div>
 
-        <div onclick="book('T1')" id="T1" class="obj status-free" style="top: 400px; left: 320px; width: 50px; height: 90px;">T1</div>
-        <div onclick="book('T2')" id="T2" class="obj status-free" style="top: 500px; left: 320px; width: 50px; height: 90px;">T2</div>
-        <div onclick="book('T3')" id="T3" class="obj status-free" style="top: 600px; left: 320px; width: 50px; height: 90px;">T3</div>
+        <div onclick="book('T15')" id="T15" class="obj status-free vip-rect" style="top: 350px; left: 120px; width: 50px; height: 75px;">T15</div>
+        <div onclick="book('T18')" id="T18" class="obj status-free" style="top: 460px; left: 120px; width: 50px; height: 75px;">T18</div>
 
-        <div onclick="book('T4')" id="T4" class="obj status-free" style="top: 400px; left: 230px; width: 50px; height: 70px;">T4</div>
-        <div onclick="book('T5')" id="T5" class="obj status-free" style="top: 480px; left: 230px; width: 50px; height: 70px;">T5</div>
-        <div onclick="book('T6')" id="T6" class="obj status-free" style="top: 560px; left: 230px; width: 50px; height: 70px;">T6</div>
+        <div onclick="book('T4')" id="T4" class="obj status-free" style="top: 320px; left: 220px; width: 45px; height: 65px;">T4</div>
+        <div onclick="book('T5')" id="T5" class="obj status-free" style="top: 400px; left: 220px; width: 45px; height: 65px;">T5</div>
+        <div onclick="book('T6')" id="T6" class="obj status-free" style="top: 480px; left: 220px; width: 45px; height: 65px;">T6</div>
 
-        <div onclick="book('T12')" id="T12" class="obj status-free rounded-full" style="top: 150px; left: 40px; width: 45px; height: 45px;">T12</div>
-        <div onclick="book('T15')" id="T15" class="obj status-free vip" style="top: 400px; left: 90px; width: 55px; height: 80px;">T15</div>
-        <div onclick="book('T18')" id="T18" class="obj status-free" style="top: 500px; left: 90px; width: 55px; height: 80px;">T18</div>
-        <div onclick="book('T14')" id="T14" class="obj status-free rounded-full" style="top: 600px; left: 40px; width: 45px; height: 45px;">T14</div>
+        <div onclick="book('T1')" id="T1" class="obj status-free" style="top: 320px; left: 310px; width: 45px; height: 85px;">T1</div>
+        <div onclick="book('T2')" id="T2" class="obj status-free" style="top: 420px; left: 310px; width: 45px; height: 85px;">T2</div>
+        <div onclick="book('T3')" id="T3" class="obj status-free" style="top: 520px; left: 310px; width: 45px; height: 85px;">T3</div>
 
-        <div class="label" style="top: 680px; left: 50%; transform: translateX(-50%); border-bottom: 2px solid #334155; width: 100px; text-align: center;">כניסה</div>
     </div>
 
-    <div id="modal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2.5rem]">
+    <div id="modal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2rem]">
             <h3 class="text-amber-500 font-black text-center mb-6" id="m-title">הזמנה</h3>
             <div class="space-y-4">
                 <input id="in-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold outline-none">
                 <input id="in-pax" type="number" placeholder="כמות" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-center font-black outline-none">
-                <button onclick="save()" class="w-full bg-amber-500 text-black py-4 rounded-xl font-black uppercase shadow-lg shadow-amber-500/20">אשר</button>
-                <button onclick="closeM()" class="w-full text-slate-500 font-bold text-xs">ביטול</button>
+                <button onclick="save()" class="w-full bg-amber-500 text-black py-4 rounded-xl font-black uppercase">שמור</button>
+                <button onclick="closeM()" class="w-full text-slate-500 font-bold text-xs uppercase">ביטול</button>
             </div>
         </div>
     </div>
@@ -115,8 +108,8 @@
           });
 
         function book(id) {
-            curT = id;
-            document.getElementById('m-title').innerText = 'הזמנת שולחן ' + id;
+            curT = id.split('_')[0];
+            document.getElementById('m-title').innerText = 'שולחן ' + curT;
             document.getElementById('modal').classList.remove('hidden');
         }
         function closeM() { document.getElementById('modal').classList.add('hidden'); }
