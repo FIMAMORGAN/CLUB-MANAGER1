@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+    <title>CLUBPRO V61 - Q-Gallery Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
+        body { background: #020617; color: white; margin: 0; overflow: auto; font-family: 'Inter', sans-serif; }
+        #wrapper { min-width: 450px; display: flex; justify-content: center; padding: 20px 0; }
+        .map-container { position: relative; width: 420px; height: 780px; background: #0f172a; border-radius: 30px; border: 1px solid rgba(255,255,255,0.05); }
+        
+        .t-btn { 
+            position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; 
+            font-size: 9px; font-weight: 900; transition: all 0.2s; transform: translate(-50%, -50%); z-index: 20;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* סוגי שולחנות */
+        .type-std { width: 48px; height: 40px; border-radius: 6px; }
+        .type-std-v { width: 42px; height: 75px; border-radius: 6px; }
+        .type-vip-main { width: 110px; height: 65px; border-radius: 10px; }
+        .type-vip-rect { width: 45px; height: 70px; border-radius: 6px; }
+        .type-round { width: 32px; height: 32px; border-radius: 50%; }
+        .type-bar-rect { width: 165px; height: 50px; border-radius: 10px; border: 1px solid #0d9488 !important; color: #0d9488; background: rgba(13, 148, 136, 0.1); }
+        .type-bar-seat { width: 18px; height: 18px; border-radius: 50%; font-size: 7px; }
+        .type-dj { width: 60px; height: 60px; border-radius: 12px; border: 2px solid #3b82f6 !important; color: #3b82f6; }
+
+        /* סטטוסים - צבעים לפי ה-Spec */
+        .status-free { background: #1e293b; color: #94a3b8; } /* פנוי - כחול כהה */
+        .status-booked { background: #ef4444 !important; border-color: #b91c1c !important; color: white !important; } /* אדום - מוזמן */
+        .status-arrived { background: #22c55e !important; border-color: #15803d !important; color: white !important; } /* ירוק - הגיע */
+        .status-linked { background: #f97316 !important; border-color: #c2410c !important; color: white !important; } /* כתום - מחובר */
+        
+        /* הדגשה בזמן בחירה */
+        .selected-highlight { border: 3px solid #fff !important; box-shadow: 0 0 15px #fff; z-index: 30; }
+        
+        #confirm-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; width: 90%; max-width: 350px; }
+    </style>
+</head>
+<body>
+
+    <div class="fixed top-4 right-4 z-50 flex gap-2">
+        <button onclick="window.location.href='index.html'" class="bg-slate-900 p-3 rounded-2xl border border-white/10 text-amber-500 shadow-2xl"><i data-lucide="arrow-right"></i></button>
+    </div>
+
+    <div id="confirm-bar" class="hidden">
+        <button onclick="confirmAssignment()" class="w-full bg-white text-black py-4 rounded-2xl font-black uppercase shadow-2xl flex justify-between px-6 items-center">
+            <span>אשר בחירה (<span id="selected-count">0</span>)</span>
+            <i data-lucide="check-circle"></i>
+        </button>
+    </div>
+
+    <div id="wrapper">
+        <div class="map-container">
+            <div class="t-btn type-dj" style="top: 36%; left: 86%;">DJ</div>
+            
+            <div id="btn-BAR" class="t-btn type-bar-rect" style="top: 44.5%; left: 45.5%;" onclick="toggleTable('BAR')">BAR</div>
+
+            <div id="btn-T1" data-type="std-v" class="t-btn type-std-v status-free" style="top: 53%; left: 85.5%;" onclick="toggleTable('T1')">T1</div>
+            <div id="btn-T2" data-type="std-v" class="t-btn type-std-v status-free" style="top: 66.5%; left: 85.5%;" onclick="toggleTable('T2')">T2</div>
+            <div id="btn-T3" data-type="std-v" class="t-btn type-std-v status-free" style="top: 80%; left: 85.5%;" onclick="toggleTable('T3')">T3</div>
+            <div id="btn-T4" data-type="std" class="t-btn type-std status-free" style="top: 55%; left: 60.5%;" onclick="toggleTable('T4')">T4</div>
+            <div id="btn-T5" data-type="std" class="t-btn type-std status-free" style="top: 65%; left: 60.5%;" onclick="toggleTable('T5')">T5</div>
+            <div id="btn-T6" data-type="std" class="t-btn type-std status-free" style="top: 75%; left: 60.5%;" onclick="toggleTable('T6')">T6</div>
+            <div id="btn-T7" data-type="vip-main" class="t-btn type-vip-main status-free" style="top: 23%; left: 75.5%;" onclick="toggleTable('T7')">T7 VIP</div>
+            <div id="btn-T8" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 49.5%;" onclick="toggleTable('T8')">T8</div>
+            <div id="btn-T9" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 38.5%;" onclick="toggleTable('T9')">T9</div>
+            <div id="btn-T10" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 27.5%;" onclick="toggleTable('T10')">T10</div>
+            <div id="btn-T11" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 16.5%;" onclick="toggleTable('T11')">T11</div>
+            <div id="btn-T12" data-type="round" class="t-btn type-round status-free" style="top: 36.8%; left: 7.5%;" onclick="toggleTable('T12')">T12</div>
+            <div id="btn-T15" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 55%; left: 26.8%;" onclick="toggleTable('T15')">T15</div>
+            <div id="btn-T18" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 72%; left: 26.8%;" onclick="toggleTable('T18')">T18</div>
+
+            <div id="btn-V13" data-type="round" class="t-btn type-round status-free" style="top: 59%; left: 7.5%;" onclick="toggleTable('V13')">V13</div>
+            <div id="btn-V14" data-type="round" class="t-btn type-round status-free" style="top: 64%; left: 7.5%;" onclick="toggleTable('V14')">V14</div>
+            <div id="btn-V15" data-type="round" class="t-btn type-round status-free" style="top: 69%; left: 7.5%;" onclick="toggleTable('V15')">V15</div>
+
+            <div id="btn-S1" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 46%; left: 26.5%;" onclick="toggleTable('S1')">S1</div>
+            <div id="btn-S2" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 43%; left: 26.5%;" onclick="toggleTable('S2')">S2</div>
+            <div id="btn-S3" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 29%;" onclick="toggleTable('S3')">S3</div>
+            <div id="btn-S4" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 32.5%;" onclick="toggleTable('S4')">S4</div>
+            <div id="btn-S5" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 36%;" onclick="toggleTable('S5')">S5</div>
+            <div id="btn-S6" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 39.5%;" onclick="toggleTable('S6')">S6</div>
+            <div id="btn-S7" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 43%;" onclick="toggleTable('S7')">S7</div>
+            <div id="btn-S8" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 46.5%;" onclick="toggleTable('S8')">S8</div>
+            <div id="btn-S9" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 50%;" onclick="toggleTable('S9')">S9</div>
+            <div id="btn-S10" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 53.5%;" onclick="toggleTable('S10')">S10</div>
+            <div id="btn-S11" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 57%;" onclick="toggleTable('S11')">S11</div>
+            <div id="btn-S12" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 60.5%;" onclick="toggleTable('S12')">S12</div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
+            authDomain: "clubpro-system.firebaseapp.com",
+            projectId: "clubpro-system",
+            storageBucket: "clubpro-system.firebasestorage.app",
+            messagingSenderId: "825897406218",
+            appId: "1:825897406218:web:a660e48a120361247934f3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const assignToId = urlParams.get('assignTo');
+        const today = new Date().toISOString().split('T')[0];
+        let selectedTables = [];
+
+        // האזנה לנתונים מ-Q Gallery בלבד
+        db.collection('reservations')
+          .where('eventDate', '==', today)
+          .where('venueId', '==', 'q_gallery')
+          .where('status', '==', 'active')
+          .onSnapshot(snap => {
+            // איפוס מפה לפני צביעה מחדש
+            document.querySelectorAll('.t-btn[data-type]').forEach(btn => {
+                btn.className = `t-btn type-${btn.getAttribute('data-type')} status-free`;
+            });
+
+            snap.docs.forEach(doc => {
+                const res = doc.data();
+                if (res.tableNumber) {
+                    const tables = res.tableNumber.split('-');
+                    tables.forEach(tId => {
+                        const btn = document.getElementById('btn-' + tId);
+                        if (btn) {
+                            btn.classList.remove('status-free');
+                            if (res.arrived) btn.classList.add('status-arrived'); // ירוק
+                            else if (tables.length > 1) btn.classList.add('status-linked'); // כתום
+                            else btn.classList.add('status-booked'); // אדום
+                        }
+                    });
+                }
+            });
+        });
+
+        function toggleTable(id) {
+            if (!assignToId) return; // בחירה מרובה רק כשיש לקוח לשייך אליו
+
+            const index = selectedTables.indexOf(id);
+            const btn = document.getElementById('btn-' + id);
+
+            if (index > -1) {
+                selectedTables.splice(index, 1);
+                btn.classList.remove('selected-highlight');
+            } else {
+                // הגבלת בר ל-3 מקומות
+                if (id.startsWith('S') && selectedTables.filter(t => t.startsWith('S')).length >= 3) {
+                    alert("בבר ניתן לבחור עד 3 מקומות בלבד");
+                    return;
+                }
+                selectedTables.push(id);
+                btn.classList.add('selected-highlight');
+            }
+
+            // עדכון בר האישור בתחתית
+            const confirmBar = document.getElementById('confirm-bar');
+            const countSpan = document.getElementById('selected-count');
+            if (selectedTables.length > 0) {
+                confirmBar.classList.remove('hidden');
+                countSpan.innerText = selectedTables.length;
+            } else {
+                confirmBar.classList.add('hidden');
+            }
+        }
+
+        async function confirmAssignment() {
+            if (selectedTables.length === 0) return;
+            const tableString = selectedTables.sort().join('-');
+            
+            await db.collection('reservations').doc(assignToId).update({
+                tableNumber: tableString
+            });
+            
+            window.location.href = 'index.html';
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
