@@ -7,11 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         body { background: #020617; color: white; margin: 0; overflow: hidden; font-family: sans-serif; }
-        .map-container { position: relative; width: 1000px; height: 700px; background-image: url('download2.png'); background-size: contain; background-repeat: no-repeat; margin: auto; }
-        .table-marker { position: absolute; width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; cursor: pointer; display: flex; items-center; justify-center; font-size: 10px; font-weight: bold; transition: all 0.3s; transform: translate(-50%, -50%); }
+        .map-container { position: relative; width: 1000px; height: 700px; background-image: url('image_5.png'); background-size: contain; background-repeat: no-repeat; margin: auto; }
+        .table-marker { position: absolute; width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; cursor: pointer; display: flex; items-center; justify-center; font-size: 10px; font-weight: bold; transition: all 0.3s; transform: translate(-50%, -50%); z-index: 10; }
         .status-free { background: rgba(34, 197, 94, 0.4); border-color: #22c55e; }
         .status-taken { background: rgba(239, 68, 68, 0.8); border-color: #ef4444; box-shadow: 0 0 15px #ef4444; }
         .glass-overlay { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); }
