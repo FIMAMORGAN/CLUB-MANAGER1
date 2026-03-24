@@ -2,83 +2,114 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro | Master Map V49</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+    <title>CLUBPRO V50 - Perfect Alignment</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        body { background-color: #020617; color: white; font-family: sans-serif; margin: 0; }
-        .map-layout { position: relative; width: 360px; margin: 0 auto; height: 750px; background: #020617; }
-        .obj { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-weight: 900; font-size: 10px; cursor: pointer; transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); transform: translate(-50%, -50%); }
-        .status-free { background: #1e293b; color: #64748b; }
-        .status-taken { background: #ef4444; color: white; border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
-        .vip-arch { border: 2px solid #f59e0b; color: #f59e0b; border-radius: 50% 50% 0 0; border-bottom: none; }
-        .vip-rect { border: 1.5px solid #f59e0b; color: #f59e0b; }
-        .bar-main { background: #0f172a; border: 2px solid #334155; border-radius: 8px; color: #334155; font-size: 12px; }
-        .dj { background: #3b82f6; color: white; border: none; }
+        body { background: #020617; color: white; margin: 0; overflow: auto; font-family: sans-serif; }
+        #wrapper { min-width: 480px; display: flex; justify-content: center; padding: 20px 0; }
+        .map-container { 
+            position: relative; 
+            width: 450px; 
+            height: 820px; 
+            background-image: url('map.png'); 
+            background-size: 100% 100%; 
+        }
+        .t-btn { 
+            position: absolute; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 10px; 
+            font-weight: 900; 
+            transition: all 0.2s; 
+            transform: translate(-50%, -50%); 
+            z-index: 20;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        /* גדלים מדויקים לפי הבקשה */
+        .type-std { width: 52px; height: 44px; border-radius: 6px; }
+        .type-std-v { width: 46px; height: 82px; border-radius: 6px; }
+        .type-vip-main { width: 125px; height: 75px; border-radius: 10px; font-size: 14px; border-color: #f59e0b; }
+        .type-vip-rect { width: 48px; height: 70px; border-radius: 6px; border-color: #f59e0b; }
+        .type-round { width: 38px; height: 38px; border-radius: 50%; border-color: #f59e0b; }
+        .type-bar-rect { width: 155px; height: 50px; border-radius: 8px; background: rgba(13, 148, 136, 0.2) !important; border-color: #0d9488; }
+        .type-bar-seat { width: 20px; height: 20px; border-radius: 50%; font-size: 8px; }
+        .type-dj { width: 65px; height: 65px; border-radius: 12px; background: rgba(59, 130, 246, 0.4) !important; border: 2px solid #3b82f6; }
+
+        .status-free { background: rgba(34, 197, 94, 0.4); border-color: #22c55e; }
+        .status-taken { background: rgba(220, 38, 38, 0.85); border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
     </style>
 </head>
 <body>
 
-    <div class="p-4 flex justify-between items-center bg-slate-900 sticky top-0 z-50">
-        <h1 class="text-lg font-black italic text-amber-500">CLUBPRO <span class="text-white text-[10px] not-italic opacity-50">V49</span></h1>
-        <button onclick="location.href='index.html'" class="bg-slate-800 p-2 rounded-lg text-amber-500"><i data-lucide="home" size="18"></i></button>
+    <div class="fixed top-4 right-4 z-50 flex gap-2">
+        <button onclick="location.href='index.html'" class="bg-slate-900/90 p-3 rounded-full border border-white/10 text-amber-500 shadow-2xl"><i data-lucide="home"></i></button>
+        <div class="bg-slate-900/90 px-4 py-2 rounded-full border border-white/10 text-[10px] font-black uppercase flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> מפה V50
+        </div>
     </div>
 
-    <div class="map-layout">
-        
-        <div onclick="book('T11')" id="T11" class="obj status-free" style="top: 40px; left: 40px; width: 40px; height: 35px;">T11</div>
-        <div onclick="book('T10')" id="T10" class="obj status-free" style="top: 40px; left: 90px; width: 40px; height: 35px;">T10</div>
-        <div onclick="book('T9')" id="T9" class="obj status-free" style="top: 40px; left: 140px; width: 40px; height: 35px;">T9</div>
-        <div onclick="book('T8')" id="T8" class="obj status-free" style="top: 40px; left: 190px; width: 40px; height: 35px;">T8</div>
-        <div onclick="book('T7')" id="T7" class="obj status-free vip-rect" style="top: 50px; left: 290px; width: 90px; height: 60px;">T7 VIP</div>
+    <div id="wrapper">
+        <div class="map-container">
+            <div class="t-btn type-dj status-free" style="top: 36%; left: 86%;">DJ</div>
 
-        <div class="obj dj" style="top: 150px; left: 300px; width: 60px; height: 60px;">DJ</div>
+            <div class="t-btn type-bar-rect status-free" style="top: 44%; left: 45%;" onclick="book('BAR')">בר</div>
 
-        <div onclick="book('VIP13')" id="VIP13" class="obj status-free vip-arch" style="top: 140px; left: 40px; width: 45px; height: 35px;">VIP13</div>
-        <div onclick="book('VIP14')" id="VIP14" class="obj status-free vip-arch" style="top: 320px; left: 40px; width: 45px; height: 35px;">VIP14</div>
-        <div onclick="book('VIP15_A')" id="VIP15_A" class="obj status-free vip-arch" style="top: 500px; left: 40px; width: 45px; height: 35px;">VIP15</div>
+            <div class="t-btn type-std-v status-free" style="top: 52%; left: 85.5%;" onclick="book('T1')">T1</div>
+            <div class="t-btn type-std-v status-free" style="top: 66%; left: 85.5%;" onclick="book('T2')">T2</div>
+            <div class="t-btn type-std-v status-free" style="top: 80%; left: 85.5%;" onclick="book('T3')">T3</div>
 
-        <div class="obj bar-main" style="top: 230px; left: 160px; width: 140px; height: 50px;">בר</div>
-        
-        <div onclick="book('S1')" id="S1" class="obj status-free rounded-full" style="top: 255px; left: 80px; width: 20px; height: 20px;">S1</div>
-        <div onclick="book('S2_L')" id="S2_L" class="obj status-free rounded-full" style="top: 215px; left: 80px; width: 20px; height: 20px;">S2</div>
-        <div onclick="book('S2')" id="S2" class="obj status-free rounded-full" style="top: 195px; left: 100px; width: 20px; height: 20px;">S2</div>
-        <div onclick="book('S3')" id="S3" class="obj status-free rounded-full" style="top: 195px; left: 125px; width: 20px; height: 20px;">S3</div>
-        <div onclick="book('S4')" id="S4" class="obj status-free rounded-full" style="top: 195px; left: 150px; width: 20px; height: 20px;">S4</div>
-        <div onclick="book('S5')" id="S5" class="obj status-free rounded-full" style="top: 195px; left: 175px; width: 20px; height: 20px;">S5</div>
-        <div onclick="book('S6')" id="S6" class="obj status-free rounded-full" style="top: 195px; left: 200px; width: 20px; height: 20px;">S6</div>
-        <div onclick="book('S7')" id="S7" class="obj status-free rounded-full" style="top: 195px; left: 225px; width: 20px; height: 20px;">S7</div>
-        <div onclick="book('S9')" id="S9" class="obj status-free rounded-full" style="top: 195px; left: 250px; width: 20px; height: 20px;">S9</div>
-        <div onclick="book('S10')" id="S10" class="obj status-free rounded-full" style="top: 195px; left: 275px; width: 20px; height: 20px;">S10</div>
-        <div onclick="book('S12')" id="S12" class="obj status-free rounded-full" style="top: 195px; left: 300px; width: 20px; height: 20px;">S12</div>
-        <div onclick="book('S10_R')" id="S10_R" class="obj status-free rounded-full" style="top: 215px; left: 320px; width: 20px; height: 20px;">S10</div>
-        <div onclick="book('S9_R')" id="S9_R" class="obj status-free rounded-full" style="top: 235px; left: 320px; width: 20px; height: 20px;">S9</div>
-        <div onclick="book('S8')" id="S8" class="obj status-free rounded-full" style="top: 255px; left: 320px; width: 20px; height: 20px;">S8</div>
+            <div class="t-btn type-std status-free" style="top: 54.5%; left: 60.5%;" onclick="book('T4')">T4</div>
+            <div class="t-btn type-std status-free" style="top: 64.5%; left: 60.5%;" onclick="book('T5')">T5</div>
+            <div class="t-btn type-std status-free" style="top: 74.5%; left: 60.5%;" onclick="book('T6')">T6</div>
 
-        <div onclick="book('T15')" id="T15" class="obj status-free vip-rect" style="top: 350px; left: 120px; width: 50px; height: 75px;">T15</div>
-        <div onclick="book('T18')" id="T18" class="obj status-free" style="top: 460px; left: 120px; width: 50px; height: 75px;">T18</div>
+            <div class="t-btn type-vip-main status-free" style="top: 23%; left: 75.5%;" onclick="book('T7')">T7 VIP</div>
 
-        <div onclick="book('T4')" id="T4" class="obj status-free" style="top: 320px; left: 220px; width: 45px; height: 65px;">T4</div>
-        <div onclick="book('T5')" id="T5" class="obj status-free" style="top: 400px; left: 220px; width: 45px; height: 65px;">T5</div>
-        <div onclick="book('T6')" id="T6" class="obj status-free" style="top: 480px; left: 220px; width: 45px; height: 65px;">T6</div>
+            <div class="t-btn type-std status-free" style="top: 21.5%; left: 16.5%;" onclick="book('T11')">T11</div>
+            <div class="t-btn type-std status-free" style="top: 21.5%; left: 27.5%;" onclick="book('T10')">T10</div>
+            <div class="t-btn type-std status-free" style="top: 21.5%; left: 38.5%;" onclick="book('T9')">T9</div>
+            <div class="t-btn type-std status-free" style="top: 21.5%; left: 49.5%;" onclick="book('T8')">T8</div>
 
-        <div onclick="book('T1')" id="T1" class="obj status-free" style="top: 320px; left: 310px; width: 45px; height: 85px;">T1</div>
-        <div onclick="book('T2')" id="T2" class="obj status-free" style="top: 420px; left: 310px; width: 45px; height: 85px;">T2</div>
-        <div onclick="book('T3')" id="T3" class="obj status-free" style="top: 520px; left: 310px; width: 45px; height: 85px;">T3</div>
+            <div class="t-btn type-round status-free" style="top: 36.5%; left: 7.2%;" onclick="book('V13')">V13</div>
+            <div class="t-btn type-round status-free" style="top: 54.5%; left: 7.2%;" onclick="book('V14')">V14</div>
+            <div class="t-btn type-round status-free" style="top: 72.5%; left: 7.2%;" onclick="book('V15')">V15</div>
 
+            <div class="t-btn type-vip-rect status-free" style="top: 55%; left: 26.5%;" onclick="book('T15')">T15</div>
+            <div class="t-btn type-vip-rect status-free" style="top: 70%; left: 26.5%;" onclick="book('T18')">T18</div>
+
+            <div class="t-btn type-bar-seat status-free" style="top: 45%; left: 25.5%;" onclick="book('S1')">S1</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 42%; left: 25.5%;" onclick="book('S2')">S2</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 38.6%; left: 29.5%;" onclick="book('S3')">S3</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 38.6%; left: 33.5%;" onclick="book('S4')">S4</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 38.6%; left: 37.5%;" onclick="book('S5')">S5</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 38.6%; left: 41.5%;" onclick="book('S6')">S6</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 38.6%; left: 45.5%;" onclick="book('S7')">S7</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 38.6%; left: 49.5%;" onclick="book('S9')">S9</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 38.6%; left: 53.5%;" onclick="book('S10')">S10</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 38.6%; left: 57.5%;" onclick="book('S12')">S12</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 41.5%; left: 64.2%;" onclick="book('S10_R')">S10</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 44.5%; left: 64.2%;" onclick="book('S9_R')">S9</div>
+            <div class="t-btn type-bar-seat status-free" style="top: 47.5%; left: 64.2%;" onclick="book('S8')">S8</div>
+        </div>
     </div>
 
-    <div id="modal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2rem]">
-            <h3 class="text-amber-500 font-black text-center mb-6" id="m-title">הזמנה</h3>
-            <div class="space-y-4">
-                <input id="in-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold outline-none">
-                <input id="in-pax" type="number" placeholder="כמות" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white text-center font-black outline-none">
-                <button onclick="save()" class="w-full bg-amber-500 text-black py-4 rounded-xl font-black uppercase">שמור</button>
-                <button onclick="closeM()" class="w-full text-slate-500 font-bold text-xs uppercase">ביטול</button>
+    <div id="modal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2.5rem] shadow-2xl">
+            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-xs mb-4" id="m-title">פרטי הזמנה</h3>
+            <div class="space-y-3">
+                <input id="in-name" placeholder="שם הלקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none font-bold text-white text-sm">
+                <input id="in-phone" placeholder="מספר טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-left text-white text-sm" dir="ltr">
+                <input id="in-pax" type="number" placeholder="כמות אנשים" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-center font-black text-white text-sm">
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeM()" class="flex-1 text-slate-500 font-bold uppercase text-[10px]">ביטול</button>
+                    <button onclick="save()" class="flex-[2] bg-amber-500 text-black py-3 rounded-xl font-black uppercase text-xs shadow-lg">שמור</button>
+                </div>
             </div>
         </div>
     </div>
@@ -99,27 +130,34 @@
 
         db.collection('reservations').where('eventDate', '==', today).where('status','==','active')
           .onSnapshot(snap => {
-            document.querySelectorAll('.obj').forEach(el => el.classList.replace('status-taken', 'status-free'));
-            snap.docs.forEach(doc => {
-                const tableId = doc.data().tableNumber;
-                const el = document.getElementById(tableId);
-                if (el) el.classList.replace('status-free', 'status-taken');
+            const taken = snap.docs.map(d => d.data().tableNumber);
+            document.querySelectorAll('.t-btn').forEach(btn => {
+                const id = btn.innerText.split(' ')[0];
+                if (taken.includes(id)) {
+                    btn.classList.replace('status-free', 'status-taken');
+                } else {
+                    btn.classList.replace('status-taken', 'status-free');
+                }
             });
           });
 
         function book(id) {
             curT = id.split('_')[0];
-            document.getElementById('m-title').innerText = 'שולחן ' + curT;
+            document.getElementById('m-title').innerText = 'הזמנת שולחן ' + curT;
             document.getElementById('modal').classList.remove('hidden');
         }
+
         function closeM() { document.getElementById('modal').classList.add('hidden'); }
+
         async function save() {
             const name = document.getElementById('in-name').value;
             const pax = document.getElementById('in-pax').value;
             if(!name || !pax) return alert("מלא פרטים");
             await db.collection('reservations').add({
-                name, pax: Number(pax), tableNumber: curT, eventDate: today, 
-                status: 'active', arrived: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                name, pax: Number(pax), phone: document.getElementById('in-phone').value,
+                tableNumber: curT, eventDate: today, status: 'active',
+                arrived: false, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                promoterName: 'מפה חיה'
             });
             closeM();
         }
