@@ -3,53 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
-    <title>מפת שולחנות אינטראקטיבית | CLUBPRO</title>
+    <title>מפת שולחנות חיה | CLUBPRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         body { background: #020617; color: white; margin: 0; overflow: hidden; font-family: sans-serif; }
-        .map-container { position: relative; width: 1000px; height: 700px; background-image: url('image_5.png'); background-size: contain; background-repeat: no-repeat; margin: auto; }
-        .table-marker { position: absolute; width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; cursor: pointer; display: flex; items-center; justify-center; font-size: 10px; font-weight: bold; transition: all 0.3s; transform: translate(-50%, -50%); z-index: 10; }
-        .status-free { background: rgba(34, 197, 94, 0.4); border-color: #22c55e; }
-        .status-taken { background: rgba(239, 68, 68, 0.8); border-color: #ef4444; box-shadow: 0 0 15px #ef4444; }
-        .glass-overlay { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); }
-        #zoom-wrapper { overflow: auto; width: 100vw; height: 100vh; display: flex; align-items: flex-start; justify-content: flex-start; }
+        #zoom-wrapper { overflow: auto; width: 100vw; height: 100vh; background: #020617; display: flex; justify-content: center; }
+        .map-container { 
+            position: relative; 
+            width: 800px; 
+            height: 1100px; 
+            background-image: url('map.jpg'); 
+            background-size: contain; 
+            background-repeat: no-repeat; 
+            background-position: center;
+        }
+        .table-marker { 
+            position: absolute; 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 12px; 
+            border: 2px solid white; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 14px; 
+            font-weight: 900; 
+            transition: all 0.3s; 
+            transform: translate(-50%, -50%); 
+            z-index: 10; 
+        }
+        .status-free { background: rgba(34, 197, 94, 0.4); border-color: #22c55e; color: white; }
+        .status-taken { background: rgba(239, 68, 68, 0.9); border-color: #ef4444; box-shadow: 0 0 20px #ef4444; color: white; }
     </style>
 </head>
 <body>
 
     <div class="fixed top-4 right-4 z-50 flex gap-2">
         <button onclick="location.href='index.html'" class="bg-slate-800 p-3 rounded-full border border-white/10 shadow-xl"><i data-lucide="home"></i></button>
-        <div class="bg-slate-900/80 px-4 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+        <div class="glass px-4 py-2 rounded-full border border-white/10 text-xs font-black uppercase flex items-center gap-2 bg-slate-900/90">
             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> מפה חיה
         </div>
     </div>
 
     <div id="zoom-wrapper">
         <div class="map-container" id="map">
-            <div class="table-marker status-free" style="top: 25%; left: 85%;" onclick="bookTable('H1')">H1</div>
-            <div class="table-marker status-free" style="top: 35%; left: 85%;" onclick="bookTable('H2')">H2</div>
-            <div class="table-marker status-free" style="top: 45%; left: 85%;" onclick="bookTable('H3')">H3</div>
-            
-            <div class="table-marker status-free" style="top: 50%; left: 50%;" onclick="bookTable('L10')">L10</div>
-            <div class="table-marker status-free" style="top: 60%; left: 50%;" onclick="bookTable('L11')">L11</div>
-            
-            <div class="table-marker status-free" style="top: 20%; left: 30%;" onclick="bookTable('B1')">B1</div>
+            <div class="table-marker status-free" style="top: 52%; left: 85%;" onclick="bookTable('T1')">T1</div>
+            <div class="table-marker status-free" style="top: 65%; left: 85%;" onclick="bookTable('T2')">T2</div>
+            <div class="table-marker status-free" style="top: 76%; left: 85%;" onclick="bookTable('T3')">T3</div>
+
+            <div class="table-marker status-free" style="top: 54%; left: 60%;" onclick="bookTable('T4')">T4</div>
+            <div class="table-marker status-free" style="top: 64%; left: 60%;" onclick="bookTable('T5')">T5</div>
+            <div class="table-marker status-free" style="top: 74%; left: 60%;" onclick="bookTable('T6')">T6</div>
+
+            <div class="table-marker status-free" style="top: 23%; left: 75%; width: 100px;" onclick="bookTable('T7')">T7 VIP</div>
+            <div class="table-marker status-free" style="top: 21%; left: 50%;" onclick="bookTable('T8')">T8</div>
+            <div class="table-marker status-free" style="top: 21%; left: 39%;" onclick="bookTable('T9')">T9</div>
+            <div class="table-marker status-free" style="top: 21%; left: 28%;" onclick="bookTable('T10')">T10</div>
+            <div class="table-marker status-free" style="top: 21%; left: 17%;" onclick="bookTable('T11')">T11</div>
+
+            <div class="table-marker status-free" style="top: 36%; left: 7%; border-radius: 50%;" onclick="bookTable('T12')">T12</div>
+            <div class="table-marker status-free" style="top: 54%; left: 7%; border-radius: 50%;" onclick="bookTable('T15')">T15</div>
+            <div class="table-marker status-free" style="top: 72%; left: 7%; border-radius: 50%;" onclick="bookTable('T14')">T14</div>
+
+            <div class="table-marker status-free" style="top: 44%; left: 45%; width: 120px; height: 60px;" onclick="bookTable('BAR')">בר</div>
         </div>
     </div>
 
-    <div id="orderModal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2rem] shadow-2xl space-y-4">
-            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest" id="modalTitle">הזמנת שולחן</h3>
-            <input id="m-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none font-bold">
-            <input id="m-phone" placeholder="טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-left" dir="ltr">
-            <input id="m-pax" type="number" placeholder="כמות אנשים" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-center font-black">
-            <div class="flex gap-2">
+    <div id="orderModal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl space-y-4">
+            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-sm" id="modalTitle text-tiny">הזמנת שולחן</h3>
+            <input id="m-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none font-bold text-white">
+            <input id="m-phone" placeholder="טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none text-left text-white" dir="ltr">
+            <input id="m-pax" type="number" placeholder="כמות" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none text-center font-black text-white">
+            <div class="flex gap-2 pt-2">
                 <button onclick="closeModal()" class="flex-1 text-slate-500 font-bold uppercase text-[10px]">ביטול</button>
-                <button onclick="confirmBooking()" class="flex-[2] bg-amber-500 text-black py-3 rounded-xl font-black uppercase text-xs">שמור הזמנה</button>
+                <button onclick="confirmBooking()" class="flex-[2] bg-amber-500 text-black py-4 rounded-xl font-black uppercase text-xs shadow-lg shadow-amber-500/20">שמור הזמנה</button>
             </div>
         </div>
     </div>
@@ -67,26 +99,24 @@
         const db = firebase.firestore();
 
         let currentTable = null;
+        const today = new Date().toISOString().split('T')[0];
 
-        // האזנה להזמנות לצורך צביעת המפה
-        db.collection('reservations').where('eventDate', '==', new Date().toISOString().split('T')[0])
+        db.collection('reservations').where('eventDate', '==', today).where('status','==','active')
           .onSnapshot(snap => {
             const takenTables = snap.docs.map(d => d.data().tableNumber);
             document.querySelectorAll('.table-marker').forEach(marker => {
-                const tableId = marker.innerText;
-                if (takenTables.includes(tableId)) {
-                    marker.classList.remove('status-free');
-                    marker.classList.add('status-taken');
+                const tableId = marker.innerText.split(' ')[0]; // תומך ב-T7 VIP
+                if (takenTables.includes(tableId) || takenTables.includes(marker.innerText)) {
+                    marker.classList.replace('status-free', 'status-taken');
                 } else {
-                    marker.classList.add('status-free');
-                    marker.classList.remove('status-taken');
+                    marker.classList.replace('status-taken', 'status-free');
                 }
             });
         });
 
         function bookTable(id) {
             currentTable = id;
-            document.getElementById('modalTitle').innerText = 'הזמנת שולחן ' + id;
+            document.getElementById('modalTitle').innerText = 'שולחן ' + id;
             document.getElementById('orderModal').classList.remove('hidden');
         }
 
@@ -96,16 +126,14 @@
             const name = document.getElementById('m-name').value;
             const pax = document.getElementById('m-pax').value;
             if(!name || !pax) return alert("מלא פרטים");
-
             await db.collection('reservations').add({
                 name, pax: Number(pax), phone: document.getElementById('m-phone').value,
-                tableNumber: currentTable,
-                eventDate: new Date().toISOString().split('T')[0],
-                status: 'active', arrived: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                tableNumber: currentTable, eventDate: today, status: 'active',
+                arrived: false, createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                promoterName: 'מפה'
             });
             closeModal();
         }
-
         lucide.createIcons();
     </script>
 </body>
