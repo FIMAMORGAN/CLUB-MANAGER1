@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
+    <title>מפת שולחנות אינטראקטיבית | CLUBPRO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { background: #020617; color: white; margin: 0; overflow: hidden; font-family: sans-serif; }
+        .map-container { position: relative; width: 1000px; height: 700px; background-image: url('download2.png'); background-size: contain; background-repeat: no-repeat; margin: auto; }
+        .table-marker { position: absolute; width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; cursor: pointer; display: flex; items-center; justify-center; font-size: 10px; font-weight: bold; transition: all 0.3s; transform: translate(-50%, -50%); }
+        .status-free { background: rgba(34, 197, 94, 0.4); border-color: #22c55e; }
+        .status-taken { background: rgba(239, 68, 68, 0.8); border-color: #ef4444; box-shadow: 0 0 15px #ef4444; }
+        .glass-overlay { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); }
+        #zoom-wrapper { overflow: auto; width: 100vw; height: 100vh; display: flex; align-items: flex-start; justify-content: flex-start; }
+    </style>
+</head>
+<body>
+
+    <div class="fixed top-4 right-4 z-50 flex gap-2">
+        <button onclick="location.href='index.html'" class="bg-slate-800 p-3 rounded-full border border-white/10 shadow-xl"><i data-lucide="home"></i></button>
+        <div class="bg-slate-900/80 px-4 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> מפה חיה
+        </div>
+    </div>
+
+    <div id="zoom-wrapper">
+        <div class="map-container" id="map">
+            <div class="table-marker status-free" style="top: 25%; left: 85%;" onclick="bookTable('H1')">H1</div>
+            <div class="table-marker status-free" style="top: 35%; left: 85%;" onclick="bookTable('H2')">H2</div>
+            <div class="table-marker status-free" style="top: 45%; left: 85%;" onclick="bookTable('H3')">H3</div>
+            
+            <div class="table-marker status-free" style="top: 50%; left: 50%;" onclick="bookTable('L10')">L10</div>
+            <div class="table-marker status-free" style="top: 60%; left: 50%;" onclick="bookTable('L11')">L11</div>
+            
+            <div class="table-marker status-free" style="top: 20%; left: 30%;" onclick="bookTable('B1')">B1</div>
+        </div>
+    </div>
+
+    <div id="orderModal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2rem] shadow-2xl space-y-4">
+            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest" id="modalTitle">הזמנת שולחן</h3>
+            <input id="m-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none font-bold">
+            <input id="m-phone" placeholder="טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-left" dir="ltr">
+            <input id="m-pax" type="number" placeholder="כמות אנשים" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-center font-black">
+            <div class="flex gap-2">
+                <button onclick="closeModal()" class="flex-1 text-slate-500 font-bold uppercase text-[10px]">ביטול</button>
+                <button onclick="confirmBooking()" class="flex-[2] bg-amber-500 text-black py-3 rounded-xl font-black uppercase text-xs">שמור הזמנה</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
+            authDomain: "clubpro-system.firebaseapp.com",
+            projectId: "clubpro-system",
+            storageBucket: "clubpro-system.firebasestorage.app",
+            messagingSenderId: "825897406218",
+            appId: "1:825897406218:web:a660e48a120361247934f3"
+        };
+        firebase.initializeApp(config);
+        const db = firebase.firestore();
+
+        let currentTable = null;
+
+        // האזנה להזמנות לצורך צביעת המפה
+        db.collection('reservations').where('eventDate', '==', new Date().toISOString().split('T')[0])
+          .onSnapshot(snap => {
+            const takenTables = snap.docs.map(d => d.data().tableNumber);
+            document.querySelectorAll('.table-marker').forEach(marker => {
+                const tableId = marker.innerText;
+                if (takenTables.includes(tableId)) {
+                    marker.classList.remove('status-free');
+                    marker.classList.add('status-taken');
+                } else {
+                    marker.classList.add('status-free');
+                    marker.classList.remove('status-taken');
+                }
+            });
+        });
+
+        function bookTable(id) {
+            currentTable = id;
+            document.getElementById('modalTitle').innerText = 'הזמנת שולחן ' + id;
+            document.getElementById('orderModal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('orderModal').classList.add('hidden'); }
+
+        async function confirmBooking() {
+            const name = document.getElementById('m-name').value;
+            const pax = document.getElementById('m-pax').value;
+            if(!name || !pax) return alert("מלא פרטים");
+
+            await db.collection('reservations').add({
+                name, pax: Number(pax), phone: document.getElementById('m-phone').value,
+                tableNumber: currentTable,
+                eventDate: new Date().toISOString().split('T')[0],
+                status: 'active', arrived: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            closeModal();
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
