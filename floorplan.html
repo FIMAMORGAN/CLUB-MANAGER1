@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-    <title>CLUBPRO V63 - Q-Gallery Precise Bar</title>
+    <title>CLUBPRO V65 - Q-Gallery Master Map</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -14,7 +14,8 @@
         body { background: #020617; color: white; margin: 0; overflow: auto; font-family: 'Inter', sans-serif; }
         #wrapper { min-width: 450px; display: flex; justify-content: center; padding: 20px 0; }
         .map-container { position: relative; width: 420px; height: 780px; background: #0f172a; border-radius: 30px; border: 1px solid rgba(255,255,255,0.05); }
-        .t-btn { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; transition: all 0.2s; transform: translate(-50%, -50%); z-index: 20; border: 1px solid rgba(255,255,255,0.1); }
+        .t-btn { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; transition: all 0.2s; transform: translate(-50%, -50%); z-index: 20; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }
+        
         .type-std { width: 48px; height: 40px; border-radius: 6px; }
         .type-std-v { width: 42px; height: 75px; border-radius: 6px; }
         .type-vip-main { width: 110px; height: 65px; border-radius: 10px; }
@@ -23,17 +24,27 @@
         .type-bar-rect { width: 165px; height: 50px; border-radius: 10px; border: 1px solid #0d9488 !important; color: #0d9488; background: rgba(13, 148, 136, 0.1); }
         .type-bar-seat { width: 18px; height: 18px; border-radius: 50%; font-size: 7px; }
         .type-dj { width: 60px; height: 60px; border-radius: 12px; border: 2px solid #3b82f6 !important; color: #3b82f6; }
+
         .status-free { background: #1e293b; color: #94a3b8; }
-        .status-booked { background: #ef4444 !important; border-color: #b91c1c !important; color: white !important; }
-        .status-arrived { background: #22c55e !important; border-color: #15803d !important; color: white !important; }
-        .status-linked { background: #f97316 !important; border-color: #c2410c !important; color: white !important; }
+        .status-booked { background: #ef4444 !important; color: white !important; } /* אדום */
+        .status-arrived { background: #22c55e !important; color: white !important; } /* ירוק */
+        .status-linked { background: #f97316 !important; color: white !important; } /* כתום */
         .selected-highlight { border: 3px solid #fff !important; box-shadow: 0 0 15px #fff; z-index: 30; }
         #confirm-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 100; width: 90%; max-width: 350px; }
     </style>
 </head>
 <body>
-    <div class="fixed top-4 right-4 z-50"><button onclick="window.location.href='index.html'" class="bg-slate-900 p-3 rounded-2xl border border-white/10 text-amber-500 shadow-2xl"><i data-lucide="arrow-right"></i></button></div>
-    <div id="confirm-bar" class="hidden"><button onclick="confirmAssignment()" class="w-full bg-white text-black py-4 rounded-2xl font-black uppercase shadow-2xl flex justify-between px-6 items-center"><span>אשר בחירה (<span id="selected-count">0</span>)</span><i data-lucide="check-circle"></i></button></div>
+
+    <div class="fixed top-4 right-4 z-50">
+        <button onclick="window.location.href='index.html'" class="bg-slate-900 p-3 rounded-2xl border border-white/10 text-amber-500 shadow-2xl"><i data-lucide="home"></i></button>
+    </div>
+
+    <div id="confirm-bar" class="hidden">
+        <button onclick="confirmAssignment()" class="w-full bg-white text-black py-4 rounded-2xl font-black uppercase shadow-2xl flex justify-between px-6 items-center">
+            <span>אשר בחירה (<span id="selected-count">0</span>)</span>
+            <i data-lucide="check-circle"></i>
+        </button>
+    </div>
 
     <div id="wrapper">
         <div class="map-container">
@@ -54,6 +65,7 @@
             <div id="btn-T12" data-type="round" class="t-btn type-round status-free" style="top: 36.8%; left: 7.5%;" onclick="toggleTable('T12')">T12</div>
             <div id="btn-T15" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 55%; left: 26.8%;" onclick="toggleTable('T15')">T15</div>
             <div id="btn-T18" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 72%; left: 26.8%;" onclick="toggleTable('T18')">T18</div>
+            
             <div id="btn-V13" data-type="round" class="t-btn type-round status-free" style="top: 59%; left: 7.5%;" onclick="toggleTable('V13')">V13</div>
             <div id="btn-V14" data-type="round" class="t-btn type-round status-free" style="top: 64%; left: 7.5%;" onclick="toggleTable('V14')">V14</div>
             <div id="btn-V15" data-type="round" class="t-btn type-round status-free" style="top: 69%; left: 7.5%;" onclick="toggleTable('V15')">V15</div>
@@ -76,17 +88,42 @@
         </div>
     </div>
 
+    <div id="modal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-8 rounded-[3rem] shadow-2xl space-y-4">
+            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-xs" id="m-title">הזמנה</h3>
+            <input id="in-name" placeholder="שם הלקוח" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none font-bold text-white text-sm">
+            <input id="in-pax" type="number" placeholder="כמות" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 outline-none text-center font-black text-white text-sm">
+            <div class="flex gap-3">
+                <button onclick="closeM()" class="flex-1 text-slate-500 font-bold uppercase text-[10px]">ביטול</button>
+                <button onclick="save()" class="flex-[2] bg-amber-500 text-black py-4 rounded-2xl font-black uppercase text-xs">שמור</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI", authDomain: "clubpro-system.firebaseapp.com", projectId: "clubpro-system", storageBucket: "clubpro-system.firebasestorage.app", messagingSenderId: "825897406218", appId: "1:825897406218:web:a660e48a120361247934f3" };
-        firebase.initializeApp(firebaseConfig);
+        const config = {
+            apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
+            authDomain: "clubpro-system.firebaseapp.com",
+            projectId: "clubpro-system",
+            storageBucket: "clubpro-system.firebasestorage.app",
+            messagingSenderId: "825897406218",
+            appId: "1:825897406218:web:a660e48a120361247934f3"
+        };
+        firebase.initializeApp(config);
         const db = firebase.firestore();
         const urlParams = new URLSearchParams(window.location.search);
         const assignToId = urlParams.get('assignTo');
         const today = new Date().toISOString().split('T')[0];
         let selectedTables = [];
+        let curT = null;
 
-        db.collection('reservations').where('eventDate', '==', today).where('venueId', '==', 'q_gallery').where('status', '==', 'active').onSnapshot(snap => {
-            document.querySelectorAll('.t-btn[data-type]').forEach(btn => { btn.className = `t-btn type-${btn.getAttribute('data-type')} status-free`; });
+        // האזנה לסנכרון צבעים (Q Gallery בלבד)
+        db.collection('reservations').where('eventDate', '==', today).where('status', '==', 'active')
+          .onSnapshot(snap => {
+            document.querySelectorAll('.t-btn[data-type]').forEach(btn => {
+                btn.className = `t-btn type-${btn.getAttribute('data-type')} status-free`;
+            });
+
             snap.docs.forEach(doc => {
                 const res = doc.data();
                 if (res.tableNumber) {
@@ -95,33 +132,65 @@
                         const btn = document.getElementById('btn-' + tId);
                         if (btn) {
                             btn.classList.remove('status-free');
-                            if (res.arrived) btn.classList.add('status-arrived');
-                            else if (tables.length > 1) btn.classList.add('status-linked');
-                            else btn.classList.add('status-booked');
+                            if (res.arrived) btn.classList.add('status-arrived'); // ירוק
+                            else if (tables.length > 1) btn.classList.add('status-linked'); // כתום
+                            else btn.classList.add('status-booked'); // אדום
                         }
                     });
                 }
             });
-        });
+          });
 
         function toggleTable(id) {
-            if (!assignToId) return;
-            const index = selectedTables.indexOf(id);
-            const btn = document.getElementById('btn-' + id);
-            if (index > -1) { selectedTables.splice(index, 1); btn.classList.remove('selected-highlight'); }
-            else {
-                if (id.startsWith('S') && selectedTables.filter(t => t.startsWith('S')).length >= 3) { alert("בבר ניתן לבחור עד 3 מקומות בלבד"); return; }
-                selectedTables.push(id); btn.classList.add('selected-highlight');
+            if (assignToId) {
+                // בחירה מרובה מהאינדקס
+                const index = selectedTables.indexOf(id);
+                const btn = document.getElementById('btn-' + id);
+                if (index > -1) {
+                    selectedTables.splice(index, 1);
+                    btn.classList.remove('selected-highlight');
+                } else {
+                    if (id.startsWith('S') && selectedTables.filter(t => t.startsWith('S')).length >= 3) {
+                        alert("עד 3 מקומות בבר");
+                        return;
+                    }
+                    selectedTables.push(id);
+                    btn.classList.add('selected-highlight');
+                }
+                const confirmBar = document.getElementById('confirm-bar');
+                if (selectedTables.length > 0) {
+                    confirmBar.classList.remove('hidden');
+                    document.getElementById('selected-count').innerText = selectedTables.length;
+                } else {
+                    confirmBar.classList.add('hidden');
+                }
+            } else {
+                // הזמנה חדשה ישירה מהמפה
+                curT = id;
+                document.getElementById('m-title').innerText = 'שולחן ' + id;
+                document.getElementById('modal').classList.remove('hidden');
             }
-            const confirmBar = document.getElementById('confirm-bar');
-            if (selectedTables.length > 0) { confirmBar.classList.remove('hidden'); document.getElementById('selected-count').innerText = selectedTables.length; }
-            else { confirmBar.classList.add('hidden'); }
         }
 
         async function confirmAssignment() {
             if (selectedTables.length === 0) return;
-            await db.collection('reservations').doc(assignToId).update({ tableNumber: selectedTables.sort().join('-') });
+            await db.collection('reservations').doc(assignToId).update({
+                tableNumber: selectedTables.sort().join('-')
+            });
             window.location.href = 'index.html';
+        }
+
+        function closeM() { document.getElementById('modal').classList.add('hidden'); }
+        async function save() {
+            const name = document.getElementById('in-name').value;
+            const pax = document.getElementById('in-pax').value;
+            if(!name || !pax) return alert("מלא פרטים");
+            await db.collection('reservations').add({
+                name, pax: Number(pax), tableNumber: curT, venueId: 'q_gallery',
+                eventDate: today, status: 'active', arrived: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            closeM();
         }
         lucide.createIcons();
     </script>
