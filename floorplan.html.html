@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         body { background: #020617; color: white; margin: 0; overflow: hidden; font-family: sans-serif; }
@@ -15,67 +16,75 @@
             position: relative; 
             width: 800px; 
             height: 1100px; 
-            background-image: url('map.jpg'); 
+            background-image: url('map.png'); /* שונה ל-PNG */
             background-size: contain; 
             background-repeat: no-repeat; 
             background-position: center;
         }
         .table-marker { 
             position: absolute; 
-            width: 45px; 
-            height: 45px; 
-            border-radius: 12px; 
             border: 2px solid white; 
             cursor: pointer; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            font-size: 14px; 
+            font-size: 11px; 
             font-weight: 900; 
             transition: all 0.3s; 
             transform: translate(-50%, -50%); 
             z-index: 10; 
         }
-        .status-free { background: rgba(34, 197, 94, 0.4); border-color: #22c55e; color: white; }
-        .status-taken { background: rgba(239, 68, 68, 0.9); border-color: #ef4444; box-shadow: 0 0 20px #ef4444; color: white; }
+        .standard { width: 45px; height: 45px; border-radius: 8px; }
+        .vip { width: 110px; height: 60px; border-radius: 12px; background: rgba(245, 158, 11, 0.4) !important; border-color: #f59e0b; }
+        .bar-seat { width: 22px; height: 22px; border-radius: 50%; font-size: 8px; border-width: 1px; }
+        .dj-booth { position: absolute; width: 80px; height: 80px; background: rgba(59, 130, 246, 0.5); border: 2px solid #3b82f6; top: 35%; left: 85%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font-weight: 900; border-radius: 10px; }
+        
+        .status-free { background: rgba(34, 197, 94, 0.4); border-color: #22c55e; }
+        .status-taken { background: rgba(239, 68, 68, 0.9); border-color: #ef4444; box-shadow: 0 0 15px #ef4444; }
     </style>
 </head>
 <body>
-
     <div class="fixed top-4 right-4 z-50 flex gap-2">
         <button onclick="location.href='index.html'" class="bg-slate-800 p-3 rounded-full border border-white/10 shadow-xl"><i data-lucide="home"></i></button>
-        <div class="glass px-4 py-2 rounded-full border border-white/10 text-xs font-black uppercase flex items-center gap-2 bg-slate-900/90">
+        <div class="glass px-4 py-2 rounded-full border border-white/10 text-[10px] font-black uppercase flex items-center gap-2 bg-slate-900/90">
             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> מפה חיה
         </div>
     </div>
 
     <div id="zoom-wrapper">
         <div class="map-container" id="map">
-            <div class="table-marker status-free" style="top: 52%; left: 85%;" onclick="bookTable('T1')">T1</div>
-            <div class="table-marker status-free" style="top: 65%; left: 85%;" onclick="bookTable('T2')">T2</div>
-            <div class="table-marker status-free" style="top: 76%; left: 85%;" onclick="bookTable('T3')">T3</div>
-
-            <div class="table-marker status-free" style="top: 54%; left: 60%;" onclick="bookTable('T4')">T4</div>
-            <div class="table-marker status-free" style="top: 64%; left: 60%;" onclick="bookTable('T5')">T5</div>
-            <div class="table-marker status-free" style="top: 74%; left: 60%;" onclick="bookTable('T6')">T6</div>
-
-            <div class="table-marker status-free" style="top: 23%; left: 75%; width: 100px;" onclick="bookTable('T7')">T7 VIP</div>
-            <div class="table-marker status-free" style="top: 21%; left: 50%;" onclick="bookTable('T8')">T8</div>
-            <div class="table-marker status-free" style="top: 21%; left: 39%;" onclick="bookTable('T9')">T9</div>
-            <div class="table-marker status-free" style="top: 21%; left: 28%;" onclick="bookTable('T10')">T10</div>
-            <div class="table-marker status-free" style="top: 21%; left: 17%;" onclick="bookTable('T11')">T11</div>
-
-            <div class="table-marker status-free" style="top: 36%; left: 7%; border-radius: 50%;" onclick="bookTable('T12')">T12</div>
-            <div class="table-marker status-free" style="top: 54%; left: 7%; border-radius: 50%;" onclick="bookTable('T15')">T15</div>
-            <div class="table-marker status-free" style="top: 72%; left: 7%; border-radius: 50%;" onclick="bookTable('T14')">T14</div>
-
-            <div class="table-marker status-free" style="top: 44%; left: 45%; width: 120px; height: 60px;" onclick="bookTable('BAR')">בר</div>
+            <div class="dj-booth">DJ</div>
+            <div class="table-marker standard status-free" style="top: 52%; left: 85%;" onclick="bookTable('T1')">T1</div>
+            <div class="table-marker standard status-free" style="top: 65%; left: 85%;" onclick="bookTable('T2')">T2</div>
+            <div class="table-marker standard status-free" style="top: 76%; left: 85%;" onclick="bookTable('T3')">T3</div>
+            <div class="table-marker standard status-free" style="top: 54%; left: 60%;" onclick="bookTable('T4')">T4</div>
+            <div class="table-marker standard status-free" style="top: 64%; left: 60%;" onclick="bookTable('T5')">T5</div>
+            <div class="table-marker standard status-free" style="top: 74%; left: 60%;" onclick="bookTable('T6')">T6</div>
+            <div class="table-marker vip status-free" style="top: 23%; left: 75%;" onclick="bookTable('T7')">T7 VIP</div>
+            <div class="table-marker standard status-free" style="top: 21%; left: 50%;" onclick="bookTable('T8')">T8</div>
+            <div class="table-marker standard status-free" style="top: 21%; left: 39%;" onclick="bookTable('T9')">T9</div>
+            <div class="table-marker standard status-free" style="top: 21%; left: 28%;" onclick="bookTable('T10')">T10</div>
+            <div class="table-marker standard status-free" style="top: 21%; left: 17%;" onclick="bookTable('T11')">T11</div>
+            <div class="table-marker standard status-free" style="top: 36%; left: 7%; border-radius: 50%;" onclick="bookTable('T12')">T12</div>
+            <div class="table-marker standard status-free" style="top: 54%; left: 7%; border-radius: 50%;" onclick="bookTable('T15')">T15</div>
+            <div class="table-marker standard status-free" style="top: 72%; left: 7%; border-radius: 50%;" onclick="bookTable('T14')">T14</div>
+            <div class="table-marker bar-seat status-free" style="top: 46%; left: 26%;" onclick="bookTable('S1')">S1</div>
+            <div class="table-marker bar-seat status-free" style="top: 41%; left: 26%;" onclick="bookTable('S2')">S2</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 30%;" onclick="bookTable('S3')">S3</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 34%;" onclick="bookTable('S4')">S4</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 38%;" onclick="bookTable('S5')">S5</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 42%;" onclick="bookTable('S6')">S6</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 46%;" onclick="bookTable('S7')">S7</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 50%;" onclick="bookTable('S9')">S9</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 54%;" onclick="bookTable('S10')">S10</div>
+            <div class="table-marker bar-seat status-free" style="top: 41%; left: 63%;" onclick="bookTable('S11')">S11</div>
+            <div class="table-marker bar-seat status-free" style="top: 46%; left: 63%;" onclick="bookTable('S12')">S12</div>
         </div>
     </div>
 
     <div id="orderModal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
         <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl space-y-4">
-            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-sm" id="modalTitle text-tiny">הזמנת שולחן</h3>
+            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-sm" id="modalTitle">שולחן</h3>
             <input id="m-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none font-bold text-white">
             <input id="m-phone" placeholder="טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none text-left text-white" dir="ltr">
             <input id="m-pax" type="number" placeholder="כמות" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none text-center font-black text-white">
@@ -97,15 +106,13 @@
         };
         firebase.initializeApp(config);
         const db = firebase.firestore();
-
         let currentTable = null;
         const today = new Date().toISOString().split('T')[0];
-
         db.collection('reservations').where('eventDate', '==', today).where('status','==','active')
           .onSnapshot(snap => {
             const takenTables = snap.docs.map(d => d.data().tableNumber);
             document.querySelectorAll('.table-marker').forEach(marker => {
-                const tableId = marker.innerText.split(' ')[0]; // תומך ב-T7 VIP
+                const tableId = marker.innerText.split(' ')[0];
                 if (takenTables.includes(tableId) || takenTables.includes(marker.innerText)) {
                     marker.classList.replace('status-free', 'status-taken');
                 } else {
@@ -113,15 +120,12 @@
                 }
             });
         });
-
         function bookTable(id) {
             currentTable = id;
-            document.getElementById('modalTitle').innerText = 'שולחן ' + id;
+            document.getElementById('modalTitle').innerText = 'הזמנת ' + id;
             document.getElementById('orderModal').classList.remove('hidden');
         }
-
         function closeModal() { document.getElementById('orderModal').classList.add('hidden'); }
-
         async function confirmBooking() {
             const name = document.getElementById('m-name').value;
             const pax = document.getElementById('m-pax').value;
