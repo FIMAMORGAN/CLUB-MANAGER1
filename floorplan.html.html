@@ -2,23 +2,23 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-    <title>מפת שולחנות 1:1 סופי | CLUBPRO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
+    <title>מפה חיה 1:1 | CLUBPRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        body { background: #020617; color: white; margin: 0; overflow: auto; font-family: sans-serif; }
-        #wrapper { min-width: 500px; display: flex; justify-content: center; padding: 10px 0; }
+        body { background: #020617; color: white; margin: 0; overflow: auto; font-family: sans-serif; display: flex; justify-content: center; }
         .map-container { 
             position: relative; 
-            width: 480px; 
-            height: 780px; 
+            width: 500px; /* לפי הנתונים שלך */
+            height: 850px; 
             background-image: url('map.png'); 
             background-size: 100% 100%; 
             background-repeat: no-repeat;
+            margin-top: 20px;
         }
         .t-btn { 
             position: absolute; 
@@ -26,88 +26,74 @@
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            font-size: 11px; 
             font-weight: 900; 
             transition: all 0.2s; 
-            transform: translate(-50%, -50%); 
             z-index: 20;
             border: 1px solid rgba(255,255,255,0.2);
+            color: white;
         }
-        /* התאמת גדלים מדויקת לסקיצה */
-        .type-std { width: 50px; height: 42px; border-radius: 6px; } /* מלבנים רגילים */
-        .type-std-v { width: 44px; height: 78px; border-radius: 6px; } /* T1-T3 המאורכים */
-        .type-vip-main { width: 118px; height: 68px; border-radius: 8px; font-size: 14px; } /* T7 */
-        .type-vip-side { width: 42px; height: 62px; border-radius: 6px; } /* T15, T18 */
-        .type-round { width: 36px; height: 36px; border-radius: 50%; } /* העגולים */
-        .type-bar { width: 22px; height: 22px; border-radius: 50%; font-size: 8px; border-width: 1px; }
-        .type-dj { width: 62px; height: 62px; border-radius: 10px; border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.4) !important; }
-
+        /* עיבוד נתוני השולחנות שלך לסטייל */
         .status-free { background: rgba(34, 197, 94, 0.45); border-color: #22c55e; }
-        .status-taken { background: rgba(220, 38, 38, 0.85); border-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.6); }
+        .status-taken { background: rgba(220, 38, 38, 0.85); border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+        .dj-box { border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.4); border-radius: 8px; }
     </style>
 </head>
 <body>
 
     <div class="fixed top-4 right-4 z-50 flex gap-2">
-        <button onclick="location.href='index.html'" class="bg-slate-900/95 p-3 rounded-full border border-white/10 shadow-2xl text-amber-500"><i data-lucide="home"></i></button>
-        <div class="bg-slate-900/95 px-4 py-2 rounded-full border border-white/10 text-[10px] font-black uppercase flex items-center gap-2">
+        <button onclick="location.href='index.html'" class="bg-slate-900/90 p-3 rounded-full border border-white/10 text-amber-500"><i data-lucide="home"></i></button>
+        <div class="bg-slate-900/90 px-4 py-2 rounded-full border border-white/10 text-[10px] font-black uppercase flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> מפה חיה
         </div>
     </div>
 
-    <div id="wrapper">
-        <div class="map-container">
-            <div class="t-btn type-dj status-free" style="top: 35.8%; left: 85.8%;">DJ</div>
+    <div class="map-container" id="map-target">
+        <div class="t-btn status-free" style="left: 395px; top: 440px; width: 55px; height: 280px; border-radius: 4px;" onclick="book('T1')">T1</div>
+        
+        <div class="t-btn status-free" style="left: 310px; top: 155px; width: 135px; height: 85px; border-radius: 8px; font-size: 16px;" onclick="book('T7')">VIP T7</div>
 
-            <div class="t-btn type-std-v status-free" style="top: 52.2%; left: 85.5%;" onclick="book('T1')">T1</div>
-            <div class="t-btn type-std-v status-free" style="top: 65.8%; left: 85.5%;" onclick="book('T2')">T2</div>
-            <div class="t-btn type-std-v status-free" style="top: 79.5%; left: 85.5%;" onclick="book('T3')">T3</div>
+        <div class="t-btn dj-box" style="left: 395px; top: 260px; width: 60px; height: 85px;">DJ</div>
 
-            <div class="t-btn type-std status-free" style="top: 54.3%; left: 60%;" onclick="book('T4')">T4</div>
-            <div class="t-btn type-std status-free" style="top: 64.2%; left: 60%;" onclick="book('T5')">T5</div>
-            <div class="t-btn type-std status-free" style="top: 74.2%; left: 60%;" onclick="book('T6')">T6</div>
+        <div class="t-btn status-free" style="left: 65px; top: 158px; width: 38px; height: 42px;" onclick="book('T11')">T11</div>
+        <div class="t-btn status-free" style="left: 118px; top: 158px; width: 38px; height: 42px;" onclick="book('T10')">T10</div>
+        <div class="t-btn status-free" style="left: 172px; top: 158px; width: 38px; height: 42px;" onclick="book('T9')">T9</div>
+        <div class="t-btn status-free" style="left: 226px; top: 158px; width: 38px; height: 42px;" onclick="book('T8')">T8</div>
 
-            <div class="t-btn type-vip-main status-free" style="top: 23.2%; left: 75.5%;" onclick="book('T7')">T7 VIP</div>
+        <div class="t-btn status-free" style="left: 275px; top: 430px; width: 42px; height: 62px;" onclick="book('T4')">T4</div>
+        <div class="t-btn status-free" style="left: 275px; top: 508px; width: 42px; height: 62px;" onclick="book('T5')">T5</div>
+        <div class="t-btn status-free" style="left: 275px; top: 588px; width: 42px; height: 62px;" onclick="book('T6')">T6</div>
 
-            <div class="t-btn type-std status-free" style="top: 21.5%; left: 16.5%;" onclick="book('T11')">T11</div>
-            <div class="t-btn type-std status-free" style="top: 21.5%; left: 27.5%;" onclick="book('T10')">T10</div>
-            <div class="t-btn type-std status-free" style="top: 21.5%; left: 38.5%;" onclick="book('T9')">T9</div>
-            <div class="t-btn type-std status-free" style="top: 21.5%; left: 49.5%;" onclick="book('T8')">T8</div>
+        <div class="t-btn status-free" style="left: 25px; top: 298px; width: 45px; height: 45px; border-radius: 50%;" onclick="book('T12')">T12</div>
+        <div class="t-btn status-free" style="left: 25px; top: 450px; width: 45px; height: 45px; border-radius: 50%;" onclick="book('T15_R')">T15</div>
+        <div class="t-btn status-free" style="left: 25px; top: 600px; width: 45px; height: 45px; border-radius: 50%;" onclick="book('T14')">T14</div>
 
-            <div class="t-btn type-round status-free" style="top: 36.5%; left: 7.3%;" onclick="book('T12')">T12</div>
-            <div class="t-btn type-round status-free" style="top: 54.6%; left: 7.3%;" onclick="book('T15_R')">T15</div>
-            <div class="t-btn type-round status-free" style="top: 72.8%; left: 7.3%;" onclick="book('T14')">T14</div>
+        <div class="t-btn status-free" style="left: 108px; top: 445px; width: 42px; height: 80px;" onclick="book('T15')">T15</div>
+        <div class="t-btn status-free" style="left: 108px; top: 555px; width: 42px; height: 80px;" onclick="book('T18')">T18</div>
 
-            <div class="t-btn type-vip-side status-free" style="top: 55.2%; left: 26.3%;" onclick="book('T15')">T15</div>
-            <div class="t-btn type-vip-side status-free" style="top: 70.2%; left: 26.3%;" onclick="book('T18')">T18</div>
-
-            <div class="t-btn type-bar status-free" style="top: 45.8%; left: 25.4%;" onclick="book('S1')">S1</div>
-            <div class="t-btn type-bar status-free" style="top: 41.4%; left: 25.4%;" onclick="book('S2')">S2</div>
-            <div class="t-btn type-bar status-free" style="top: 38.7%; left: 29.2%;" onclick="book('S3')">S3</div>
-            <div class="t-btn type-bar status-free" style="top: 38.7%; left: 33.1%;" onclick="book('S4')">S4</div>
-            <div class="t-btn type-bar status-free" style="top: 38.7%; left: 37%;" onclick="book('S5')">S5</div>
-            <div class="t-btn type-bar status-free" style="top: 38.7%; left: 40.9%;" onclick="book('S6')">S6</div>
-            <div class="t-btn type-bar status-free" style="top: 38.7%; left: 44.8%;" onclick="book('S7')">S7</div>
-            <div class="t-btn type-bar status-free" style="top: 38.7%; left: 48.7%;" onclick="book('S9')">S9</div>
-            <div class="t-btn type-bar status-free" style="top: 38.7%; left: 52.6%;" onclick="book('S10')">S10</div>
-            <div class="t-btn type-bar status-free" style="top: 38.7%; left: 56.5%;" onclick="book('S12')">S12</div>
-            <div class="t-btn type-bar status-free" style="top: 41.4%; left: 64.2%;" onclick="book('S10_R')">S10</div>
-            <div class="t-btn type-bar status-free" style="top: 44.3%; left: 64.2%;" onclick="book('S9_R')">S9</div>
-            <div class="t-btn type-bar status-free" style="top: 47.1%; left: 64.2%;" onclick="book('S8')">S8</div>
-        </div>
+        <div class="t-btn status-free" style="left: 122px; top: 375px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S1')">S1</div>
+        <div class="t-btn status-free" style="left: 122px; top: 338px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S2_L')">S2</div>
+        <div class="t-btn status-free" style="left: 140px; top: 315px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S2')">S2</div>
+        <div class="t-btn status-free" style="left: 158px; top: 315px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S3')">S3</div>
+        <div class="t-btn status-free" style="left: 178px; top: 315px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S4')">S4</div>
+        <div class="t-btn status-free" style="left: 198px; top: 315px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S5')">S5</div>
+        <div class="t-btn status-free" style="left: 218px; top: 315px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S6')">S6</div>
+        <div class="t-btn status-free" style="left: 238px; top: 315px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S7')">S7</div>
+        <div class="t-btn status-free" style="left: 258px; top: 315px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S9')">S9</div>
+        <div class="t-btn status-free" style="left: 278px; top: 315px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S10')">S10</div>
+        <div class="t-btn status-free" style="left: 315px; top: 338px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S10_R')">S10</div>
+        <div class="t-btn status-free" style="left: 315px; top: 362px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S9_R')">S9</div>
+        <div class="t-btn status-free" style="left: 315px; top: 385px; width: 18px; height: 18px; border-radius: 50%; font-size: 7px;" onclick="book('S8')">S8</div>
     </div>
 
     <div id="modal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2.5rem] shadow-2xl">
-            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-xs mb-4" id="m-title">פרטי הזמנה</h3>
-            <div class="space-y-3">
-                <input id="in-name" placeholder="שם הלקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none font-bold text-white text-sm">
-                <input id="in-phone" placeholder="מספר טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-left text-white text-sm" dir="ltr">
-                <input id="in-pax" type="number" placeholder="כמות אנשים" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-center font-black text-white text-sm">
-                <div class="flex gap-2 pt-2">
-                    <button onclick="closeM()" class="flex-1 text-slate-500 font-bold uppercase text-[10px]">ביטול</button>
-                    <button onclick="save()" class="flex-[2] bg-amber-500 text-black py-3 rounded-xl font-black uppercase text-xs shadow-lg">אישור הזמנה</button>
-                </div>
+        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2.5rem] shadow-2xl space-y-4">
+            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-xs" id="m-title">הזמנה</h3>
+            <input id="in-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none font-bold text-white text-sm">
+            <input id="in-phone" placeholder="טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-left text-white text-sm" dir="ltr">
+            <input id="in-pax" type="number" placeholder="כמות" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-center font-black text-white text-sm">
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeM()" class="flex-1 text-slate-500 font-bold uppercase text-[10px]">ביטול</button>
+                <button onclick="save()" class="flex-[2] bg-amber-500 text-black py-3 rounded-xl font-black uppercase text-xs">שמור</button>
             </div>
         </div>
     </div>
@@ -141,16 +127,14 @@
 
         function book(id) {
             curT = id.split('_')[0];
-            document.getElementById('m-title').innerText = 'הזמנת שולחן ' + curT;
+            document.getElementById('m-title').innerText = 'שולחן ' + curT;
             document.getElementById('modal').classList.remove('hidden');
         }
-
         function closeM() { document.getElementById('modal').classList.add('hidden'); }
-
         async function save() {
             const name = document.getElementById('in-name').value;
             const pax = document.getElementById('in-pax').value;
-            if(!name || !pax) return alert("שם וכמות חובה");
+            if(!name || !pax) return alert("מלא פרטים");
             await db.collection('reservations').add({
                 name, pax: Number(pax), phone: document.getElementById('in-phone').value,
                 tableNumber: curT, eventDate: today, status: 'active',
