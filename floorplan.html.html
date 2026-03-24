@@ -14,36 +14,39 @@
         #zoom-wrapper { overflow: auto; width: 100vw; height: 100vh; background: #020617; display: flex; justify-content: center; }
         .map-container { 
             position: relative; 
-            width: 800px; 
-            height: 1100px; 
-            background-image: url('map.png'); /* שונה ל-PNG */
-            background-size: contain; 
-            background-repeat: no-repeat; 
-            background-position: center;
+            width: 500px; /* התאמה ליחס התמונה הסלולרית */
+            height: 850px; 
+            background-image: url('map.png'); 
+            background-size: 100% 100%; 
+            background-repeat: no-repeat;
         }
         .table-marker { 
             position: absolute; 
-            border: 2px solid white; 
+            border: 1.5px solid white; 
             cursor: pointer; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            font-size: 11px; 
+            font-size: 9px; 
             font-weight: 900; 
-            transition: all 0.3s; 
+            transition: all 0.2s; 
             transform: translate(-50%, -50%); 
             z-index: 10; 
         }
-        .standard { width: 45px; height: 45px; border-radius: 8px; }
-        .vip { width: 110px; height: 60px; border-radius: 12px; background: rgba(245, 158, 11, 0.4) !important; border-color: #f59e0b; }
-        .bar-seat { width: 22px; height: 22px; border-radius: 50%; font-size: 8px; border-width: 1px; }
-        .dj-booth { position: absolute; width: 80px; height: 80px; background: rgba(59, 130, 246, 0.5); border: 2px solid #3b82f6; top: 35%; left: 85%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font-weight: 900; border-radius: 10px; }
+        /* עיצוב לפי סוגי שולחנות בסקיצה */
+        .rect { width: 42px; height: 35px; border-radius: 4px; }
+        .rect-v { width: 35px; height: 60px; border-radius: 4px; }
+        .circle { width: 30px; height: 30px; border-radius: 50%; }
+        .bar-seat { width: 18px; height: 18px; border-radius: 50%; font-size: 7px; border-width: 1px; }
+        .vip-box { width: 85px; height: 55px; border-radius: 6px; background: rgba(245, 158, 11, 0.3) !important; border-color: #f59e0b; }
+        .dj-box { position: absolute; width: 55px; height: 55px; background: rgba(59, 130, 246, 0.4); border: 2px solid #3b82f6; top: 35.5%; left: 85%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font-weight: 900; border-radius: 8px; font-size: 10px; }
         
         .status-free { background: rgba(34, 197, 94, 0.4); border-color: #22c55e; }
-        .status-taken { background: rgba(239, 68, 68, 0.9); border-color: #ef4444; box-shadow: 0 0 15px #ef4444; }
+        .status-taken { background: rgba(239, 68, 68, 0.9); border-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
     </style>
 </head>
 <body>
+
     <div class="fixed top-4 right-4 z-50 flex gap-2">
         <button onclick="location.href='index.html'" class="bg-slate-800 p-3 rounded-full border border-white/10 shadow-xl"><i data-lucide="home"></i></button>
         <div class="glass px-4 py-2 rounded-full border border-white/10 text-[10px] font-black uppercase flex items-center gap-2 bg-slate-900/90">
@@ -53,44 +56,58 @@
 
     <div id="zoom-wrapper">
         <div class="map-container" id="map">
-            <div class="dj-booth">DJ</div>
-            <div class="table-marker standard status-free" style="top: 52%; left: 85%;" onclick="bookTable('T1')">T1</div>
-            <div class="table-marker standard status-free" style="top: 65%; left: 85%;" onclick="bookTable('T2')">T2</div>
-            <div class="table-marker standard status-free" style="top: 76%; left: 85%;" onclick="bookTable('T3')">T3</div>
-            <div class="table-marker standard status-free" style="top: 54%; left: 60%;" onclick="bookTable('T4')">T4</div>
-            <div class="table-marker standard status-free" style="top: 64%; left: 60%;" onclick="bookTable('T5')">T5</div>
-            <div class="table-marker standard status-free" style="top: 74%; left: 60%;" onclick="bookTable('T6')">T6</div>
-            <div class="table-marker vip status-free" style="top: 23%; left: 75%;" onclick="bookTable('T7')">T7 VIP</div>
-            <div class="table-marker standard status-free" style="top: 21%; left: 50%;" onclick="bookTable('T8')">T8</div>
-            <div class="table-marker standard status-free" style="top: 21%; left: 39%;" onclick="bookTable('T9')">T9</div>
-            <div class="table-marker standard status-free" style="top: 21%; left: 28%;" onclick="bookTable('T10')">T10</div>
-            <div class="table-marker standard status-free" style="top: 21%; left: 17%;" onclick="bookTable('T11')">T11</div>
-            <div class="table-marker standard status-free" style="top: 36%; left: 7%; border-radius: 50%;" onclick="bookTable('T12')">T12</div>
-            <div class="table-marker standard status-free" style="top: 54%; left: 7%; border-radius: 50%;" onclick="bookTable('T15')">T15</div>
-            <div class="table-marker standard status-free" style="top: 72%; left: 7%; border-radius: 50%;" onclick="bookTable('T14')">T14</div>
-            <div class="table-marker bar-seat status-free" style="top: 46%; left: 26%;" onclick="bookTable('S1')">S1</div>
-            <div class="table-marker bar-seat status-free" style="top: 41%; left: 26%;" onclick="bookTable('S2')">S2</div>
-            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 30%;" onclick="bookTable('S3')">S3</div>
-            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 34%;" onclick="bookTable('S4')">S4</div>
-            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 38%;" onclick="bookTable('S5')">S5</div>
-            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 42%;" onclick="bookTable('S6')">S6</div>
-            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 46%;" onclick="bookTable('S7')">S7</div>
-            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 50%;" onclick="bookTable('S9')">S9</div>
-            <div class="table-marker bar-seat status-free" style="top: 38.5%; left: 54%;" onclick="bookTable('S10')">S10</div>
-            <div class="table-marker bar-seat status-free" style="top: 41%; left: 63%;" onclick="bookTable('S11')">S11</div>
-            <div class="table-marker bar-seat status-free" style="top: 46%; left: 63%;" onclick="bookTable('S12')">S12</div>
+            <div class="dj-box">DJ</div>
+
+            <div class="table-marker rect status-free" style="top: 21.2%; left: 16.5%;" onclick="bookTable('T11')">T11</div>
+            <div class="table-marker rect status-free" style="top: 21.2%; left: 27.5%;" onclick="bookTable('T10')">T10</div>
+            <div class="table-marker rect status-free" style="top: 21.2%; left: 38.5%;" onclick="bookTable('T9')">T9</div>
+            <div class="table-marker rect status-free" style="top: 21.2%; left: 49.5%;" onclick="bookTable('T8')">T8</div>
+
+            <div class="table-marker vip-box status-free" style="top: 23%; left: 75%;" onclick="bookTable('T7')">T7 VIP</div>
+
+            <div class="table-marker rect-v status-free" style="top: 52%; left: 85.5%;" onclick="bookTable('T1')">T1</div>
+            <div class="table-marker rect-v status-free" style="top: 65.5%; left: 85.5%;" onclick="bookTable('T2')">T2</div>
+            <div class="table-marker rect-v status-free" style="top: 78.5%; left: 85.5%;" onclick="bookTable('T3')">T3</div>
+
+            <div class="table-marker rect status-free" style="top: 54.2%; left: 60%;" onclick="bookTable('T4')">T4</div>
+            <div class="table-marker rect status-free" style="top: 63.5%; left: 60%;" onclick="bookTable('T5')">T5</div>
+            <div class="table-marker rect status-free" style="top: 73.5%; left: 60%;" onclick="bookTable('T6')">T6</div>
+
+            <div class="table-marker circle status-free" style="top: 36.3%; left: 7.2%;" onclick="bookTable('T12')">T12</div>
+            <div class="table-marker circle status-free" style="top: 54.2%; left: 7.2%;" onclick="bookTable('T15')">T15</div>
+            <div class="table-marker circle status-free" style="top: 72.2%; left: 7.2%;" onclick="bookTable('T14')">T14</div>
+
+            <div class="table-marker rect-v status-free" style="top: 57.2%; left: 26.5%;" onclick="bookTable('T15_C')">T15</div>
+            <div class="table-marker rect-v status-free" style="top: 69%; left: 26.5%;" onclick="bookTable('T18')">T18</div>
+
+            <div class="table-marker bar-seat status-free" style="top: 45.8%; left: 25.5%;" onclick="bookTable('S1')">S1</div>
+            <div class="table-marker bar-seat status-free" style="top: 41.5%; left: 25.5%;" onclick="bookTable('S2_L')">S2</div>
+            
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 29.2%;" onclick="bookTable('S2')">S2</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 33%;" onclick="bookTable('S3')">S3</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 36.8%;" onclick="bookTable('S4')">S4</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 40.8%;" onclick="bookTable('S5')">S5</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 44.8%;" onclick="bookTable('S6')">S6</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 48.8%;" onclick="bookTable('S7')">S7</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 52.8%;" onclick="bookTable('S9')">S9</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 56.5%;" onclick="bookTable('S10')">S10</div>
+            <div class="table-marker bar-seat status-free" style="top: 38.6%; left: 60.5%;" onclick="bookTable('S12')">S12</div>
+
+            <div class="table-marker bar-seat status-free" style="top: 41.5%; left: 64.2%;" onclick="bookTable('S10_R')">S10</div>
+            <div class="table-marker bar-seat status-free" style="top: 44.3%; left: 64.2%;" onclick="bookTable('S9_R')">S9</div>
+            <div class="table-marker bar-seat status-free" style="top: 47%; left: 64.2%;" onclick="bookTable('S8')">S8</div>
         </div>
     </div>
 
     <div id="orderModal" class="fixed inset-0 hidden z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-8 rounded-[2.5rem] shadow-2xl space-y-4">
-            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-sm" id="modalTitle">שולחן</h3>
-            <input id="m-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none font-bold text-white">
-            <input id="m-phone" placeholder="טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none text-left text-white" dir="ltr">
-            <input id="m-pax" type="number" placeholder="כמות" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 outline-none text-center font-black text-white">
+        <div class="bg-slate-900 border border-white/10 w-full max-w-xs p-6 rounded-[2rem] shadow-2xl space-y-4">
+            <h3 class="text-amber-500 font-black text-center uppercase tracking-widest text-xs" id="modalTitle">שולחן</h3>
+            <input id="m-name" placeholder="שם לקוח" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none font-bold text-white">
+            <input id="m-phone" placeholder="טלפון" type="tel" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-left text-white" dir="ltr">
+            <input id="m-pax" type="number" placeholder="כמות" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 outline-none text-center font-black text-white">
             <div class="flex gap-2 pt-2">
                 <button onclick="closeModal()" class="flex-1 text-slate-500 font-bold uppercase text-[10px]">ביטול</button>
-                <button onclick="confirmBooking()" class="flex-[2] bg-amber-500 text-black py-4 rounded-xl font-black uppercase text-xs shadow-lg shadow-amber-500/20">שמור הזמנה</button>
+                <button onclick="confirmBooking()" class="flex-[2] bg-amber-500 text-black py-3 rounded-xl font-black uppercase text-xs">שמור</button>
             </div>
         </div>
     </div>
@@ -106,8 +123,10 @@
         };
         firebase.initializeApp(config);
         const db = firebase.firestore();
+
         let currentTable = null;
         const today = new Date().toISOString().split('T')[0];
+
         db.collection('reservations').where('eventDate', '==', today).where('status','==','active')
           .onSnapshot(snap => {
             const takenTables = snap.docs.map(d => d.data().tableNumber);
@@ -120,12 +139,15 @@
                 }
             });
         });
+
         function bookTable(id) {
-            currentTable = id;
-            document.getElementById('modalTitle').innerText = 'הזמנת ' + id;
+            currentTable = id.split('_')[0]; // ניקוי סיומות זמניות לצורך מיקום
+            document.getElementById('modalTitle').innerText = 'הזמנת ' + currentTable;
             document.getElementById('orderModal').classList.remove('hidden');
         }
+
         function closeModal() { document.getElementById('orderModal').classList.add('hidden'); }
+
         async function confirmBooking() {
             const name = document.getElementById('m-name').value;
             const pax = document.getElementById('m-pax').value;
