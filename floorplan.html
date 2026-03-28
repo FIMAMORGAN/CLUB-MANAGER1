@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CLUBPRO V67 - Q-Gallery Map Pro</title>
+    <title>CLUBPRO V72 - Map Sync Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -12,18 +12,15 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
         body { background: #020617; color: white; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        
         #wrapper { transform: scale(0.8); transform-origin: center center; display: flex; justify-content: center; }
         .map-container { position: relative; width: 420px; height: 780px; background: #0f172a; border-radius: 30px; border: 1px solid rgba(255,255,255,0.05); }
         .t-btn { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; transition: all 0.2s; transform: translate(-50%, -50%); z-index: 20; }
         
+        .type-std-v { width: 42px; height: 75px; border-radius: 6px; border: 1px solid #f59e0b !important; }
+        .type-vip-main { width: 110px; height: 65px; border-radius: 10px; border: 2px solid #f59e0b !important; }
+        .type-round-framed { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #f59e0b !important; }
         .type-std { width: 48px; height: 40px; border-radius: 6px; }
-        .type-std-v { width: 42px; height: 75px; border-radius: 6px; border: 1px solid #f59e0b !important; } /* T1-T3 */
-        .type-vip-main { width: 110px; height: 65px; border-radius: 10px; border: 2px solid #f59e0b !important; } /* T7 */
         .type-vip-rect { width: 45px; height: 70px; border-radius: 6px; }
-        .type-round { width: 32px; height: 32px; border-radius: 50%; }
-        .type-round-framed { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #f59e0b !important; } /* V13-V15 */
-        
         .type-bar-rect { width: 170px; height: 50px; border-radius: 10px; border: 1px solid #0d9488 !important; color: #0d9488; background: rgba(13, 148, 136, 0.1); }
         .type-bar-seat { width: 18px; height: 18px; border-radius: 50%; font-size: 7px; }
 
@@ -32,36 +29,22 @@
         .status-arrived { background: #22c55e !important; color: white !important; }
         .status-linked { background: #f97316 !important; color: white !important; }
         .selected-highlight { border: 3px solid #fff !important; box-shadow: 0 0 20px #fff; z-index: 50; }
-        
-        /* הקטנת כפתור האישור */
         #confirm-btn { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 100; width: auto; min-width: 180px; }
     </style>
 </head>
 <body>
-
-    <div class="fixed top-4 right-4 z-[100]">
-        <button onclick="window.location.href='index.html?confirmed=true'" class="bg-slate-900 p-3 rounded-2xl border border-white/10 text-amber-500 shadow-2xl"><i data-lucide="home"></i></button>
-    </div>
-
-    <div id="confirm-btn" class="hidden">
-        <button onclick="confirmAssignment()" class="bg-white text-black py-3 px-8 rounded-full font-black uppercase shadow-2xl flex items-center gap-4 text-xs">
-            <span>אשר שיוך (<span id="selected-count">0</span>)</span>
-            <i data-lucide="check-circle" size="16"></i>
-        </button>
-    </div>
+    <div class="fixed top-4 right-4 z-[100]"><button onclick="window.location.href='index.html?confirmed=true'" class="bg-slate-900 p-3 rounded-2xl border border-white/10 text-amber-500 shadow-2xl"><i data-lucide="home"></i></button></div>
+    <div id="confirm-btn" class="hidden"><button onclick="confirmAssignment()" class="bg-white text-black py-3 px-8 rounded-full font-black uppercase shadow-2xl flex items-center gap-4 text-xs"><span>אשר שיוך (<span id="selected-count">0</span>)</span><i data-lucide="check-circle" size="16"></i></button></div>
 
     <div id="wrapper">
         <div class="map-container">
             <div id="btn-T7" data-type="vip-main" class="t-btn type-vip-main status-free" style="top: 23%; left: 75.5%;" onclick="toggleTable('T7')">T7 VIP</div>
-
             <div id="btn-T1" data-type="std-v" class="t-btn type-std-v status-free" style="top: 53%; left: 85.5%;" onclick="toggleTable('T1')">T1</div>
             <div id="btn-T2" data-type="std-v" class="t-btn type-std-v status-free" style="top: 66.5%; left: 85.5%;" onclick="toggleTable('T2')">T2</div>
             <div id="btn-T3" data-type="std-v" class="t-btn type-std-v status-free" style="top: 80%; left: 85.5%;" onclick="toggleTable('T3')">T3</div>
-
             <div id="btn-V13" data-type="round-framed" class="t-btn type-round-framed status-free" style="top: 59%; left: 7.5%;" onclick="toggleTable('V13')">V13</div>
             <div id="btn-V14" data-type="round-framed" class="t-btn type-round-framed status-free" style="top: 64%; left: 7.5%;" onclick="toggleTable('V14')">V14</div>
             <div id="btn-V15" data-type="round-framed" class="t-btn type-round-framed status-free" style="top: 69%; left: 7.5%;" onclick="toggleTable('V15')">V15</div>
-
             <div id="btn-T4" data-type="std" class="t-btn type-std status-free" style="top: 55%; left: 60.5%;" onclick="toggleTable('T4')">T4</div>
             <div id="btn-T5" data-type="std" class="t-btn type-std status-free" style="top: 65%; left: 60.5%;" onclick="toggleTable('T5')">T5</div>
             <div id="btn-T6" data-type="std" class="t-btn type-std status-free" style="top: 75%; left: 60.5%;" onclick="toggleTable('T6')">T6</div>
@@ -71,13 +54,7 @@
             <div id="btn-T11" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 16.5%;" onclick="toggleTable('T11')">T11</div>
             <div id="btn-T15" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 55%; left: 26.8%;" onclick="toggleTable('T15')">T15</div>
             <div id="btn-T18" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 72%; left: 26.8%;" onclick="toggleTable('T18')">T18</div>
-
             <div id="btn-BAR" class="t-btn type-bar-rect" style="top: 44.5%; left: 45.5%;" onclick="toggleTable('BAR')">BAR</div>
-            
-            <div id="btn-S11" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 26.5%;" onclick="toggleTable('S11')">S11</div>
-            <div id="btn-S12" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 43%; left: 26.5%;" onclick="toggleTable('S12')">S12</div>
-            <div id="btn-S13" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 46.5%; left: 26.5%;" onclick="toggleTable('S13')">S13</div>
-            
             <div id="btn-S3" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 30.5%;" onclick="toggleTable('S3')">S3</div>
             <div id="btn-S4" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 34.5%;" onclick="toggleTable('S4')">S4</div>
             <div id="btn-S5" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 38.5%;" onclick="toggleTable('S5')">S5</div>
@@ -86,9 +63,11 @@
             <div id="btn-S8" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 50.5%;" onclick="toggleTable('S8')">S8</div>
             <div id="btn-S9" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 54.5%;" onclick="toggleTable('S9')">S9</div>
             <div id="btn-S10" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 58.5%;" onclick="toggleTable('S10')">S10</div>
-            
             <div id="btn-S1" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 46.5%; left: 64.5%;" onclick="toggleTable('S1')">S1</div>
             <div id="btn-S2" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 43%; left: 64.5%;" onclick="toggleTable('S2')">S2</div>
+            <div id="btn-S11" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 26.5%;" onclick="toggleTable('S11')">S11</div>
+            <div id="btn-S12" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 43%; left: 26.5%;" onclick="toggleTable('S12')">S12</div>
+            <div id="btn-S13" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 46.5%; left: 26.5%;" onclick="toggleTable('S13')">S13</div>
         </div>
     </div>
 
@@ -98,10 +77,10 @@
         const db = firebase.firestore();
         const urlParams = new URLSearchParams(window.location.search);
         const assignToId = urlParams.get('assignTo');
-        const today = new Date().toISOString().split('T')[0];
+        const selectedDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
         let selectedTables = [];
 
-        db.collection('reservations').where('eventDate', '==', today).where('status', '==', 'active')
+        db.collection('reservations').where('eventDate', '==', selectedDate).where('status', '==', 'active')
           .onSnapshot(snap => {
             document.querySelectorAll('.t-btn[data-type]').forEach(btn => {
                 btn.className = `t-btn type-${btn.getAttribute('data-type')} status-free`;
@@ -124,14 +103,13 @@
 
         function toggleTable(id) {
             if (!assignToId) return;
-            const idx = selectedTables.indexOf(id);
-            if (idx > -1) {
-                selectedTables.splice(idx, 1);
-                document.getElementById('btn-' + id).classList.remove('selected-highlight');
-            } else {
-                selectedTables.push(id);
-                document.getElementById('btn-' + id).classList.add('selected-highlight');
+            const btn = document.getElementById('btn-' + id);
+            if (btn.classList.contains('status-booked') || btn.classList.contains('status-arrived') || btn.classList.contains('status-linked')) {
+                if (!selectedTables.includes(id)) return alert("שולחן תפוס!");
             }
+            const idx = selectedTables.indexOf(id);
+            if (idx > -1) { selectedTables.splice(idx, 1); btn.classList.remove('selected-highlight'); }
+            else { selectedTables.push(id); btn.classList.add('selected-highlight'); }
             document.getElementById('confirm-btn').classList.toggle('hidden', selectedTables.length === 0);
             document.getElementById('selected-count').innerText = selectedTables.length;
         }

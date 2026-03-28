@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V72 - Dashboard Master</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png">
+    <link rel="manifest" href="data:application/manifest+json,{'name':'ClubPro','short_name':'ClubPro','display':'standalone','start_url':'.','background_color':'#020617','theme_color':'#f59e0b','icons':[{'src':'https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png','sizes':'192x192','type':'image/png'}]}">
+    <title>ClubPro V71 - Full Integration Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -15,8 +18,11 @@
         .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; }
         .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 3px solid #f59e0b; font-size: 10px; padding: 4px 8px; color: #f59e0b; font-weight: 900; }
+        input, button, select { font-size: 12px !important; outline: none; }
+        .text-huge { font-size: 26px !important; font-weight: 900; }
         .text-tiny { font-size: 9px !important; }
-        .alert-banner { background: #dc2626; color: white; padding: 12px; font-weight: 900; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; }
+        .alert-banner { background: #dc2626; color: white; padding: 12px; font-weight: 900; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; animation: slideDown 0.5s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -45,6 +51,9 @@
             { id: 'q_gallery', name: 'Q-GALLERY', restricted: false },
             { id: 'ruki_vverh', name: 'РУКИ ВВЕРХ', restricted: true }
         ];
+
+        let lastCount = 0;
+        let isFirstLoad = true;
 
         const urlParams = new URLSearchParams(window.location.search);
         const confirmedVenue = urlParams.get('confirmed') ? 'q_gallery' : null;
@@ -92,17 +101,14 @@
                     <input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-5 h-5 rounded accent-green-500">
                     <div>
                         <p class="font-black text-white leading-tight">${res.name} (${res.pax})</p>
-                        <p class="text-tiny font-bold uppercase">
-                            ${res.tableNumber ? 
-                                `<span class="text-amber-500 font-black">שולחן ${res.tableNumber}</span> 
-                                 <button onclick="if(confirm('לבטל שיוך שולחן?')) db.collection('reservations').doc('${res.id}').update({tableNumber: firebase.firestore.FieldValue.delete()})" class="text-red-500 px-1 font-black">X</button>` 
-                                : `₪${res.minOrder || 0}`} | ${res.promoterName}
+                        <p class="text-tiny font-bold uppercase ${res.tableNumber ? 'text-amber-500' : 'text-slate-400'}">
+                            ${res.tableNumber ? 'שולחן ' + res.tableNumber : '₪' + (res.minOrder || 0)} | ${res.promoterName}
                         </p>
                     </div>
                 </div>
                 <div class="flex items-center gap-0.5">
-                    ${state.role === 'admin' ? `<input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-10 bg-black border border-white/20 rounded p-1 text-center text-green-400 font-black outline-none">` : ''}
-                    ${isQ ? `<button onclick="window.location.href='floorplan.html?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1.5"><i data-lucide="map-pin" size="18"></i></button>` : ''}
+                    ${state.role === 'admin' ? `<input type="number" placeholder="Z" value="${res.actualRevenue || ''}" onchange="db.collection('reservations').doc('${res.id}').update({actualRevenue: Number(this.value)})" class="w-10 bg-black border border-white/20 rounded p-1 text-center text-green-400 font-black outline-none shadow-inner">` : ''}
+                    ${isQ ? `<button onclick="window.location.href='floorplan.html?assignTo=${res.id}'" class="text-blue-400 p-1.5"><i data-lucide="map-pin" size="18"></i></button>` : ''}
                     <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-1.5"><i data-lucide="message-circle" size="18"></i></button>
                     <button onclick="editReservation('${res.id}')" class="text-amber-500 p-1"><i data-lucide="edit-2" size="18"></i></button>
                     <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1.5"><i data-lucide="trash-2" size="18"></i></button>
@@ -133,16 +139,13 @@
                         ${state.role === 'admin' ? `<button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black uppercase border border-white/10 text-tiny">יחצנים</button><button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/30 py-2.5 rounded-xl font-black uppercase border border-blue-500/20 text-blue-400 text-tiny">עמלות</button>` : ''}
                         <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null}})" class="flex-[2] btn-amber py-2.5 rounded-xl font-black uppercase shadow-lg">+ הוספת הזמנה</button>
                     </div>
-
-                    ${state.venueId === 'q_gallery' ? `<button onclick="window.location.href='floorplan.html?date=${state.selectedDate}'" class="w-full bg-blue-600/20 text-blue-400 border border-blue-500/30 py-4 rounded-2xl font-black uppercase flex items-center justify-center gap-3 shadow-lg"><i data-lucide="map"></i> מפת שולחנות Q-GALLERY</button>` : ''}
-
+                    ${state.venueId === 'q_gallery' ? `<button onclick="window.location.href='floorplan.html'" class="w-full bg-blue-600/20 text-blue-400 border border-blue-500/30 py-4 rounded-2xl font-black uppercase flex items-center justify-center gap-3 shadow-lg"><i data-lucide="map"></i> מפת שולחנות Q-GALLERY</button>` : ''}
                     ${state.role === 'admin' ? `<div class="flex justify-center py-1"><button onclick="exportToWhatsApp('${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="bg-green-600 text-white px-10 py-2 rounded-full font-black text-tiny flex items-center gap-2 shadow-2xl uppercase">ייצוא לווצאפ <i data-lucide="share-2" size="14"></i></button></div>` : ''}
-
                     <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl">
                         <div class="bg-white/5 p-2 text-tiny font-black uppercase tracking-widest text-slate-400 text-center">הזמנות שטרם הגיעו</div>
                         ${['table', 'bar', 'free'].map(type => {
                             const gList = pendingList.filter(r => r.type === type);
-                            return gList.length ? `<div><div class="group-header uppercase">${type === 'table' ? 'שולחנות' : type === 'bar' ? 'בר' : 'חינם'}</div>${gList.map(r => renderRow(r)).join('')}</div>` : '';
+                            return gList.length ? `<div><div class="group-header uppercase">${type==='table'?'שולחנות':type==='bar'?'בר':'חינם'}</div>${gList.map(r => renderRow(r)).join('')}</div>` : '';
                         }).join('')}
                     </div>
                     <div class="glass rounded-xl p-1 mt-2 bg-green-500/5 border-green-500/10">
@@ -178,7 +181,7 @@
             const data = {
                 venueId: state.venueId, name: state.formData.clientName, phone: state.formData.clientPhone || "",
                 type: state.formData.type, pax: Number(state.formData.pax), eventDate: state.selectedDate,
-                minOrder: Number(state.formData.manualPrice || (state.formData.pax * 300)),
+                minOrder: Number(state.formData.manualPrice || (state.formData.pax * 300)), 
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             if (state.editingId) { await db.collection('reservations').doc(state.editingId).update(data); }
@@ -238,7 +241,7 @@
             }
             if (!state.venueId) {
                 const visibleVenues = state.role === 'admin' ? allVenues : allVenues.filter(v => !v.restricted);
-                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase tracking-widest italic">SELECT VENUE</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${visibleVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-6 rounded-2xl text-center text-xl font-black uppercase border-white/10 active:scale-95 transition-all">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-10 underline text-tiny tracking-widest">LOGOUT</button></div>`;
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase italic">SELECT VENUE</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${visibleVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-6 rounded-2xl text-center text-xl font-black uppercase border-white/10 active:scale-95 transition-all">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-10 underline text-tiny tracking-widest">LOGOUT</button></div>`;
                 return;
             }
             if (!state.isDateConfirmed) {
