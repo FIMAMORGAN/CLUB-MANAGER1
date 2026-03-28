@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png">
+    <link rel="manifest" href="data:application/manifest+json,{'name':'ClubPro','short_name':'ClubPro','display':'standalone','start_url':'.','background_color':'#020617','theme_color':'#f59e0b','icons':[{'src':'https://raw.githubusercontent.com/fimamorgan/CLUB-MANAGER1/main/1%20(1).png','sizes':'192x192','type':'image/png'}]}">
+    <title>ClubPro V62 - Seating Integrated</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; text-align: right; font-size: 12px; overflow-x: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; }
+        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 3px solid #f59e0b; font-size: 10px; padding: 4px 8px; color: #f59e0b; font-weight: 900; }
+        input, button, select { font-size: 12px !important; outline: none; }
+        .text-huge { font-size: 26px !important; font-weight: 900; }
+        .text-tiny { font-size: 9px !important; }
+        .alert-banner { background: #dc2626; color: white; padding: 12px; font-weight: 900; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; animation: slideDown 0.5s ease-out; }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
+
+    <script>
+        const config = {
+            firebase: {
+                apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
+                authDomain: "clubpro-system.firebaseapp.com",
+                projectId: "clubpro-system",
+                storageBucket: "clubpro-system.firebasestorage.app",
+                messagingSenderId: "825897406218",
+                appId: "1:825897406218:web:a660e48a120361247934f3"
+            }
+        };
+
+        firebase.initializeApp(config.firebase);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        const daysHebrew = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+        const getToday = () => new Date().toISOString().split('T')[0];
+
+        const allVenues = [
+            { id: 'shalvata', name: 'Shalvata', restricted: false },
+            { id: 'q_gallery', name: 'Q-GALLERY', restricted: false },
+            { id: 'ruki_vverh', name: 'РУКИ ВВЕРХ', restricted: true }
+        ];
+
+        let lastCount = 0;
+        let isFirstLoad = true;
+        let state = {
+            role: localStorage.getItem('club_role') || null,
+            userName: localStorage.getItem('club_name') || '',
+            phone: localStorage.getItem('club_phone') || '',
+            venueId: null,
+            selectedDate: getToday(),
+            isDateConfirmed: false,
+            reservations: [], users: [], isAdding: false, editingId: null,
+            showArrived: false, showUsers: false, showSummary: false,
+            newAlert: false, alertEnabled: false,
+            formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null }
+        };
+
+        function updateState(newData) { 
+            state = { ...state, ...newData }; 
+            render(); 
+        }
+
+        async function login(val) {
+            const clean = val.trim();
+            if (clean.toLowerCase() === 'res') {
+                updateState({ role: 'admin', userName: 'Admin', phone: 'ADMIN' });
+                localStorage.setItem('club_role', 'admin');
+                localStorage.setItem('club_phone', 'ADMIN');
+                return;
+            }
+            if (clean.length >= 10) {
+                const userDoc = await db.collection('users').doc(clean).get();
+                let name = userDoc.exists ? userDoc.data().name : prompt("שם יחצן חדש:");
+                if (!name) return;
+                if (!userDoc.exists) await db.collection('users').doc(clean).set({ name, phone: clean });
+                updateState({ role: 'promoter', userName: name, phone: clean });
+                localStorage.setItem('club_role', 'promoter');
+                localStorage.setItem('club_name', name);
+                localStorage.setItem('club_phone', clean);
+            }
+        }
+
+        function render() {
+            const root = document.getElementById('app');
+            if (!state.role) {
+                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4 text-white"><div class="w-full max-w-xs glass p-10 rounded-3xl border border-white/10 text-center shadow-2xl"><h2 class="text-2xl font-black mb-10 italic text-amber-500">CLUBPRO</h2><input id="login-input" type="text" placeholder="מספר טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white outline-none font-bold text-lg"><button onclick="login(document.getElementById('login-input').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black">כניסה</button></div></div>`;
+                return;
+            }
+            if (!state.venueId) {
+                const visibleVenues = state.role === 'admin' ? allVenues : allVenues.filter(v => !v.restricted);
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase">בחר מועדון</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${visibleVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-6 rounded-2xl text-center text-xl font-black uppercase border-white/10 active:scale-95 transition-all">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-10 underline text-tiny">התנתק</button></div>`;
+                return;
+            }
+            if (state.venueId && !state.isDateConfirmed) {
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white"><button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-tiny flex items-center gap-2 border border-amber-500/30 px-5 py-2 rounded-full uppercase bg-amber-500/5 shadow-lg"><i data-lucide="arrow-right" size="14"></i> חזור</button><h2 class="text-xl font-black uppercase text-center">בחר תאריך:</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${state.selectedDate}" id="date-picker" onchange="state.selectedDate = this.value; render();" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white text-huge outline-none font-black text-center"><p class="mt-4 text-amber-500 font-black text-lg uppercase">יום ${daysHebrew[new Date(state.selectedDate).getDay()]}</p><button onclick="updateState({isDateConfirmed: true})" class="w-full btn-amber py-4 rounded-xl mt-6 font-black uppercase">אישור תאריך</button></div></div>`;
+                lucide.createIcons();
+                return;
+            }
+            renderMainContent(root);
+        }
+
+        function renderMainContent(root) {
+            const venue = allVenues.find(v => v.id === state.venueId);
+            const allList = state.reservations.filter(r => r.status === 'active' && r.venueId === state.venueId && r.eventDate === state.selectedDate);
+            root.innerHTML = `
+                ${state.newAlert ? `<div class="alert-banner">🚨 הזמנה חדשה!</div>` : ''}
+                <div class="flex flex-col h-screen overflow-hidden text-right text-white">
+                    <header class="bg-slate-950 p-2 border-b border-white/5 flex justify-between items-center shadow-lg">
+                        <div class="font-black italic text-base uppercase text-amber-500 pr-2">${venue.name}</div>
+                        <div class="flex gap-2">
+                            <button onclick="updateState({isDateConfirmed: false})" class="text-slate-400 font-black text-tiny border border-white/10 px-3 py-1.5 rounded-lg bg-white/5 uppercase">שינוי תאריך</button>
+                            <button onclick="updateState({venueId: null, isDateConfirmed: false, isAdding:false, showUsers:false, showSummary:false})" class="text-amber-500 font-black text-tiny border border-amber-500/50 px-3 py-1.5 rounded-lg bg-amber-500/5 uppercase">בית</button>
+                        </div>
+                    </header>
+                    <main class="flex-1 overflow-y-auto p-2 bg-slate-950/50 space-y-3">
+                        ${state.showUsers ? renderUsersMGMT() : (state.showSummary ? renderSummary(allList) : renderDashboard(allList))}
+                    </main>
+                </div>`;
+            lucide.createIcons();
+        }
+
+        function renderDashboard(allList) {
+            const viewList = state.role === 'admin' ? allList : allList.filter(r => r.promoterId === state.phone);
+            const pendingList = viewList.filter(r => !r.arrived);
+            const arrivedList = viewList.filter(r => r.arrived);
+
+            return `
+                <div class="grid grid-cols-4 gap-1">
+                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-tiny text-slate-500 font-black uppercase">שולחנות</p><p class="font-black">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-tiny text-slate-500 font-black uppercase">בר</p><p class="font-black">${pendingList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                    <div class="glass p-1.5 rounded-lg text-center border-green-500/30 bg-green-500/5 text-green-400"><p class="text-tiny font-black uppercase">בפנים</p><p class="font-black">${arrivedList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                     <div class="glass p-1.5 rounded-lg text-center border-white/10 opacity-20"><p class="text-tiny text-slate-500 font-black uppercase">INFO</p><p class="font-black">i</p></div>
+                </div>
+                ${state.isAdding ? renderForm() : `
+                    <div class="flex gap-1">
+                        ${state.role === 'admin' ? `<button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black uppercase border border-white/10 text-tiny">יחצנים</button><button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/30 py-2.5 rounded-xl font-black uppercase border border-blue-500/20 text-blue-400 text-tiny">עמלות</button>` : ''}
+                        <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null}})" class="flex-[2] btn-amber py-2.5 rounded-xl font-black uppercase shadow-lg">+ הוספת הזמנה</button>
+                    </div>
+                    
+                    ${state.venueId === 'q_gallery' ? `
+                        <button onclick="window.location.href='floorplan.html'" class="w-full bg-blue-600 border border-blue-400 py-3 rounded-xl font-black uppercase text-white shadow-lg flex items-center justify-center gap-2">
+                           <i data-lucide="map" size="18"></i> OPEN SEATING MAP
+                        </button>
+                    ` : ''}
+
+                    <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl">
+                        <div class="bg-white/5 p-2 text-tiny font-black uppercase tracking-widest text-slate-400 text-center">הזמנות שטרם הגיעו</div>
+                        ${['table', 'bar', 'free'].map(type => {
+                            const gList = pendingList.filter(r => r.type === type);
+                            return gList.length ? `<div><div class="group-header uppercase">${type === 'table' ? 'שולחנות' : type === 'bar' ? 'בר' : 'חינם'}</div>${gList.map(r => renderRow(r)).join('')}</div>` : '';
+                        }).join('')}
+                    </div>
+                    <div class="glass rounded-xl p-1 mt-2 bg-green-500/5 border-green-500/10">
+                        <button onclick="updateState({showArrived: !state.showArrived})" class="w-full flex justify-between items-center p-2 text-green-500 font-black text-tiny uppercase"><span>לקוחות שבפנים (${arrivedList.length})</span><i data-lucide="${state.showArrived ? 'chevron-up' : 'chevron-down'}" size="14"></i></button>
+                        ${state.showArrived ? arrivedList.map(r => renderRow(r)).join('') : ''}
+                    </div>
+                `}
+            `;
+        }
+
+        function renderRow(res) {
+            const isQGallery = state.venueId === 'q_gallery';
+            return `
+            <div class="flex items-center justify-between p-2 border-b border-white/5 ${res.arrived ? 'opacity-50' : ''}">
+                <div class="flex items-center gap-2 text-right">
+                    <input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-5 h-5 rounded accent-green-500">
+                    <div>
+                        <p class="font-black text-white leading-tight">${res.name} (${res.pax})</p>
+                        <p class="text-tiny font-bold">
+                            ${res.tableNumber ? `<span class="text-orange-500">שולחן ${res.tableNumber}</span>` : `₪${res.minOrder}`} | ${res.promoterName}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-0.5">
+                    ${isQGallery ? `
+                        <button onclick="window.location.href='floorplan.html?assignTo=${res.id}'" class="text-blue-400 p-1.5"><i data-lucide="map-pin" size="18"></i></button>
+                    ` : ''}
+                    <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-1.5"><i data-lucide="message-circle" size="18"></i></button>
+                    <button onclick="editReservation('${res.id}')" class="text-amber-500 p-1"><i data-lucide="edit-2" size="18"></i></button>
+                    <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1.5"><i data-lucide="trash-2" size="18"></i></button>
+                </div>
+            </div>`;
+        }
+
+        function editReservation(id) {
+            const res = state.reservations.find(r => r.id === id);
+            updateState({ editingId: id, isAdding: true, formData: { type: res.type, pax: res.pax, clientName: res.name, clientPhone: res.phone, manualPrice: res.minOrder } });
+        }
+
+        function renderForm() {
+            const d = state.formData;
+            return `<div class="glass p-5 rounded-[2rem] space-y-4 text-right shadow-2xl">
+                <div class="flex justify-between items-center"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-400 font-black uppercase text-tiny flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="text-amber-500 font-black uppercase tracking-widest text-tiny">${state.editingId ? 'עריכת הזמנה' : 'הזמנה חדשה'}</h2></div>
+                <input id="f-name" placeholder="שם לקוח" value="${d.clientName}" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white outline-none font-bold shadow-inner">
+                <input id="f-phone" placeholder="טלפון" type="tel" value="${d.clientPhone}" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-left text-white outline-none font-bold shadow-inner" dir="ltr">
+                <div class="flex gap-1.5">${['table','bar','free'].map(t => `<button onclick="state.formData.type='${t}'; render();" class="flex-1 py-3 rounded-xl border-2 font-black uppercase ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'שולחן':t==='bar'?'בר':'חינם'}</button>`).join('')}</div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-tiny text-slate-500 font-black uppercase pr-2">אנשים</label><input id="f-pax" type="number" value="${d.pax}" oninput="state.formData.pax = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-center font-black text-lg"></div>
+                    <div><label class="text-tiny text-amber-500 font-black uppercase pr-2">מינ' ₪</label><input id="f-price" type="number" value="${d.manualPrice || (d.pax * 300)}" oninput="state.formData.manualPrice = this.value" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500 text-center font-black text-lg"></div>
+                </div>
+                <button onclick="saveCurrentBooking()" class="w-full btn-amber py-4 rounded-xl shadow-xl uppercase font-black">${state.editingId ? 'עדכן' : 'שמור'}</button>
+            </div>`;
+        }
+
+        async function saveCurrentBooking() {
+            if(!state.formData.clientName || !state.formData.pax) return alert("שם וכמות חובה");
+            const data = {
+                venueId: state.venueId, name: state.formData.clientName, phone: state.formData.clientPhone || "",
+                type: state.formData.type, pax: Number(state.formData.pax), eventDate: state.selectedDate,
+                minOrder: Number(state.formData.manualPrice || (state.formData.pax * 300)), 
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            if (state.editingId) { await db.collection('reservations').doc(state.editingId).update(data); }
+            else { data.promoterId = state.phone; data.promoterName = state.userName; data.status = 'active'; data.arrived = false; data.actualRevenue = 0; await db.collection('reservations').add(data); }
+            updateState({ isAdding: false, editingId: null });
+        }
+
+        function sendWhatsAppToClient(id) {
+            const res = state.reservations.find(r => r.id === id);
+            const vId = state.venueId;
+            let msg = vId === 'shalvata' ? `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים. התחלה 22:00. 📍 התערוכה 3, ת"א. https://waze.com/ul?q=התערוכה%203%20תל%20אביב&navigate=yes` : (vId === 'q_gallery' ? `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים. התחלה 22:00. 📍 רוטשילד 19, ת"א. https://waze.com/ul?q=רוטשילד%2019%20תל%20אביב&navigate=yes` : `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים. התחלה 22:30. 📍 טברסקי 14, ת"א. https://waze.com/ul?q=טברסקי%2014%20תל%20אביב&navigate=yes`);
+            window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/, '972')}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function renderUsersMGMT() {
+            return `<div class="space-y-4"><div class="flex justify-between items-center"><button onclick="updateState({showUsers:false})" class="text-tiny font-black uppercase text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 uppercase italic text-tiny">ניהול יחצנים</h2></div><div class="glass p-3 rounded-xl space-y-2"><div class="flex gap-1.5 items-end"><div class="flex-1 text-right"><label class="text-tiny text-slate-500 uppercase">שם יחצן</label><input id="new-u-name" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white outline-none"></div><div class="flex-1 text-right"><label class="text-tiny text-slate-500 uppercase">טלפון</label><input id="new-u-phone" type="tel" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white" dir="ltr"></div><button onclick="addUserManually()" class="bg-amber-500 text-black h-9 px-4 rounded font-black active:scale-95 transition-all shadow-lg text-lg">+</button></div></div><div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto">${state.users.map(u => `<div class="flex justify-between items-center p-3"><div><p class="font-black text-white text-tiny">${u.name}</p><p class="text-tiny text-slate-400">${u.id}</p></div><button onclick="deleteUser('${u.id}')" class="text-red-500"><i data-lucide="trash-2" size="16"></i></button></div>`).join('')}</div></div>`;
+        }
+
+        async function addUserManually() {
+            const name = document.getElementById('new-u-name').value;
+            const phone = document.getElementById('new-u-phone').value;
+            if(!name || phone.length < 10) return alert("פרטים לא תקינים");
+            await db.collection('users').doc(phone).set({ name, phone });
+            document.getElementById('new-u-name').value = '';
+            document.getElementById('new-u-phone').value = '';
+        }
+
+        async function deleteUser(id) { if(confirm('למחוק?')) await db.collection('users').doc(id).delete(); }
+
+        function renderSummary(list) {
+            const summary = {}; list.forEach(r => { const p = r.promoterName || 'Admin'; if (!summary[p]) summary[p] = { count: 0, z: 0 }; summary[p].count++; summary[p].z += Number(r.actualRevenue || 0); });
+            let totalComm = 0;
+            const tableRows = Object.entries(summary).map(([name, data]) => {
+                const comm = (data.z * 0.1).toFixed(0); totalComm += Number(comm);
+                return `<tr><td class="p-2 font-black text-right">${name}</td><td class="p-2 text-center text-tiny">${data.count}</td><td class="p-2 font-black text-green-400 text-right">₪${data.z}</td><td class="p-2 font-black text-amber-500 text-right">₪${comm}</td></tr>`;
+            }).join('');
+            return `<div class="space-y-2"><div class="flex justify-between items-center"><button onclick="updateState({showSummary:false})" class="bg-red-700/50 text-white px-3 py-1 rounded text-tiny font-black uppercase shadow-lg flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 uppercase italic text-tiny">עמלות (10%)</h2></div><div class="glass rounded-xl overflow-hidden border border-white/10 shadow-xl"><table class="w-full text-white text-right"><thead class="bg-white/5 text-tiny uppercase font-black text-slate-400"><tr><th class="p-2">יחצן</th><th class="p-2 text-center">הזמנות</th><th class="p-2">Z סופי</th><th class="p-2 text-right">עמלה</th></tr></thead><tbody class="divide-y divide-white/5">${tableRows}</tbody><tfoot class="bg-amber-500/10 font-black"><tr><td colspan="3" class="p-2 text-right uppercase text-tiny">סה"כ:</td><td class="p-2 text-amber-500 text-xs text-right font-black">₪${totalComm}</td></tr></tfoot></table></div></div>`;
+        }
+
+        auth.onAuthStateChanged(user => {
+            if (!user) { auth.signInAnonymously(); return; }
+            db.collection('reservations').onSnapshot(snap => { 
+                const newRes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (state.role === 'admin' && !isFirstLoad && newRes.length > lastCount) {
+                    const audio = document.getElementById('alert-sound');
+                    audio.play().catch(() => {});
+                    updateState({ newAlert: true });
+                    setTimeout(() => updateState({ newAlert: false }), 7000);
+                }
+                lastCount = newRes.length; isFirstLoad = false;
+                updateState({ reservations: newRes }); 
+            });
+            db.collection('users').onSnapshot(snap => { updateState({ users: snap.docs.map(d => ({ id: d.id, ...d.data() })) }); });
+        });
+    </script>
+</body>
+</html>
