@@ -3,165 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Q-GALLERY Interactive Floor Plan - CLUBPRO V80</title>
+    <title>CLUBPRO V81 - Precise Q-Gallery Map</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { background-color: #020617; color: white; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        body { background: #020617; color: white; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; }
         
-        /* מפה גרפית נקייה */
-        .map-wrapper { position: relative; width: 420px; height: 780px; transform: scale(0.9); transform-origin: center center; }
-        .map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        .interactive-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        /* גודל המפה המדויק שנכנס למסך */
+        #wrapper { transform: scale(0.8); transform-origin: center center; display: flex; justify-content: center; }
+        .map-container { position: relative; width: 420px; height: 780px; background: #0f172a; border-radius: 30px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         
-        /* סגנון כפתור שולחן - שקוף עם אפקט לחיצה */
-        .table-btn { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; transition: all 0.2s; transform: translate(-50%, -50%); border-radius: 4px; pointer-events: auto; text-transform: uppercase; border: 2px solid transparent; }
-        
-        /* מצבי שולחן צבעוניים */
-        .status-free { background-color: rgba(30, 41, 59, 0.4); border-color: rgba(255,255,255,0.1); color: #94a3b8; }
-        
-        /* צבע תפוס נעים ומקצועי (סגול עמוק) */
-        .status-booked { background-color: #6366f1; border-color: #a5b4fc; color: white; box-shadow: 0 0 15px rgba(99, 102, 241, 0.6); }
-        .status-arrived { background-color: #22c55e; border-color: #86efac; color: white; }
-        .status-linked { background-color: #f97316; border-color: #fdba74; color: white; }
-        
-        /* סימון בחירה נוצץ */
-        .selected-highlight { border: 3px solid #f59e0b !important; box-shadow: 0 0 25px #f59e0b; z-index: 50; transform: translate(-50%, -50%) scale(1.1); }
-        
-        /* כפתורי בקרה שקופים */
-        .glass-panel { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        
-        /* הגדרת גדלים מיוחדים לכל סוג ישיבה */
-        .type-std { width: 48px; height: 42px; }
-        .type-std-v { width: 42px; height: 78px; }
-        .type-vip-main { width: 110px; height: 68px; border-radius: 8px; }
-        .type-vip-rect { width: 46px; height: 72px; }
-        .type-round-framed { width: 34px; height: 34px; border-radius: 50%; }
-        .type-bar-rect { width: 175px; height: 55px; border-radius: 8px; pointer-events: none; }
-        .type-bar-seat { width: 20px; height: 20px; border-radius: 50%; font-size: 8px; }
+        /* עיצוב הכפתורים המקצועי */
+        .t-btn { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; transition: all 0.2s; transform: translate(-50%, -50%); z-index: 20; border: 1px solid rgba(255,255,255,0.05); }
+        .type-std { width: 48px; height: 40px; border-radius: 6px; }
+        .type-std-v { width: 42px; height: 75px; border-radius: 6px; border: 1px solid #f59e0b !important; }
+        .type-vip-main { width: 110px; height: 65px; border-radius: 10px; border: 2px solid #f59e0b !important; }
+        .type-vip-rect { width: 45px; height: 70px; border-radius: 6px; }
+        .type-round-framed { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #f59e0b !important; }
+        .type-bar-rect { width: 170px; height: 50px; border-radius: 10px; border: 1px solid #0d9488 !important; color: #0d9488; background: rgba(13, 148, 136, 0.1); }
+        .type-bar-seat { width: 18px; height: 18px; border-radius: 50%; font-size: 7px; }
 
-        #confirm-btn { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 100; }
+        /* צבעים מקצועיים */
+        .status-free { background: #1e293b; color: #94a3b8; }
+        .status-booked { background: #6366f1 !important; color: white !important; border-color: #818cf8 !important; box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); } /* סגול אינדיגו נעים */
+        .status-arrived { background: #22c55e !important; color: white !important; }
+        .status-linked { background: #f97316 !important; color: white !important; }
+        .selected-highlight { border: 3px solid #f59e0b !important; box-shadow: 0 0 25px #f59e0b; z-index: 50; }
+
+        /* עיצוב המקרא (Legend) */
+        .glass-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+        .legend-card { position: fixed; top: 85px; width: 380px; border-radius: 15px; padding: 10px; z-index: 100; font-size: 9px; line-height: 1.4; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     </style>
 </head>
 <body>
 
-    <div class="fixed top-0 left-0 right-0 z-50 p-4 flex flex-col gap-3">
-        <div class="flex justify-between items-center">
+    <div class="fixed top-0 left-0 right-0 z-50 p-4 flex flex-col gap-3 items-center">
+        <div class="flex justify-between items-center w-full max-w-[420px]">
             <div class="flex gap-3 items-center">
-                <button onclick="window.location.href='index.html?confirmed=true'" class="glass-panel p-3 rounded-2xl text-amber-500 shadow-xl"><i data-lucide="home"></i></button>
+                <button onclick="window.location.href='index.html?confirmed=true&date=${selectedDate}'" class="glass-panel p-3 rounded-2xl text-amber-500 shadow-xl"><i data-lucide="arrow-right"></i></button>
                 <h1 class="font-black text-amber-500 italic text-xl tracking-tighter">Q-GALLERY</h1>
             </div>
             <div id="status-tag" class="glass-panel text-slate-400 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest">מפת ישיבה חיה</div>
         </div>
 
-        <div class="glass-panel p-3 rounded-2xl grid grid-cols-2 gap-3 text-[10px] leading-tight shadow-2xl">
+        <div class="legend-card glass-panel shadow-2xl">
             <div class="border-l border-white/10 pl-3">
-                <p class="text-amber-500 font-bold mb-1.5 underline">גבוהים (עד 4 איש):</p>
+                <p class="text-amber-500 font-bold mb-1 underline">גבוהים (עד 4 איש):</p>
                 <p>T8, T9, T10, T11 | T15, T16</p>
             </div>
             <div class="pr-3">
-                <p class="text-blue-400 font-bold mb-1.5 underline">ספות / ישיבה נמוכה:</p>
+                <p class="text-blue-400 font-bold mb-1 underline">ספות / ישיבה נמוכה:</p>
                 <p>T1 (6), T2 (4), T3 (4)</p>
                 <p>V13, V14, V15 (עד 5 איש)</p>
             </div>
         </div>
     </div>
 
-    <div id="confirm-btn" class="hidden">
-        <button onclick="confirmAssignment()" class="bg-amber-500 text-black font-black px-12 py-4 rounded-full shadow-2xl uppercase tracking-widest flex items-center gap-4 text-xs">
-            <span>אשר שיוך (<span id="selected-count">0</span> שולחנות)</span>
+    <div id="confirm-btn" class="fixed bottom-10 left-50 translate-x-1/2 z-[100] hidden">
+        <button onclick="confirmAssignment()" class="bg-amber-500 text-black py-4 px-10 rounded-full font-black uppercase shadow-2xl flex items-center gap-4 text-xs tracking-widest">
+            <span>אשר שיוך (<span id="selected-count">0</span>)</span>
             <i data-lucide="check-circle" size="18"></i>
         </button>
     </div>
 
-    <div id="wrapper" class="map-wrapper">
-        
-        <svg class="map-bg" viewBox="0 0 420 780" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="420" height="780" rx="30" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
-            
-            <rect x="20" y="320" width="380" height="200" rx="15" fill="#131C31" stroke="rgba(255,255,255,0.03)" stroke-width="2"/>
-            <text x="210" y="425" fill="#1E293B" font-size="24" font-weight="900" text-anchor="middle" transform="rotate(-90 210 425)">BAR AREA</small></text>
-            
-            <path d="M20 530 H 400" stroke="#f59e0b" stroke-width="3" stroke-dasharray="10 5" opacity="0.4"/>
-            <text x="380" y="520" fill="#f59e0b" font-size="10" font-weight="900" text-anchor="end">GOLD VIP SECTIONS</text>
-        </svg>
+    <div id="wrapper">
+        <div class="map-container">
+            <div id="btn-T11" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 14%;" onclick="toggleTable('T11')">T11</div>
+            <div id="btn-T10" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 26%;" onclick="toggleTable('T10')">T10</div>
+            <div id="btn-T9" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 38%;" onclick="toggleTable('T9')">T9</div>
+            <div id="btn-T8" data-type="std" class="t-btn type-std status-free" style="top: 21.5%; left: 50%;" onclick="toggleTable('T8')">T8</div>
 
-        <div id="interactive-map" class="interactive-layer">
-            
-            <div id="btn-T11" data-type="type-std" class="table-btn status-free" style="top: 21.5%; left: 14%;">T11</div>
-            <div id="btn-T10" data-type="type-std" class="table-btn status-free" style="top: 21.5%; left: 26%;">T10</div>
-            <div id="btn-T9" data-type="type-std" class="table-btn status-free" style="top: 21.5%; left: 38%;">T9</div>
-            <div id="btn-T8" data-type="type-std" class="table-btn status-free" style="top: 21.5%; left: 50%;">T8</div>
+            <div id="btn-T7" data-type="vip-main" class="t-btn type-vip-main status-free" style="top: 23%; left: 75.5%;" onclick="toggleTable('T7')">T7 VIP</div>
+            <div id="btn-T1" data-type="std-v" class="t-btn type-std-v status-free" style="top: 53%; left: 85.5%;" onclick="toggleTable('T1')">T1</div>
+            <div id="btn-T2" data-type="std-v" class="t-btn type-std-v status-free" style="top: 66.5%; left: 85.5%;" onclick="toggleTable('T2')">T2</div>
+            <div id="btn-T3" data-type="std-v" class="t-btn type-std-v status-free" style="top: 80%; left: 85.5%;" onclick="toggleTable('T3')">T3</div>
 
-            <div id="btn-T7" data-type="type-vip-main" class="table-btn status-free" style="top: 23%; left: 75.5%;">T7 VIP</div>
-            <div id="btn-T1" data-type="type-std-v" class="table-btn status-free" style="top: 53%; left: 85.5%;">T1</div>
-            <div id="btn-T2" data-type="type-std-v" class="table-btn status-free" style="top: 66.5%; left: 85.5%;">T2</div>
-            <div id="btn-T3" data-type="type-std-v" class="table-btn status-free" style="top: 80%; left: 85.5%;">T3</div>
+            <div id="btn-V13" data-type="round-framed" class="t-btn type-round-framed status-free" style="top: 59%; left: 7.5%;" onclick="toggleTable('V13')">V13</div>
+            <div id="btn-V14" data-type="round-framed" class="t-btn type-round-framed status-free" style="top: 64%; left: 7.5%;" onclick="toggleTable('V14')">V14</div>
+            <div id="btn-V15" data-type="round-framed" class="t-btn type-round-framed status-free" style="top: 69%; left: 7.5%;" onclick="toggleTable('V15')">V15</div>
+            
+            <div id="btn-T15" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 55%; left: 26.8%;" onclick="toggleTable('T15')">T15</div>
+            <div id="btn-T16" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 64%; left: 26.8%;" onclick="toggleTable('T16')">T16</div>
+            <div id="btn-T18" data-type="vip-rect" class="t-btn type-vip-rect status-free" style="top: 73%; left: 26.8%;" onclick="toggleTable('T18')">T18</div>
 
-            <div id="btn-V13" data-type="type-round-framed" class="table-btn status-free" style="top: 59%; left: 7.5%;">V13</div>
-            <div id="btn-V14" data-type="type-round-framed" class="table-btn status-free" style="top: 64%; left: 7.5%;">V14</div>
-            <div id="btn-V15" data-type="type-round-framed" class="table-btn status-free" style="top: 69%; left: 7.5%;">V15</div>
-            
-            <div id="btn-T15" data-type="type-vip-rect" class="table-btn status-free" style="top: 55%; left: 26.8%;">T15</div>
-            <div id="btn-T16" data-type="type-vip-rect" class="table-btn status-free" style="top: 64%; left: 26.8%;">T16</div>
-            <div id="btn-T18" data-type="type-vip-rect" class="table-btn status-free" style="top: 73%; left: 26.8%;">T18</div>
+            <div id="btn-T4" data-type="std" class="t-btn type-std status-free" style="top: 55%; left: 60.5%;" onclick="toggleTable('T4')">T4</div>
+            <div id="btn-T5" data-type="std" class="t-btn type-std status-free" style="top: 65%; left: 60.5%;" onclick="toggleTable('T5')">T5</div>
+            <div id="btn-T6" data-type="std" class="t-btn type-std status-free" style="top: 75%; left: 60.5%;" onclick="toggleTable('T6')">T6</div>
 
-            <div id="btn-T4" data-type="type-std" class="table-btn status-free" style="top: 55%; left: 60.5%;">T4</div>
-            <div id="btn-T5" data-type="type-std" class="table-btn status-free" style="top: 65%; left: 60.5%;">T5</div>
-            <div id="btn-T6" data-type="type-std" class="table-btn status-free" style="top: 75%; left: 60.5%;">T6</div>
-
-            <div id="btn-BAR" class="table-btn type-bar-rect" style="top: 44.5%; left: 45.5%;">Q-BAR</div>
+            <div id="btn-BAR" class="t-btn type-bar-rect" style="top: 44.5%; left: 45.5%;" onclick="toggleTable('BAR')">Q-BAR</div>
             
-            <div id="btn-S11" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 26%;">S11</div>
-            <div id="btn-S12" data-type="type-bar-seat" class="table-btn status-free" style="top: 43%; left: 26%;">S12</div>
-            <div id="btn-S13" data-type="type-bar-seat" class="table-btn status-free" style="top: 46.5%; left: 26%;">S13</div>
+            <div id="btn-S11" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 26%;" onclick="toggleTable('S11')">S11</div>
+            <div id="btn-S12" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 43%; left: 26%;" onclick="toggleTable('S12')">S12</div>
+            <div id="btn-S13" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 46.5%; left: 26%;" onclick="toggleTable('S13')">S13</div>
             
-            <div id="btn-S3" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 30%;">S3</div>
-            <div id="btn-S4" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 34.5%;">S4</div>
-            <div id="btn-S5" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 39%;">S5</div>
-            <div id="btn-S6" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 43.5%;">S6</div>
-            <div id="btn-S7" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 48%;">S7</div>
-            <div id="btn-S8" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 52.5%;">S8</div>
-            <div id="btn-S9" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 57%;">S9</div>
-            <div id="btn-S10" data-type="type-bar-seat" class="table-btn status-free" style="top: 39.5%; left: 61.5%;">S10</div>
+            <div id="btn-S3" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 30%;" onclick="toggleTable('S3')">S3</div>
+            <div id="btn-S4" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 34.5%;" onclick="toggleTable('S4')">S4</div>
+            <div id="btn-S5" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 39%;" onclick="toggleTable('S5')">S5</div>
+            <div id="btn-S6" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 43.5%;" onclick="toggleTable('S6')">S6</div>
+            <div id="btn-S7" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 48%;" onclick="toggleTable('S7')">S7</div>
+            <div id="btn-S8" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 52.5%;" onclick="toggleTable('S8')">S8</div>
+            <div id="btn-S9" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 57%;" onclick="toggleTable('S9')">S9</div>
+            <div id="btn-S10" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 39.5%; left: 61.5%;" onclick="toggleTable('S10')">S10</div>
             
-            <div id="btn-S1" data-type="type-bar-seat" class="table-btn status-free" style="top: 46.5%; left: 65%;">S1</div>
-            <div id="btn-S2" data-type="type-bar-seat" class="table-btn status-free" style="top: 43%; left: 65%;">S2</div>
+            <div id="btn-S1" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 46.5%; left: 65%;" onclick="toggleTable('S1')">S1</div>
+            <div id="btn-S2" data-type="bar-seat" class="t-btn type-bar-seat status-free" style="top: 43%; left: 65%;" onclick="toggleTable('S2')">S2</div>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script>
-        // הגדרות Firebase...
         const config = { apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI", authDomain: "clubpro-system.firebaseapp.com", projectId: "clubpro-system", storageBucket: "clubpro-system.firebasestorage.app", messagingSenderId: "825897406218", appId: "1:825897406218:web:a660e48a120361247934f3" };
         firebase.initializeApp(config);
         const db = firebase.firestore();
-
         const urlParams = new URLSearchParams(window.location.search);
         const assignToId = urlParams.get('assignTo');
         const selectedDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
         let selectedTables = [];
 
-        if(assignToId) document.getElementById('status-tag').innerHTML = "בחר שולחנות לשיוך";
-
-        // אתחול גדלים לפי data-type
-        document.querySelectorAll('.table-btn[data-type]').forEach(btn => {
-            btn.classList.add(btn.getAttribute('data-type'));
-        });
-
-        // האזנה לתפוסים בזמן אמת לפי תאריך
-        db.collection('reservations')
-          .where('eventDate', '==', selectedDate)
-          .where('status', '==', 'active')
+        db.collection('reservations').where('eventDate', '==', selectedDate).where('status', '==', 'active')
           .onSnapshot(snap => {
-            // איפוס
-            document.querySelectorAll('.table-btn[data-type]').forEach(btn => {
-                btn.className = `table-btn ${btn.getAttribute('data-type')} status-free`;
+            document.querySelectorAll('.t-btn[data-type]').forEach(btn => {
+                btn.className = `t-btn type-${btn.getAttribute('data-type')} status-free`;
             });
-
-            // רישום תפוסים
             snap.docs.forEach(doc => {
                 const res = doc.data();
                 if (res.tableNumber) {
@@ -176,40 +142,23 @@
                     });
                 }
             });
-        });
+          });
 
         function toggleTable(id) {
             if (!assignToId) return;
             const btn = document.getElementById('btn-' + id);
-
-            // חסימת שולחנות תפוסים להזמנות אחרות
             if (btn.classList.contains('status-booked') || btn.classList.contains('status-arrived') || btn.classList.contains('status-linked')) {
-                if (!selectedTables.includes(id)) {
-                    return alert("שולחן זה כבר תפוס להיום!");
-                }
+                if (!selectedTables.includes(id)) return alert("שולחן תפוס!");
             }
-
             const idx = selectedTables.indexOf(id);
-            if (idx > -1) {
-                selectedTables.splice(idx, 1);
-                btn.classList.remove('selected-highlight');
-            } else {
-                selectedTables.push(id);
-                btn.classList.add('selected-highlight');
-            }
-            
-            // הצגת כפתור האישור
+            if (idx > -1) { selectedTables.splice(idx, 1); btn.classList.remove('selected-highlight'); }
+            else { selectedTables.push(id); btn.classList.add('selected-highlight'); }
             document.getElementById('confirm-btn').classList.toggle('hidden', selectedTables.length === 0);
             document.getElementById('selected-count').innerText = selectedTables.length;
         }
 
         async function confirmAssignment() {
-            if(!assignToId || selectedTables.length === 0) return;
-            // שיוך השולחנות (ממוינים בסדר עולה)
-            await db.collection('reservations').doc(assignToId).update({
-                tableNumber: selectedTables.sort().join('-')
-            });
-            // חזרה לאינדקס עם פרמטר כדי לאפס את בחירת המועדון
+            await db.collection('reservations').doc(assignToId).update({ tableNumber: selectedTables.sort().join('-') });
             window.location.href = `index.html?confirmed=true&date=${selectedDate}`;
         }
         lucide.createIcons();
