@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V75 - Final Stable Dashboard</title>
+    <title>ClubPro V76 - Persistence & Price Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -45,22 +45,29 @@
             { id: 'ruki_vverh', name: 'РУКИ ВВЕРХ' }
         ];
 
+        // חילוץ תאריך מכתובת ה-URL אם קיים (אחרי חזרה מהמפה)
         const urlParams = new URLSearchParams(window.location.search);
-        const autoVenue = urlParams.get('confirmed') ? 'q_gallery' : null;
+        const confirmed = urlParams.get('confirmed');
+        const urlDate = urlParams.get('date');
 
         let state = {
             role: localStorage.getItem('club_role') || null,
             userName: localStorage.getItem('club_name') || '',
             phone: localStorage.getItem('club_phone') || '',
-            venueId: autoVenue || localStorage.getItem('last_venue') || null,
-            selectedDate: getToday(),
-            isDateConfirmed: !!autoVenue,
+            venueId: confirmed ? 'q_gallery' : (localStorage.getItem('last_venue') || null),
+            selectedDate: urlDate || localStorage.getItem('last_date') || getToday(),
+            isDateConfirmed: !!confirmed || !!localStorage.getItem('last_date'),
             reservations: [], users: [], isAdding: false, editingId: null,
             showArrived: false, showUsers: false, showSummary: false,
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null }
         };
 
-        function updateState(newData) { state = { ...state, ...newData }; render(); }
+        function updateState(newData) { 
+            state = { ...state, ...newData }; 
+            if (state.selectedDate) localStorage.setItem('last_date', state.selectedDate);
+            if (state.venueId) localStorage.setItem('last_venue', state.venueId);
+            render(); 
+        }
 
         async function login(val) {
             const clean = val.trim();
@@ -68,17 +75,6 @@
                 updateState({ role: 'admin', userName: 'Admin', phone: 'ADMIN' });
                 localStorage.setItem('club_role', 'admin');
                 localStorage.setItem('club_phone', 'ADMIN');
-                return;
-            }
-            if (clean.length >= 10) {
-                const userDoc = await db.collection('users').doc(clean).get();
-                let name = userDoc.exists ? userDoc.data().name : prompt("שם יחצן חדש:");
-                if (!name) return;
-                if (!userDoc.exists) await db.collection('users').doc(clean).set({ name, phone: clean });
-                updateState({ role: 'promoter', userName: name, phone: clean });
-                localStorage.setItem('club_role', 'promoter');
-                localStorage.setItem('club_name', name);
-                localStorage.setItem('club_phone', clean);
             }
         }
 
@@ -91,7 +87,8 @@
                     <div>
                         <p class="font-black text-white leading-tight">${res.name} (${res.pax})</p>
                         <p class="text-tiny font-bold uppercase">
-                            ${res.tableNumber ? `<span class="text-amber-500 font-black">שולחן ${res.tableNumber}</span> <button onclick="db.collection('reservations').doc('${res.id}').update({tableNumber: firebase.firestore.FieldValue.delete()})" class="text-red-500 px-1 font-black">X</button>` : `₪${res.minOrder || 0}`} | ${res.promoterName || 'Admin'}
+                            ${res.tableNumber ? `<span class="text-amber-500 font-black">שולחן ${res.tableNumber}</span> <button onclick="db.collection('reservations').doc('${res.id}').update({tableNumber: firebase.firestore.FieldValue.delete()})" class="text-red-500 px-1 font-black">X</button> | ` : ''}
+                            <span class="text-slate-400">₪${res.minOrder || 0} | ${res.promoterName || 'Admin'}</span>
                         </p>
                     </div>
                 </div>
@@ -117,18 +114,18 @@
 
             return `
                 <div class="grid grid-cols-4 gap-1">
-                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 font-black uppercase">שולחנות</p><p class="font-black text-xs">${stats.t}</p></div>
-                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 font-black uppercase">בר</p><p class="font-black text-xs">${stats.b}</p></div>
+                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 uppercase">שולחנות</p><p class="font-black text-xs">${stats.t}</p></div>
+                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 uppercase">בר</p><p class="font-black text-xs">${stats.b}</p></div>
                     <div class="glass p-1.5 rounded-lg text-center border-green-500/30 bg-green-500/5 text-green-400"><p class="text-[8px] font-black uppercase">כמה הגיעו</p><p class="font-black text-xs">${stats.arr}</p></div>
                     <div class="glass p-1.5 rounded-lg text-center border-amber-500/30 text-amber-500"><p class="text-[8px] font-black uppercase">מוזמנים</p><p class="font-black text-xs">${stats.t + stats.b}</p></div>
                 </div>
                 ${state.isAdding ? renderForm() : `
                     <div class="flex gap-1">
-                        ${state.role === 'admin' ? `<button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny uppercase border border-white/10">יחצנים</button><button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/30 py-2.5 rounded-xl font-black text-tiny text-blue-400 border border-blue-500/20 uppercase">עמלות</button>` : ''}
+                        ${state.role === 'admin' ? `<button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny border border-white/10 uppercase">יחצנים</button><button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/30 py-2.5 rounded-xl font-black text-tiny text-blue-400 border border-blue-500/20 uppercase">עמלות</button>` : ''}
                         <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null}})" class="flex-[2] btn-amber py-2.5 rounded-xl font-black uppercase shadow-lg">+ הוספת הזמנה</button>
                     </div>
 
-                    ${state.venueId === 'q_gallery' ? `<button onclick="window.location.href='floorplan.html?date=${state.selectedDate}'" class="w-full bg-blue-600/20 text-blue-400 border border-blue-500/30 py-4 rounded-2xl font-black uppercase flex items-center justify-center gap-3 shadow-lg"><i data-lucide="map"></i> מפת שולחנות Q-GALLERY</button>` : ''}
+                    ${state.venueId === 'q_gallery' ? `<button onclick="window.location.href='floorplan.html?date=${state.selectedDate}'" class="w-full bg-blue-600/20 text-blue-400 border border-blue-500/30 py-4 rounded-2xl font-black uppercase flex items-center justify-center gap-3"><i data-lucide="map"></i> מפת שולחנות Q-GALLERY</button>` : ''}
 
                     <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl">
                         <div class="bg-white/5 p-2 text-tiny font-black uppercase tracking-widest text-slate-400 text-center">הזמנות ליום ${state.selectedDate.split('-').reverse().join('.')}</div>
@@ -213,11 +210,11 @@
                 return;
             }
             if (!state.venueId) {
-                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase tracking-widest italic">SELECT VENUE</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${allVenues.map(v => `<div onclick="localStorage.setItem('last_venue', '${v.id}'); updateState({venueId: '${v.id}'})" class="glass p-6 rounded-2xl text-center text-xl font-black uppercase border-white/10 active:scale-95 transition-all">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-10 underline text-tiny tracking-widest">LOGOUT</button></div>`;
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase tracking-widest italic">SELECT VENUE</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${allVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-6 rounded-2xl text-center text-xl font-black uppercase border-white/10 active:scale-95 transition-all">${v.name}</div>`).join('')}</div><button onclick="localStorage.clear(); location.reload();" class="text-slate-500 font-bold uppercase mt-10 underline text-tiny tracking-widest">LOGOUT</button></div>`;
                 return;
             }
             if (!state.isDateConfirmed) {
-                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white"><button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-tiny flex items-center gap-2 border border-amber-500/30 px-5 py-2 rounded-full bg-amber-500/5 shadow-lg uppercase"><i data-lucide="arrow-right" size="14"></i> חזור</button><h2 class="text-xl font-black uppercase text-center">בחר תאריך:</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${state.selectedDate}" onchange="state.selectedDate = this.value; render();" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white text-3xl outline-none font-black text-center"><button onclick="updateState({isDateConfirmed: true})" class="w-full btn-amber py-4 rounded-xl mt-6 font-black uppercase">אישור תאריך</button></div></div>`;
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white"><button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-tiny flex items-center gap-2 border border-amber-500/30 px-5 py-2 rounded-full bg-amber-500/5 shadow-lg uppercase"><i data-lucide="arrow-right" size="14"></i> חזור</button><h2 class="text-xl font-black uppercase text-center">בחר תאריך:</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${state.selectedDate}" onchange="state.selectedDate = this.value; render();" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white text-huge outline-none font-black text-center"><button onclick="updateState({isDateConfirmed: true})" class="w-full btn-amber py-4 rounded-xl mt-6 font-black uppercase">אישור תאריך</button></div></div>`;
                 lucide.createIcons(); return;
             }
             
