@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V82 - Full Feature Restore</title>
+    <title>ClubPro V76 - Persistence & Price Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -16,8 +16,6 @@
         .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; }
         .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, transparent 100%); border-right: 3px solid #f59e0b; font-size: 10px; padding: 4px 8px; color: #f59e0b; font-weight: 900; }
         .text-tiny { font-size: 9px !important; }
-        .alert-banner { background: #dc2626; color: white; padding: 12px; font-weight: 900; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; animation: slideDown 0.5s ease-out; }
-        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -47,27 +45,20 @@
             { id: 'ruki_vverh', name: 'РУКИ ВВЕРХ' }
         ];
 
+        // חילוץ תאריך מכתובת ה-URL אם קיים (אחרי חזרה מהמפה)
         const urlParams = new URLSearchParams(window.location.search);
         const confirmed = urlParams.get('confirmed');
-
-        // לוגיקת שחזור תאריך חכמה בחזרה מהמפה
-        let initialDate = getToday();
-        if (confirmed) {
-            initialDate = localStorage.getItem('last_date') || getToday();
-        } else {
-            initialDate = localStorage.getItem('last_date') || getToday();
-        }
+        const urlDate = urlParams.get('date');
 
         let state = {
             role: localStorage.getItem('club_role') || null,
             userName: localStorage.getItem('club_name') || '',
             phone: localStorage.getItem('club_phone') || '',
             venueId: confirmed ? 'q_gallery' : (localStorage.getItem('last_venue') || null),
-            selectedDate: initialDate,
+            selectedDate: urlDate || localStorage.getItem('last_date') || getToday(),
             isDateConfirmed: !!confirmed || !!localStorage.getItem('last_date'),
             reservations: [], users: [], isAdding: false, editingId: null,
             showArrived: false, showUsers: false, showSummary: false,
-            newAlert: false,
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null }
         };
 
@@ -78,34 +69,12 @@
             render(); 
         }
 
-        // כניסה מכל טלפון - הוחזר לקוד
         async function login(val) {
             const clean = val.trim();
             if (clean.toLowerCase() === 'res') {
                 updateState({ role: 'admin', userName: 'Admin', phone: 'ADMIN' });
                 localStorage.setItem('club_role', 'admin');
                 localStorage.setItem('club_phone', 'ADMIN');
-                return;
-            }
-            if (clean.length >= 10) {
-                const userDoc = await db.collection('users').doc(clean).get();
-                let name = '';
-                if (userDoc.exists) {
-                    name = userDoc.data().name;
-                } else {
-                    name = prompt("שם יחצן חדש (טלפון זה אינו רשום):");
-                }
-                
-                if (!name) return;
-                
-                if (!userDoc.exists) {
-                    await db.collection('users').doc(clean).set({ name, phone: clean, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-                }
-                
-                updateState({ role: 'promoter', userName: name, phone: clean });
-                localStorage.setItem('club_role', 'promoter');
-                localStorage.setItem('club_name', name);
-                localStorage.setItem('club_phone', clean);
             }
         }
 
@@ -117,8 +86,9 @@
                     <input type="checkbox" ${res.arrived?'checked':''} onchange="db.collection('reservations').doc('${res.id}').update({arrived: this.checked})" class="w-5 h-5 rounded accent-green-500">
                     <div>
                         <p class="font-black text-white leading-tight">${res.name} (${res.pax})</p>
-                        <p class="text-tiny font-bold uppercase ${res.tableNumber ? 'text-amber-500' : 'text-slate-400'}">
-                            ${res.tableNumber ? `שולחן ${res.tableNumber} | ` : ''} ₪${res.minOrder || 0} | ${res.promoterName || 'Admin'}
+                        <p class="text-tiny font-bold uppercase">
+                            ${res.tableNumber ? `<span class="text-amber-500 font-black">שולחן ${res.tableNumber}</span> <button onclick="db.collection('reservations').doc('${res.id}').update({tableNumber: firebase.firestore.FieldValue.delete()})" class="text-red-500 px-1 font-black">X</button> | ` : ''}
+                            <span class="text-slate-400">₪${res.minOrder || 0} | ${res.promoterName || 'Admin'}</span>
                         </p>
                     </div>
                 </div>
@@ -143,26 +113,19 @@
             };
 
             return `
-                ${state.newAlert ? `<div class="alert-banner">🚨 הזמנה חדשה התקבלה!</div>` : ''}
                 <div class="grid grid-cols-4 gap-1">
-                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 font-black uppercase">שולחנות</p><p class="font-black text-xs">${stats.t}</p></div>
-                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 font-black uppercase">בר</p><p class="font-black text-xs">${stats.b}</p></div>
+                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 uppercase">שולחנות</p><p class="font-black text-xs">${stats.t}</p></div>
+                    <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 uppercase">בר</p><p class="font-black text-xs">${stats.b}</p></div>
                     <div class="glass p-1.5 rounded-lg text-center border-green-500/30 bg-green-500/5 text-green-400"><p class="text-[8px] font-black uppercase">כמה הגיעו</p><p class="font-black text-xs">${stats.arr}</p></div>
                     <div class="glass p-1.5 rounded-lg text-center border-amber-500/30 text-amber-500"><p class="text-[8px] font-black uppercase">מוזמנים</p><p class="font-black text-xs">${stats.t + stats.b}</p></div>
                 </div>
                 ${state.isAdding ? renderForm() : `
                     <div class="flex gap-1">
-                        ${state.role === 'admin' ? `<button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny uppercase border border-white/10">יחצנים</button><button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/30 py-2.5 rounded-xl font-black text-tiny text-blue-400 border border-blue-500/20 uppercase">עמלות</button>` : ''}
+                        ${state.role === 'admin' ? `<button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny border border-white/10 uppercase">יחצנים</button><button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/30 py-2.5 rounded-xl font-black text-tiny text-blue-400 border border-blue-500/20 uppercase">עמלות</button>` : ''}
                         <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null}})" class="flex-[2] btn-amber py-2.5 rounded-xl font-black uppercase shadow-lg">+ הוספת הזמנה</button>
                     </div>
 
-                    ${state.venueId === 'q_gallery' ? `<button onclick="window.location.href='floorplan.html?date=${state.selectedDate}'" class="w-full bg-blue-600/20 text-blue-400 border border-blue-500/30 py-4 rounded-2xl font-black uppercase flex items-center justify-center gap-3 shadow-lg"><i data-lucide="map"></i> מפת שולחנות Q-GALLERY</button>` : ''}
-
-                    <div class="flex justify-center py-1">
-                        <button onclick="exportToWhatsApp('${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="bg-green-600 text-white px-10 py-2 rounded-full font-black text-tiny flex items-center gap-2 shadow-2xl uppercase">
-                            ייצוא לווצאפ <i data-lucide="share-2" size="14"></i>
-                        </button>
-                    </div>
+                    ${state.venueId === 'q_gallery' ? `<button onclick="window.location.href='floorplan.html?date=${state.selectedDate}'" class="w-full bg-blue-600/20 text-blue-400 border border-blue-500/30 py-4 rounded-2xl font-black uppercase flex items-center justify-center gap-3"><i data-lucide="map"></i> מפת שולחנות Q-GALLERY</button>` : ''}
 
                     <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl">
                         <div class="bg-white/5 p-2 text-tiny font-black uppercase tracking-widest text-slate-400 text-center">הזמנות ליום ${state.selectedDate.split('-').reverse().join('.')}</div>
@@ -216,36 +179,9 @@
             updateState({ isAdding: false, editingId: null });
         }
 
-        function exportToWhatsApp(date, list) {
-            const vName = allVenues.find(v => v.id === state.venueId)?.name || "Q-Gallery";
-            let text = `*${vName.toUpperCase()} - ${date.split('-').reverse().join('.')}*\n\n`;
-            [{id:'table',l:'שולחנות'},{id:'bar',l:'בר'}].forEach(t => {
-                const filtered = list.filter(r => r.type === t.id);
-                if (filtered.length) {
-                    text += `*🏠 ${t.l}:*\n`;
-                    filtered.forEach((r, i) => { text += `${i + 1}. *${r.name.trim()}* | ${r.pax} איש | ${r.tableNumber ? 'שולחן: '+r.tableNumber : '₪'+r.minOrder}\n`; });
-                    text += `\n`;
-                }
-            });
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-        }
-
         function sendWhatsAppToClient(id) {
             const res = state.reservations.find(r => r.id === id);
-            const vId = state.venueId;
-            
-            // הודעות עם קישורי Waze מדויקים - הוחזר לקוד
-            let msg = '';
-            if (vId === 'shalvata') {
-                msg = `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים. התחלה 22:00.📍 התערוכה 3, ת"א. https://waze.com/ul?q=התערוכה%203%20תל%20אביב&navigate=yes`;
-            } else if (vId === 'q_gallery') {
-                msg = `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים. התחלה 22:00.📍 רוטשילד 19, ת"א. https://waze.com/ul?q=רוטשילד%2019%20תל%20אביב&navigate=yes`;
-            } else if (vId === 'ruki_vverh') {
-                msg = `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים. התחלה 22:30.📍 טברסקי 14, ת"א. https://waze.com/ul?q=טברסקי%2014%20תל%20אביב&navigate=yes`;
-            } else {
-                msg = `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים.`;
-            }
-            
+            const msg = `אהלן ${res.name}, הזמנתך מאושרת ל ${res.pax} אנשים.📍 ${state.venueId === 'q_gallery' ? 'רוטשילד 19' : 'התערוכה 3'}, ת"א.`;
             window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/, '972')}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
@@ -302,20 +238,9 @@
         }
 
         db.collection('reservations').onSnapshot(snap => { 
-            const newRes = snap.docs.map(d => ({id:d.id, ...d.data()}));
-            // התראה קולית וויזואלית על הזמנה חדשה (רק למנהל)
-            if (state.role === 'admin' && !isFirstLoad && newRes.length > lastCount) {
-                document.getElementById('alert-sound').play().catch(()=>{});
-                updateState({ newAlert: true }); setTimeout(() => updateState({ newAlert: false }), 7000);
-            }
-            lastCount = newRes.length; isFirstLoad = false;
-            updateState({ reservations: newRes }); 
+            updateState({ reservations: snap.docs.map(d => ({id:d.id, ...d.data()})) });
         });
-        db.collection('users').onSnapshot(snap => { updateState({ users: snap.docs.map(d => ({ id: d.id, ...d.data() })) }); });
         auth.onAuthStateChanged(u => { if(!u) auth.signInAnonymously(); });
-        
-        let lastCount = 0;
-        let isFirstLoad = true;
     </script>
 </body>
 </html>
