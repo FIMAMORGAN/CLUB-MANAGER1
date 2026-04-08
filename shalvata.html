@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SHALVATA - Floor Plan Pro</title>
+    <title>SHALVATA 1:1 MAP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -11,88 +11,108 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
         body { background: #020617; color: white; font-family: sans-serif; overflow: hidden; margin: 0; }
-        .map-wrapper { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #0f172a 0%, #020617 100%); }
-        
-        /* המכולה הראשית של המפה */
-        .map-container { position: relative; width: 380px; height: 600px; background: rgba(30, 41, 59, 0.5); border: 2px solid #334155; border-radius: 8px; }
+        .map-wrapper { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; background: #020617; }
+        .map-container { position: relative; width: 450px; height: 650px; background: #fff; border-radius: 4px; border: 4px solid #000; }
 
-        /* ספות U (כמו 100, 110-140) */
-        .sofa-u { position: absolute; border: 3px solid #f59e0b; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; cursor: pointer; background: rgba(245, 158, 11, 0.1); }
-        .u-hor { width: 50px; height: 30px; border-bottom: none; } /* ספות רוחב */
-        .u-ver { width: 35px; height: 50px; border-right: none; } /* ספות אורך */
-        .u-right { border-left: none; border-right: 3px solid #f59e0b; }
+        /* ספות היקפיות (שחור/לבן כמו בציור) */
+        .sofa { position: absolute; border: 2px solid #000; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #dc2626; cursor: pointer; background: #fff; }
+        .sofa-h { width: 55px; height: 25px; } /* אופקיות */
+        .sofa-v { width: 35px; height: 45px; } /* אנכיות */
+        .sofa-100 { width: 45px; height: 55px; border-radius: 0 25px 25px 0; border-left: none; } /* ספה 100 המעוגלת */
 
         /* שולחנות עגולים (10-50) */
-        .round-group { position: absolute; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
-        .table-circle { width: 25px; height: 25px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; z-index: 2; border: 2px solid white; cursor: pointer; }
-        .chairs-circle { position: absolute; width: 42px; height: 42px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 50%; }
+        .round-area { position: absolute; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; }
+        .table-center { width: 22px; height: 22px; border: 2px solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: #dc2626; background: #fff; z-index: 10; cursor: pointer; }
+        .chair-dot { position: absolute; width: 8px; height: 8px; border: 1px solid #000; border-radius: 50%; background: #fff; }
 
-        /* הבר הגדול */
-        .upper-bar { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); width: 220px; height: 90px; border: 4px solid #0d9488; border-radius: 50px; display: flex; align-items: center; justify-content: center; background: rgba(13, 148, 136, 0.1); }
-        .bar-label { font-weight: 900; color: #2dd4bf; letter-spacing: 1px; }
-        
-        /* כיסאות בר */
-        .bar-chair { position: absolute; width: 10px; height: 10px; background: #2dd4bf; border-radius: 50%; border: 1px solid white; }
+        /* UPER BAR - פרופורציה מדויקת */
+        .bar-container { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 260px; height: 100px; border: 2px solid #000; border-radius: 50px; background: #fff; display: flex; align-items: center; justify-content: center; }
+        .bar-inner { width: 200px; height: 40px; border: 2px solid #000; border-radius: 30px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #000; font-size: 14px; }
+        .bar-chair { position: absolute; width: 12px; height: 14px; border: 2px solid #000; border-radius: 4px; background: #fff; }
 
         /* סטטוסים */
-        .booked { background: #ef4444 !important; border-color: white !important; color: white !important; box-shadow: 0 0 10px #ef4444; }
-        .selected { background: #f59e0b !important; color: black !important; transform: scale(1.2); z-index: 20; box-shadow: 0 0 15px #f59e0b; }
+        .booked { background: #ef4444 !important; color: white !important; }
+        .selected { background: #f59e0b !important; color: black !important; border-color: #000 !important; transform: scale(1.1); z-index: 50; }
         
-        .header { position: fixed; top: 0; width: 100%; padding: 15px; display: flex; justify-content: space-between; z-index: 100; background: rgba(2,6,23,0.8); backdrop-filter: blur(5px); }
+        .header { position: fixed; top: 0; width: 100%; padding: 10px; display: flex; justify-content: space-between; z-index: 100; background: #000; color: #f59e0b; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <button onclick="window.location.href='index.html?confirmed=true'" class="text-white bg-slate-800 p-2 rounded-lg"><i data-lucide="arrow-right"></i></button>
-    <div class="text-center">
-        <h1 class="text-amber-500 font-black italic">SHALVATA TABLE MENU</h1>
-        <p id="cur-date" class="text-[10px] text-slate-400"></p>
-    </div>
+    <button onclick="window.location.href='index.html?confirmed=shalvata'" class="p-2"><i data-lucide="arrow-right"></i></button>
+    <div class="text-center font-black italic uppercase">SHALVATA TABLE MENU</div>
     <div class="w-10"></div>
 </div>
 
 <div class="map-wrapper">
-    <div class="map-container" id="map">
-        
-        <div id="btn-100" class="sofa-u u-ver u-right" style="top: 100px; right: 10px;" onclick="selectT('100')">100</div>
-        
-        <div id="btn-110" class="sofa-u u-hor" style="top: 50px; right: 80px;" onclick="selectT('110')">110</div>
-        <div id="btn-120" class="sofa-u u-hor" style="top: 50px; right: 150px;" onclick="selectT('120')">120</div>
-        <div id="btn-130" class="sofa-u u-hor" style="top: 50px; right: 220px;" onclick="selectT('130')">130</div>
-        <div id="btn-140" class="sofa-u u-ver" style="top: 60px; left: 10px;" onclick="selectT('140')">140</div>
-        
-        <div id="btn-150" class="sofa-u u-ver" style="top: 130px; left: 10px;" onclick="selectT('150')">150</div>
-        <div id="btn-160" class="sofa-u u-ver" style="top: 220px; left: 10px;" onclick="selectT('160')">160</div>
-        <div id="btn-170" class="sofa-u u-ver" style="top: 290px; left: 10px;" onclick="selectT('170')">170</div>
-        <div id="btn-180" class="sofa-u u-ver" style="top: 380px; left: 10px;" onclick="selectT('180')">180</div>
-        <div id="btn-190" class="sofa-u u-ver" style="top: 450px; left: 10px;" onclick="selectT('190')">190</div>
+    <div class="map-container">
+        <div id="btn-140" class="sofa sofa-v" style="top: 20px; left: 20px;" onclick="selectT('140')">140</div>
+        <div id="btn-130" class="sofa sofa-h" style="top: 20px; left: 90px;" onclick="selectT('130')">130</div>
+        <div id="btn-120" class="sofa sofa-h" style="top: 20px; left: 165px;" onclick="selectT('120')">120</div>
+        <div id="btn-110" class="sofa sofa-h" style="top: 20px; left: 240px;" onclick="selectT('110')">110</div>
+        <div id="btn-100" class="sofa sofa-100" style="top: 50px; right: 50px;" onclick="selectT('100')">100</div>
 
-        <div class="round-group" style="top: 150px; right: 80px;"><div class="chairs-circle"></div><div id="btn-10" class="table-circle" onclick="selectT('10')">10</div></div>
-        <div class="round-group" style="top: 150px; right: 160px;"><div class="chairs-circle"></div><div id="btn-20" class="table-circle" onclick="selectT('20')">20</div></div>
-        <div class="round-group" style="top: 150px; right: 240px;"><div class="chairs-circle"></div><div id="btn-30" class="table-circle" onclick="selectT('30')">30</div></div>
-        
-        <div class="round-group" style="top: 240px; right: 260px;"><div class="chairs-circle"></div><div id="btn-40" class="table-circle" onclick="selectT('40')">40</div></div>
-        <div class="round-group" style="top: 320px; right: 260px;"><div class="chairs-circle"></div><div id="btn-50" class="table-circle" onclick="selectT('50')">50</div></div>
+        <div id="btn-150" class="sofa sofa-v" style="top: 90px; left: 20px;" onclick="selectT('150')">150</div>
+        <div id="btn-160" class="sofa sofa-v" style="top: 200px; left: 20px;" onclick="selectT('160')">160</div>
+        <div id="btn-170" class="sofa sofa-v" style="top: 310px; left: 20px;" onclick="selectT('170')">170</div>
+        <div id="btn-180" class="sofa sofa-v" style="top: 420px; left: 20px;" onclick="selectT('180')">180</div>
+        <div id="btn-190" class="sofa sofa-v" style="top: 530px; left: 20px;" onclick="selectT('190')">190</div>
 
-        <div class="upper-bar">
-            <span class="bar-label italic">UPPER BAR</span>
-            <div class="bar-chair" style="top: -5px; left: 30%;"></div>
-            <div class="bar-chair" style="top: -5px; left: 50%;"></div>
-            <div class="bar-chair" style="top: -5px; left: 70%;"></div>
-            <div class="bar-chair" style="bottom: -5px; left: 30%;"></div>
-            <div class="bar-chair" style="bottom: -5px; left: 50%;"></div>
-            <div class="bar-chair" style="bottom: -5px; left: 70%;"></div>
-            <div class="bar-chair" style="left: -5px; top: 40%;"></div>
-            <div class="bar-chair" style="right: -5px; top: 40%;"></div>
+        <div id="btn-210" class="sofa sofa-v" style="top: 90px; left: -45px;" onclick="selectT('210')">210</div>
+        <div id="btn-220" class="sofa sofa-v" style="top: 155px; left: -45px;" onclick="selectT('220')">220</div>
+        <div id="btn-230" class="sofa sofa-v" style="top: 220px; left: -45px;" onclick="selectT('230')">230</div>
+        <div id="btn-240" class="sofa sofa-h" style="top: 285px; left: -55px; width:45px;" onclick="selectT('240')">240</div>
+        <div id="btn-250" class="sofa sofa-v" style="top: 340px; left: -45px; height:60px;" onclick="selectT('250')">250</div>
+        <div id="btn-260" class="sofa sofa-v" style="top: 420px; left: -45px;" onclick="selectT('260')">260</div>
+        <div id="btn-270" class="sofa sofa-v" style="top: 485px; left: -45px;" onclick="selectT('270')">270</div>
+
+        <div class="round-area" style="top: 110px; right: 80px;">
+            <div id="btn-10" class="table-center" onclick="selectT('10')">10</div>
+            <div class="chair-dot" style="top: -10px; left: 20px;"></div><div class="chair-dot" style="bottom: -10px; left: 20px;"></div>
+            <div class="chair-dot" style="left: -10px; top: 20px;"></div><div class="chair-dot" style="right: -10px; top: 20px;"></div>
         </div>
-        
-        <div id="btn-90" class="sofa-u u-hor" style="bottom: 10px; right: 10px; border: 2px solid #ef4444;" onclick="selectT('90')">90</div>
+        <div class="round-area" style="top: 110px; left: 180px;">
+            <div id="btn-20" class="table-center" onclick="selectT('20')">20</div>
+            <div class="chair-dot" style="top: -10px; left: 20px;"></div><div class="chair-dot" style="bottom: -10px; left: 20px;"></div>
+            <div class="chair-dot" style="left: -10px; top: 20px;"></div><div class="chair-dot" style="right: -10px; top: 20px;"></div>
+        </div>
+        <div class="round-area" style="top: 110px; left: 100px;">
+            <div id="btn-30" class="table-center" onclick="selectT('30')">30</div>
+            <div class="chair-dot" style="top: -10px; left: 20px;"></div><div class="chair-dot" style="bottom: -10px; left: 20px;"></div>
+            <div class="chair-dot" style="left: -10px; top: 20px;"></div><div class="chair-dot" style="right: -10px; top: 20px;"></div>
+        </div>
+
+        <div class="round-area" style="top: 210px; left: 80px;">
+            <div id="btn-40" class="table-center" onclick="selectT('40')">40</div>
+            <div class="chair-dot" style="top: -10px; left: 20px;"></div><div class="chair-dot" style="bottom: -10px; left: 20px;"></div>
+            <div class="chair-dot" style="left: -10px; top: 20px;"></div><div class="chair-dot" style="right: -10px; top: 20px;"></div>
+        </div>
+        <div class="round-area" style="top: 310px; left: 80px;">
+            <div id="btn-50" class="table-center" onclick="selectT('50')">50</div>
+            <div class="chair-dot" style="top: -10px; left: 20px;"></div><div class="chair-dot" style="bottom: -10px; left: 20px;"></div>
+            <div class="chair-dot" style="left: -10px; top: 20px;"></div><div class="chair-dot" style="right: -10px; top: 20px;"></div>
+        </div>
+
+        <div class="bar-container">
+            <div class="bar-inner">UPER BAR</div>
+            <div class="bar-chair" style="top: -18px; left: 15%;"></div><div class="bar-chair" style="top: -18px; left: 30%;"></div>
+            <div class="bar-chair" style="top: -18px; left: 45%;"></div><div class="bar-chair" style="top: -18px; left: 60%;"></div>
+            <div class="bar-chair" style="top: -18px; left: 75%;"></div><div class="bar-chair" style="top: -18px; left: 90%;"></div>
+            <div class="bar-chair" style="bottom: -18px; left: 15%;"></div><div class="bar-chair" style="bottom: -18px; left: 30%;"></div>
+            <div class="bar-chair" style="bottom: -18px; left: 45%;"></div><div class="bar-chair" style="bottom: -18px; left: 60%;"></div>
+            <div class="bar-chair" style="bottom: -18px; left: 75%;"></div><div class="bar-chair" style="bottom: -18px; left: 90%;"></div>
+            <div class="bar-chair" style="left: -18px; top: 20%;"></div><div class="bar-chair" style="left: -18px; top: 50%;"></div>
+            <div class="bar-chair" style="left: -18px; top: 80%;"></div><div class="bar-chair" style="right: -18px; top: 20%;"></div>
+            <div class="bar-chair" style="right: -18px; top: 50%;"></div><div class="bar-chair" style="right: -18px; top: 80%;"></div>
+        </div>
+
+        <div id="btn-90" class="sofa" style="bottom: 10px; right: 20px; width: 60px; height: 20px; border: 1px solid #000;" onclick="selectT('90')">90</div>
     </div>
 </div>
 
-<div id="save-bar" class="fixed bottom-6 w-full px-6 hidden">
-    <button onclick="confirmS()" class="w-full bg-amber-500 text-black py-4 rounded-2xl font-black shadow-2xl uppercase tracking-widest">אשר שיוך שולחן</button>
+<div id="save-panel" class="fixed bottom-10 left-0 right-0 hidden px-6 z-50">
+    <button onclick="confirmS()" class="w-full bg-amber-500 text-black py-4 rounded-xl font-black uppercase shadow-2xl">אשר שיוך שולחן</button>
 </div>
 
 <script>
@@ -103,8 +123,6 @@
     const assignTo = params.get('assignTo');
     const date = params.get('date') || new Date().toISOString().split('T')[0];
     let selected = null;
-
-    document.getElementById('cur-date').innerText = date.split('-').reverse().join('.');
 
     db.collection('reservations').where('eventDate', '==', date).where('venueId', '==', 'shalvata').where('status', '==', 'active')
       .onSnapshot(snap => {
@@ -122,7 +140,7 @@
         if(selected) document.getElementById('btn-'+selected).classList.remove('selected');
         selected = id;
         el.classList.add('selected');
-        document.getElementById('save-bar').classList.remove('hidden');
+        document.getElementById('save-panel').classList.remove('hidden');
     }
 
     async function confirmS() {
@@ -131,6 +149,5 @@
     }
     lucide.createIcons();
 </script>
-
 </body>
 </html>
