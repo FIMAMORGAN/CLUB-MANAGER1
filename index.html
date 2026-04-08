@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V100 - Final Missile Edition</title>
+    <title>ClubPro V102 - Client WhatsApp Restored</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -39,9 +39,9 @@
         const getToday = () => new Date().toISOString().split('T')[0];
 
         const allVenues = [
-            { id: 'shalvata', name: 'Shalvata', map: 'shalvata.html' },
-            { id: 'q_gallery', name: 'PULSE TLV', map: 'floorplan.html' },
-            { id: 'ruki_vverh', name: 'RUKI-VERH', map: null }
+            { id: 'shalvata', name: 'Shalvata', map: 'shalvata.html', waze: 'התערוכה 3, ת"א', wazeLink: 'https://waze.com/ul?q=התערוכה%203%20תל%20אביב&navigate=yes' },
+            { id: 'q_gallery', name: 'PULSE TLV', map: 'floorplan.html', waze: 'רוטשילד 19, ת"א', wazeLink: 'https://waze.com/ul?q=רוטשילד%2019%20תל%20אביב&navigate=yes' },
+            { id: 'ruki_vverh', name: 'RUKI-VERH', map: null, waze: 'טברסקי 14, ת"א', wazeLink: 'https://waze.com/ul?q=טברסקי%2014%20תל%20אביב&navigate=yes' }
         ];
 
         let state = {
@@ -91,12 +91,13 @@
                     <div class="overflow-hidden">
                         <p class="font-black text-white leading-tight truncate">${res.name} (${res.pax}) <span class="text-blue-400 text-[9px]">${res.time || '22:30'}</span></p>
                         <p class="text-tiny font-bold uppercase truncate ${res.tableNumber ? 'text-amber-500' : 'text-slate-400'}">
-                            ${res.tableNumber ? `שולחן ${res.tableNumber} | ` : ''} ₪${res.minOrder || 0} | ${res.promoterName || 'Admin'}
+                            ${res.tableNumber ? `שולחן ${res.tableNumber} | ` : ''} ₪${res.minOrder || 0}
                         </p>
                     </div>
                 </div>
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-0.5">
                     ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1.5"><i data-lucide="map-pin" size="18"></i></button>` : ''}
+                    <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-1.5"><i data-lucide="message-circle" size="18"></i></button>
                     <button onclick="editReservation('${res.id}')" class="text-amber-500 p-1"><i data-lucide="edit-2" size="18"></i></button>
                     <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1.5"><i data-lucide="trash-2" size="18"></i></button>
                 </div>
@@ -118,11 +119,9 @@
 
                 <div class="flex flex-col gap-2 mb-3">
                     <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null,time:'22:30',notes:''}})" class="w-full btn-amber py-3.5 rounded-xl font-black uppercase shadow-lg">צור הזמנה</button>
-                    ${venue.map ? `<button onclick="window.location.href='${venue.map}?date=${state.selectedDate}'" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black uppercase flex items-center justify-center gap-2 shadow-lg"><i data-lucide="map"></i> מפת שולחנות</button>` : ''}
+                    ${venue.map ? `<button onclick="window.location.href='${venue.map}?date=${state.selectedDate}'" class="w-full bg-blue-600 text-white py-3 rounded-xl font-black uppercase flex items-center justify-center gap-2 shadow-lg"><i data-lucide="map"></i> מפת ${venue.name}</button>` : ''}
                     <div class="flex justify-center">
-                        <button onclick="exportToWhatsApp('${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="bg-green-600 text-white px-10 py-2 rounded-full font-black text-tiny flex items-center gap-2 uppercase shadow-xl">
-                            ייצוא לווצאפ <i data-lucide="share-2" size="14"></i>
-                        </button>
+                        <button onclick="exportToWhatsApp('${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="bg-green-600 text-white px-10 py-2 rounded-full font-black text-tiny flex items-center gap-2 uppercase shadow-xl">ייצוא לווצאפ <i data-lucide="share-2" size="14"></i></button>
                     </div>
                 </div>
 
@@ -167,6 +166,13 @@
             updateState({ isAdding: false, editingId: null });
         }
 
+        function sendWhatsAppToClient(id) {
+            const res = state.reservations.find(r => r.id === id);
+            const venue = allVenues.find(v => v.id === state.venueId);
+            const msg = `אהלן ${res.name}, הזמנתך ל-${venue.name} מאושרת ל ${res.pax} אנשים בשעה ${res.time||'22:30'}.📍 ${venue.waze}. ${venue.wazeLink}`;
+            window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/,'972')}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
         function exportToWhatsApp(date, list) {
             const vName = allVenues.find(v => v.id === state.venueId)?.name || "Club";
             let text = `*${vName.toUpperCase()} - ${date.split('-').reverse().join('.')}*\n\n`;
@@ -184,7 +190,7 @@
         function render() {
             const root = document.getElementById('app');
             if (!state.role) {
-                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4 text-white"><div class="w-full max-w-xs glass p-10 rounded-3xl border border-white/10 text-center"><h2 class="text-2xl font-black mb-10 italic text-amber-500 uppercase">CLUBPRO</h2><input id="l-in" type="text" placeholder="מספר טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white outline-none font-bold text-lg"><button onclick="login(document.getElementById('l-in').value)" class="w-full btn-amber py-4 rounded-xl uppercase font-black">כניסה</button></div></div>`;
+                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4 text-white"><div class="w-full max-w-xs glass p-10 rounded-3xl border border-white/10 text-center"><h2 class="text-2xl font-black mb-10 italic text-amber-500 uppercase">CLUBPRO</h2><input id="l-in" type="text" placeholder="טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white outline-none font-bold text-lg"><button onclick="loginUser()" class="w-full btn-amber py-4 rounded-xl uppercase font-black">כניסה</button></div></div>`;
                 return;
             }
             if (!state.venueId) {
@@ -213,6 +219,14 @@
                     </main>
                 </div>`;
             lucide.createIcons();
+        }
+
+        async function loginUser() {
+            const phone = document.getElementById('l-in').value;
+            if(phone.length < 10) return;
+            updateState({ role: 'promoter', userName: 'User', phone: phone });
+            localStorage.setItem('club_role', 'promoter');
+            localStorage.setItem('club_phone', phone);
         }
 
         function editReservation(id) {
