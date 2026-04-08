@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V91 - Stable & Fixed</title>
+    <title>ClubPro V93 - Smart Memory</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -49,11 +49,17 @@
         const urlParams = new URLSearchParams(window.location.search);
         const confirmed = urlParams.get('confirmed');
 
+        // לוגיקת טעינת מועדון - זיכרון בחירה
+        let initialVenue = null;
+        if (confirmed === 'shalvata') initialVenue = 'shalvata';
+        else if (confirmed === 'true') initialVenue = 'q_gallery';
+        else initialVenue = localStorage.getItem('last_venue');
+
         let state = {
             role: localStorage.getItem('club_role') || null,
             userName: localStorage.getItem('club_name') || '',
             phone: localStorage.getItem('club_phone') || '',
-            venueId: confirmed ? (confirmed === 'true' ? 'q_gallery' : (confirmed === 'shalvata' ? 'shalvata' : confirmed)) : (localStorage.getItem('last_venue') || null),
+            venueId: initialVenue,
             selectedDate: localStorage.getItem('last_date') || getToday(),
             isDateConfirmed: !!confirmed || !!localStorage.getItem('last_date'),
             reservations: [], users: [], isAdding: false, editingId: null,
@@ -120,7 +126,7 @@
 
             return `
                 ${state.newAlert ? `<div class="alert-banner">🚨 הזמנה חדשה!</div>` : ''}
-                <div class="grid grid-cols-4 gap-1 mb-2">
+                <div class="grid grid-cols-4 gap-1 mb-2 text-white">
                     <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 uppercase">שולחנות</p><p class="font-black text-xs">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
                     <div class="glass p-1.5 rounded-lg text-center"><p class="text-[8px] text-slate-500 uppercase">בר</p><p class="font-black text-xs">${pendingList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
                     <div class="glass p-1.5 rounded-lg text-center text-green-400"><p class="text-[8px]">הגיעו</p><p class="font-black text-xs">${arrivedList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
@@ -129,7 +135,7 @@
 
                 <div class="flex flex-col gap-2 mb-3">
                     <div class="flex gap-1">
-                        ${state.role === 'admin' ? `<button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny uppercase border border-white/10">יחצנים</button><button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/30 py-2.5 rounded-xl font-black text-tiny text-blue-400 border border-blue-500/20 uppercase">עמלות</button>` : ''}
+                        ${state.role === 'admin' ? `<button onclick="updateState({showUsers: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny uppercase border border-white/10 text-white">יחצנים</button><button onclick="updateState({showSummary: true})" class="flex-1 bg-blue-900/30 py-2.5 rounded-xl font-black text-tiny text-blue-400 border border-blue-500/20 uppercase">עמלות</button>` : ''}
                         <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null,time:'22:30',notes:''}})" class="flex-[2] btn-amber py-2.5 rounded-xl font-black uppercase shadow-lg">+ הוספה</button>
                     </div>
 
@@ -140,7 +146,7 @@
                     </div>
                 </div>
 
-                <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl">
+                <div class="glass rounded-xl overflow-hidden border border-white/5 shadow-xl text-white">
                     <div class="bg-white/5 p-2 text-tiny font-black uppercase text-slate-400 text-center">הזמנות ${state.selectedDate.split('-').reverse().join('.')}</div>
                     ${['table', 'bar', 'free'].map(type => {
                         const g = pendingList.filter(r => r.type === type);
@@ -148,7 +154,7 @@
                     }).join('')}
                 </div>
 
-                <div class="glass rounded-xl p-1 mt-2 bg-green-500/5">
+                <div class="glass rounded-xl p-1 mt-2 bg-green-500/5 text-white">
                     <button onclick="updateState({showArrived: !state.showArrived})" class="w-full flex justify-between items-center p-2 text-green-500 font-black text-tiny uppercase">
                         <span>הגיעו (${arrivedList.length})</span>
                         <i data-lucide="${state.showArrived ? 'chevron-up' : 'chevron-down'}" size="14"></i>
@@ -160,7 +166,7 @@
 
         function renderForm() {
             const d = state.formData;
-            return `<div class="glass p-5 rounded-[2rem] space-y-4 shadow-2xl">
+            return `<div class="glass p-5 rounded-[2rem] space-y-4 shadow-2xl text-white">
                 <div class="flex justify-between items-center"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-400 font-black uppercase text-tiny flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="text-amber-500 font-black uppercase text-tiny">${state.editingId ? 'עריכה' : 'חדש'}</h2></div>
                 <input id="f-name" placeholder="שם לקוח" value="${d.clientName}" oninput="state.formData.clientName = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold outline-none">
                 <input id="f-phone" placeholder="טלפון" type="tel" value="${d.clientPhone}" oninput="state.formData.clientPhone = this.value" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-left text-white font-bold outline-none" dir="ltr">
@@ -185,7 +191,7 @@
             };
             if (state.editingId) { await db.collection('reservations').doc(state.editingId).update(data); }
             else { data.promoterId = state.phone; data.promoterName = state.userName; data.status = 'active'; data.arrived = false; await db.collection('reservations').add(data); }
-            updateState({ isAdding: false, editingId: null, formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '' } });
+            updateState({ isAdding: false, editingId: null });
         }
 
         function exportToWhatsApp(date, list) {
@@ -216,7 +222,7 @@
         }
 
         function renderUsersMGMT() {
-            return `<div class="space-y-4"><div class="flex justify-between items-center"><button onclick="updateState({showUsers:false})" class="text-tiny font-black uppercase text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 uppercase text-tiny text-center">ניהול יחצנים</h2></div><div class="glass p-3 rounded-xl space-y-2"><div class="flex gap-1.5 items-end"><div class="flex-1"><input id="new-u-name" placeholder="שם" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white outline-none"></div><div class="flex-1"><input id="new-u-phone" placeholder="טלפון" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white" dir="ltr"></div><button onclick="addUserManually()" class="bg-amber-500 text-black h-9 px-4 rounded font-black">+</button></div></div><div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto">${state.users.map(u => `<div class="flex justify-between items-center p-3"><div><p class="font-black text-white text-tiny">${u.name}</p><p class="text-tiny text-slate-400">${u.id}</p></div><button onclick="if(confirm('למחוק?')) db.collection('users').doc('${u.id}').delete()" class="text-red-500"><i data-lucide="trash-2" size="16"></i></button></div>`).join('')}</div></div>`;
+            return `<div class="space-y-4 text-white"><div class="flex justify-between items-center"><button onclick="updateState({showUsers:false})" class="text-tiny font-black uppercase text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 uppercase text-tiny text-center">ניהול יחצנים</h2></div><div class="glass p-3 rounded-xl space-y-2"><div class="flex gap-1.5 items-end"><div class="flex-1"><input id="new-u-name" placeholder="שם" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white outline-none"></div><div class="flex-1"><input id="new-u-phone" placeholder="טלפון" class="w-full bg-white/5 border border-white/10 rounded p-2 text-white" dir="ltr"></div><button onclick="addUserManually()" class="bg-amber-500 text-black h-9 px-4 rounded font-black">+</button></div></div><div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto">${state.users.map(u => `<div class="flex justify-between items-center p-3"><div><p class="font-black text-white text-tiny">${u.name}</p><p class="text-tiny text-slate-400">${u.id}</p></div><button onclick="if(confirm('למחוק?')) db.collection('users').doc('${u.id}').delete()" class="text-red-500"><i data-lucide="trash-2" size="16"></i></button></div>`).join('')}</div></div>`;
         }
 
         async function addUserManually() {
@@ -230,7 +236,7 @@
         function renderSummary(list) {
             const summary = {}; list.forEach(r => { const p = r.promoterName || 'Admin'; if (!summary[p]) summary[p] = { count: 0, z: 0 }; summary[p].count++; summary[p].z += Number(r.actualRevenue || 0); });
             const tableRows = Object.entries(summary).map(([name, data]) => `<tr><td class="p-2 font-black">${name}</td><td class="p-2 text-center">${data.count}</td><td class="p-2 text-green-400">₪${data.z}</td><td class="p-2 text-amber-500">₪${(data.z * 0.1).toFixed(0)}</td></tr>`).join('');
-            return `<div class="space-y-2"><div class="flex justify-between items-center"><button onclick="updateState({showSummary:false})" class="bg-slate-800 text-white px-3 py-1 rounded text-tiny font-black flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 uppercase text-tiny">עמלות</h2></div><div class="glass rounded-xl overflow-hidden border border-white/10"><table class="w-full text-white text-right"><thead class="bg-white/5 text-tiny uppercase font-black text-slate-400"><tr><th class="p-2">יחצן</th><th class="p-2 text-center">הז'</th><th class="p-2">Z</th><th class="p-2">10%</th></tr></thead><tbody class="divide-y divide-white/5">${tableRows}</tbody></table></div></div>`;
+            return `<div class="space-y-2 text-white"><div class="flex justify-between items-center"><button onclick="updateState({showSummary:false})" class="bg-slate-800 text-white px-3 py-1 rounded text-tiny font-black flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 uppercase text-tiny text-center">עמלות</h2></div><div class="glass rounded-xl overflow-hidden border border-white/10"><table class="w-full text-white text-right"><thead class="bg-white/5 text-tiny uppercase font-black text-slate-400"><tr><th class="p-2">יחצן</th><th class="p-2 text-center">הז'</th><th class="p-2">Z</th><th class="p-2">10%</th></tr></thead><tbody class="divide-y divide-white/5">${tableRows}</tbody></table></div></div>`;
         }
 
         function render() {
