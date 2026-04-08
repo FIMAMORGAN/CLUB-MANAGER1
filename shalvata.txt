@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SHALVATA - Floor Plan V1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #020617; color: white; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        
+        .map-container { position: relative; width: 400px; height: 750px; background: #0f172a; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform: scale(0.9); }
+        
+        .t-btn { position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; transition: all 0.2s; transform: translate(-50%, -50%); border: 1px solid rgba(255,255,255,0.1); }
+        
+        /* עיצוב סוגי שולחנות לפי הסקיצה */
+        .sofa-top { width: 60px; height: 40px; border-radius: 8px; border-top: 4px solid #f59e0b; }
+        .sofa-side { width: 45px; height: 65px; border-radius: 8px; border-left: 4px solid #f59e0b; }
+        .round-table { width: 38px; height: 38px; border-radius: 50%; border: 2px solid #3b82f6; }
+        .bar-area { width: 240px; height: 90px; border-radius: 45px; border: 2px solid #0d9488; background: rgba(13,148,136,0.1); pointer-events: none; color: #0d9488; font-style: italic; }
+
+        /* סטטוסים */
+        .status-free { background: #1e293b; color: #94a3b8; }
+        .status-booked { background: #6366f1 !important; color: white !important; box-shadow: 0 0 15px rgba(99, 102, 241, 0.5); }
+        .selected { border: 3px solid #f59e0b !important; transform: translate(-50%, -50%) scale(1.15); z-index: 50; box-shadow: 0 0 20px #f59e0b; }
+
+        .glass-panel { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+
+    <div class="fixed top-6 left-0 right-0 z-50 px-6 flex justify-between items-center">
+        <button onclick="window.location.href='index.html?confirmed=true'" class="glass-panel p-3 rounded-2xl text-amber-500 shadow-xl"><i data-lucide="arrow-right"></i></button>
+        <div class="text-right">
+            <h1 class="font-black text-amber-500 italic text-xl tracking-tighter uppercase">SHALVATA</h1>
+            <p id="date-display" class="text-[10px] text-slate-400 font-bold uppercase"></p>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div id="btn-100" class="t-btn sofa-top status-free" style="top: 15%; left: 75%;" onclick="toggleTable('100')">100</div>
+        <div id="btn-110" class="t-btn sofa-top status-free" style="top: 10%; left: 55%;" onclick="toggleTable('110')">110</div>
+        <div id="btn-120" class="t-btn sofa-top status-free" style="top: 10%; left: 35%;" onclick="toggleTable('120')">120</div>
+        <div id="btn-130" class="t-btn sofa-top status-free" style="top: 12%; left: 15%;" onclick="toggleTable('130')">130</div>
+
+        <div id="btn-140" class="t-btn sofa-side status-free" style="top: 25%; left: 10%;" onclick="toggleTable('140')">140</div>
+        <div id="btn-150" class="t-btn sofa-side status-free" style="top: 38%; left: 10%;" onclick="toggleTable('150')">150</div>
+        <div id="btn-160" class="t-btn sofa-side status-free" style="top: 51%; left: 10%;" onclick="toggleTable('160')">160</div>
+        <div id="btn-170" class="t-btn sofa-side status-free" style="top: 64%; left: 10%;" onclick="toggleTable('170')">170</div>
+        <div id="btn-180" class="t-btn sofa-side status-free" style="top: 77%; left: 10%;" onclick="toggleTable('180')">180</div>
+
+        <div id="btn-10" class="t-btn round-table status-free" style="top: 35%; left: 60%;" onclick="toggleTable('10')">10</div>
+        <div id="btn-20" class="t-btn round-table status-free" style="top: 35%; left: 40%;" onclick="toggleTable('20')">20</div>
+        <div id="btn-30" class="t-btn round-table status-free" style="top: 48%; left: 45%;" onclick="toggleTable('30')">30</div>
+        <div id="btn-40" class="t-btn round-table status-free" style="top: 48%; left: 28%;" onclick="toggleTable('40')">40</div>
+        <div id="btn-50" class="t-btn round-table status-free" style="top: 60%; left: 35%;" onclick="toggleTable('50')">50</div>
+
+        <div class="t-btn bar-area" style="top: 82%; left: 55%;">UPPER BAR</div>
+    </div>
+
+    <div id="confirm-panel" class="fixed bottom-10 left-0 right-0 flex justify-center hidden z-50">
+        <button onclick="confirmTable()" class="bg-amber-500 text-black px-12 py-4 rounded-full font-black uppercase shadow-2xl tracking-widest flex items-center gap-3">
+            <span>אשר שיוך שולחן</span>
+            <i data-lucide="check-circle" size="20"></i>
+        </button>
+    </div>
+
+    <script>
+        const config = { apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI", authDomain: "clubpro-system.firebaseapp.com", projectId: "clubpro-system", storageBucket: "clubpro-system.firebasestorage.app", messagingSenderId: "825897406218", appId: "1:825897406218:web:a660e48a120361247934f3" };
+        firebase.initializeApp(config);
+        const db = firebase.firestore();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const assignToId = urlParams.get('assignTo');
+        const selectedDate = urlParams.get('date') || new Date().toISOString().split('T')[0];
+        let selectedTableId = null;
+
+        document.getElementById('date-display').innerText = selectedDate.split('-').reverse().join('.');
+
+        // האזנה לשולחנות תפוסים בשלוותא
+        db.collection('reservations')
+          .where('eventDate', '==', selectedDate)
+          .where('venueId', '==', 'shalvata')
+          .where('status', '==', 'active')
+          .onSnapshot(snap => {
+            // איפוס מפה
+            document.querySelectorAll('.t-btn[id]').forEach(btn => {
+                btn.classList.remove('status-booked');
+                btn.classList.add('status-free');
+            });
+            // סימון תפוסים
+            snap.docs.forEach(doc => {
+                const res = doc.data();
+                if (res.tableNumber) {
+                    const btn = document.getElementById('btn-' + res.tableNumber);
+                    if (btn) {
+                        btn.classList.remove('status-free');
+                        btn.classList.add('status-booked');
+                    }
+                }
+            });
+          });
+
+        function toggleTable(id) {
+            if (!assignToId) return;
+            const btn = document.getElementById('btn-' + id);
+            if (btn.classList.contains('status-booked')) return alert("שולחן זה תפוס!");
+
+            if (selectedTableId) document.getElementById('btn-' + selectedTableId).classList.remove('selected');
+            
+            selectedTableId = id;
+            btn.classList.add('selected');
+            document.getElementById('confirm-panel').classList.remove('hidden');
+        }
+
+        async function confirmTable() {
+            if (!selectedTableId || !assignToId) return;
+            await db.collection('reservations').doc(assignToId).update({
+                tableNumber: selectedTableId
+            });
+            window.location.href = `index.html?confirmed=shalvata&date=${selectedDate}`;
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
