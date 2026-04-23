@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V114 - Input Memory Fix</title>
+    <title>ClubPro V113 - WhatsApp & Numbers Fixed</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -64,18 +64,6 @@
             render(); 
         }
 
-        // פונקציה חדשה ששומרת את מה שהוקלד לפני החלפת סוג הזמנה
-        function syncFormAndSetType(type) {
-            state.formData.clientName = document.getElementById('f-name').value;
-            state.formData.clientPhone = document.getElementById('f-phone').value;
-            state.formData.pax = document.getElementById('f-pax').value;
-            state.formData.time = document.getElementById('f-time').value;
-            state.formData.manualPrice = document.getElementById('f-price').value;
-            state.formData.notes = document.getElementById('f-notes').value;
-            state.formData.type = type;
-            render();
-        }
-
         async function saveCurrentBooking() {
             const name = document.getElementById('f-name').value;
             const pax = document.getElementById('f-pax').value;
@@ -94,7 +82,7 @@
             };
             if (state.editingId) { await db.collection('reservations').doc(state.editingId).update(data); }
             else { data.promoterId = state.phone; data.promoterName = state.userName; data.status = 'active'; data.arrived = false; await db.collection('reservations').add(data); }
-            updateState({ isAdding: false, editingId: null, formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '' } });
+            updateState({ isAdding: false, editingId: null });
         }
 
         function exportToWhatsApp(date, list) {
@@ -190,23 +178,24 @@
             const initialPrice = d.manualPrice || (Number(d.pax || 0) * venue.minP);
             return `<div class="glass p-5 rounded-[2rem] space-y-4 text-white shadow-2xl">
                 <div class="flex justify-between items-center"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-400 font-black uppercase text-tiny">חזור</button><h2 class="text-amber-500 font-black uppercase text-tiny">פרטי הזמנה</h2></div>
-                <input id="f-name" placeholder="שם לקוח" value="${d.clientName || ''}" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold outline-none">
-                <input id="f-phone" placeholder="טלפון" type="tel" value="${d.clientPhone || ''}" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-left text-white outline-none" dir="ltr">
+                <input id="f-name" placeholder="שם לקוח" value="${d.clientName}" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-bold outline-none">
+                <input id="f-phone" placeholder="טלפון" type="tel" value="${d.clientPhone}" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-left text-white outline-none" dir="ltr">
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="text-[8px] text-slate-500 uppercase">שעה</label><input id="f-time" type="time" value="${d.time || '22:30'}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white font-bold outline-none"></div>
-                    <div><label class="text-[8px] text-slate-500 uppercase">אנשים</label><input id="f-pax" type="number" inputmode="numeric" placeholder="0" value="${d.pax || ''}" onblur="const p=document.getElementById('f-price'); if(!p.value) p.value = this.value * ${venue.minP}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-center font-black text-lg outline-none"></div>
+                    <div><label class="text-[8px] text-slate-500 uppercase">אנשים</label><input id="f-pax" type="number" inputmode="numeric" placeholder="0" value="${d.pax}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-center font-black text-lg outline-none"></div>
                 </div>
                 <div><label class="text-[8px] text-amber-500 uppercase">מינימום הזמנה ₪</label><input id="f-price" type="number" inputmode="numeric" value="${initialPrice || ''}" class="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-500 text-center font-black text-lg outline-none"></div>
                 <textarea id="f-notes" placeholder="הערות..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none h-20 text-xs">${d.notes || ''}</textarea>
-                <div class="flex gap-1.5">${['table','bar','free'].map(t => `<button onclick="syncFormAndSetType('${t}')" class="flex-1 py-3 rounded-xl border-2 font-black uppercase ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'שולחן':t==='bar'?'בר':'חינם'}</button>`).join('')}</div>
+                <div class="flex gap-1.5">${['table','bar','free'].map(t => `<button onclick="state.formData.type='${t}'; render();" class="flex-1 py-3 rounded-xl border-2 font-black uppercase ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10'}">${t==='table'?'שולחן':t==='bar'?'בר':'חינם'}</button>`).join('')}</div>
                 <button onclick="saveCurrentBooking()" class="w-full btn-amber py-4 rounded-xl uppercase font-black shadow-xl">שמור הזמנה</button>
             </div>`;
         }
 
+        // --- שאר הפונקציות (ניהול יחצנים, כניסה וכו') ללא שינוי ---
         function render() {
             const root = document.getElementById('app');
             if (!state.role) { root.innerHTML = `<div class="h-screen flex items-center justify-center p-4 text-white"><div class="w-full max-w-xs glass p-10 rounded-3xl text-center shadow-2xl border-white/10"><h2 class="text-2xl font-black mb-10 text-amber-500 italic uppercase">CLUBPRO</h2><input id="l-in" type="text" placeholder="מספר טלפון" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center text-white outline-none font-bold text-lg"><button onclick="loginUser()" class="w-full btn-amber py-4 rounded-xl uppercase font-black">כניסה</button></div></div>`; return; }
-            if (!state.venueId) { root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase italic text-center">SELECT VENUE</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${allVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-6 rounded-2xl text-center text-xl font-black uppercase border-white/10 cursor-pointer shadow-xl">${v.name}</div>`).join('')}</div><button onclick="logout()" class="text-slate-500 font-bold mt-10 underline text-tiny tracking-widest flex items-center gap-2"><i data-lucide="log-out" size="14"></i> LOGOUT</button></div>`; lucide.createIcons(); return; }
+            if (!state.venueId) { root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase italic">SELECT VENUE</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${allVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-6 rounded-2xl text-center text-xl font-black uppercase border-white/10 cursor-pointer shadow-xl">${v.name}</div>`).join('')}</div><button onclick="logout()" class="text-slate-500 font-bold mt-10 underline text-tiny tracking-widest flex items-center gap-2"><i data-lucide="log-out" size="14"></i> LOGOUT</button></div>`; lucide.createIcons(); return; }
             if (!state.isDateConfirmed) { root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white"><button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-tiny border border-amber-500/30 px-5 py-2 rounded-full uppercase flex items-center gap-1"><i data-lucide="arrow-right" size="14"></i> חזור</button><h2 class="text-xl font-black text-center uppercase">בחר תאריך:</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${state.selectedDate}" onchange="state.selectedDate = this.value; render();" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white font-black text-center outline-none"><button onclick="updateState({isDateConfirmed: true})" class="w-full btn-amber py-4 rounded-xl mt-6 font-black uppercase">אישור</button></div></div>`; lucide.createIcons(); return; }
             
             const venue = allVenues.find(v => v.id === state.venueId);
@@ -230,12 +219,11 @@
             lucide.createIcons();
         }
 
-        async function logout() { localStorage.clear(); location.reload(); }
-        async function moveReservation(resId, newVenueId) { await db.collection('reservations').doc(resId).update({ venueId: newVenueId, tableNumber: firebase.firestore.FieldValue.delete() }); updateState({ transferId: null }); }
         async function loginUser() { const val = document.getElementById('l-in').value.trim(); if (val.toLowerCase() === 'res') { updateState({ role: 'admin', userName: 'Admin', phone: 'ADMIN' }); localStorage.setItem('club_role', 'admin'); return; } if (val.length >= 10) { const userDoc = await db.collection('users').doc(val).get(); let name = userDoc.exists ? userDoc.data().name : prompt("שם יחצן:"); if (!name) return; if (!userDoc.exists) await db.collection('users').doc(val).set({ name, phone: val }); updateState({ role: 'promoter', userName: name, phone: val }); localStorage.setItem('club_role', 'promoter'); localStorage.setItem('club_name', name); localStorage.setItem('club_phone', val); } }
         function editReservation(id) { const res = state.reservations.find(r => r.id === id); updateState({ editingId: id, isAdding: true, formData: { type: res.type, pax: res.pax, clientName: res.name, clientPhone: res.phone, manualPrice: res.minOrder, time: res.time||'22:30', notes: res.notes||'' } }); }
         function renderUsersMGMT() { return `<div class="space-y-4 p-2 text-white"><div class="flex justify-between items-center"><button onclick="updateState({showUsersMGMT:false})" class="text-tiny font-black text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 text-tiny uppercase">ניהול יחצנים</h2></div><div class="glass p-3 rounded-xl flex gap-1.5"><input id="u-n" placeholder="שם" class="flex-1 bg-white/5 p-2 rounded text-white text-xs outline-none"><input id="u-p" placeholder="טלפון" class="flex-1 bg-white/5 p-2 rounded text-white text-xs outline-none" type="tel"><button onclick="addUserManually()" class="bg-amber-500 text-black px-4 rounded font-black">+</button></div><div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto">${state.users.map(u => `<div class="flex justify-between items-center p-3"><div><p class="font-black text-white text-tiny">${u.name}</p><p class="text-[8px] text-slate-500">${u.id}</p></div><button onclick="db.collection('users').doc('${u.id}').delete()" class="text-red-500 p-2"><i data-lucide="trash-2" size="14"></i></button></div>`).join('')}</div></div>`; }
         async function addUserManually() { const name = document.getElementById('u-n').value; const phone = document.getElementById('u-p').value; if(!name || phone.length < 10) return alert("פרטים חסרים"); await db.collection('users').doc(phone).set({ name, phone }); document.getElementById('u-n').value = ''; document.getElementById('u-p').value = ''; }
+
         db.collection('reservations').onSnapshot(snap => { state.reservations = snap.docs.map(d => ({id:d.id, ...d.data()})); render(); });
         db.collection('users').onSnapshot(snap => { state.users = snap.docs.map(d => ({id:d.id, ...d.data()})); render(); });
         auth.onAuthStateChanged(u => { if(!u) auth.signInAnonymously(); });
