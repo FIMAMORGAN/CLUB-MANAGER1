@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V115 - Fast Venue Switch</title>
+    <title>ClubPro V114 - Input Memory Fix</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -64,6 +64,7 @@
             render(); 
         }
 
+        // פונקציה חדשה ששומרת את מה שהוקלד לפני החלפת סוג הזמנה
         function syncFormAndSetType(type) {
             state.formData.clientName = document.getElementById('f-name').value;
             state.formData.clientPhone = document.getElementById('f-phone').value;
@@ -93,7 +94,7 @@
             };
             if (state.editingId) { await db.collection('reservations').doc(state.editingId).update(data); }
             else { data.promoterId = state.phone; data.promoterName = state.userName; data.status = 'active'; data.arrived = false; await db.collection('reservations').add(data); }
-            updateState({ isAdding: false, editingId: null });
+            updateState({ isAdding: false, editingId: null, formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '' } });
         }
 
         function exportToWhatsApp(date, list) {
@@ -156,15 +157,6 @@
                     <div class="glass p-1.5 rounded-lg text-center text-amber-500"><p class="text-[8px]">מוזמנים</p><p class="font-black text-xs">${pendingList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
                     <div class="glass p-1.5 rounded-lg text-center text-green-400"><p class="text-[8px]">הגיעו</p><p class="font-black text-xs">${arrivedList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
                 </div>
-
-                <div class="flex gap-1 bg-white/5 p-1 rounded-xl border border-white/5 mb-2">
-                    ${allVenues.map(v => `
-                        <button onclick="updateState({venueId: '${v.id}'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${state.venueId === v.id ? 'bg-amber-500 text-black shadow-md' : 'text-slate-400 hover:text-white bg-transparent'}">
-                            ${v.name}
-                        </button>
-                    `).join('')}
-                </div>
-
                 <div class="flex flex-col gap-2 mb-3">
                     <div class="flex gap-1">
                         ${state.role === 'admin' ? `<button onclick="updateState({showUsersMGMT: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny uppercase border border-white/10">יחצנים</button>` : ''}
@@ -181,7 +173,6 @@
                         const g = pendingList.filter(r => r.type === type);
                         return g.length ? `<div><div class="group-header uppercase">${type==='table'?'שולחנות':type==='bar'?'בר':'חינם'}</div>${g.map(r => renderRow(r)).join('')}</div>` : '';
                     }).join('')}
-                    ${pendingList.length === 0 ? '<p class="p-8 text-center text-slate-600 font-bold uppercase italic">אין הזמנות ממתינות</p>' : ''}
                 </div>
                 <div class="mt-4 glass rounded-xl overflow-hidden border-green-500/10">
                     <button onclick="updateState({showArrived: !state.showArrived})" class="w-full flex justify-between items-center p-3 text-green-500 font-black uppercase text-tiny bg-green-500/5">
