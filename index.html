@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V116 - Booking Archive</title>
+    <title>ClubPro V116 - Booking Archive Added</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -197,7 +197,7 @@
             `;
         }
 
-        // רינדור של מרכז ההזמנות החדש (ארכיון כללי מכל הזמנים)
+        // רינדור מרכז ההזמנות החדש (ארכיון כללי מכל הזמנים)
         function renderArchiveMGMT() {
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const filtered = state.reservations.filter(r => {
@@ -220,7 +220,7 @@
                                class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-xs outline-none focus:border-amber-500">
                     </div>
 
-                    <div class="bg-white/5 p-2 text-[10px] font-bold text-slate-400 rounded-lg">נמצאו ${filtered.length} הזמנות</div>
+                    <div class="bg-white/5 p-2 text-[10px] font-bold text-slate-400 rounded-lg">נמצאו ${filtered.length} הזמנות בכל המערכת</div>
                     
                     <div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[65vh] overflow-y-auto">
                         ${filtered.map(r => {
@@ -280,6 +280,14 @@
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden text-right text-white relative">
                     ${state.transferId ? `<div class="transfer-overlay"><div class="glass p-6 rounded-3xl w-full max-w-xs text-center space-y-4"><h3 class="font-black text-amber-500 uppercase">שינוע הזמנה</h3><div class="flex flex-col gap-2">${allVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-4 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-500 font-bold pt-2">ביטול</button></div></div>` : ''}
+                    <header class="bg-slate-950 p-2 border-b border-white/5 flex justify-between items-center shadow-lg">
+                        <div class="font-black italic text-base text-amber-500 pr-2">${venue.name}</div>
+                        <div class="flex gap-2">
+                            <button onclick="updateState({isDateConfirmed: false})" class="text-slate-400 font-black text-[9px] border border-white/10 px-2 py-1.5 rounded uppercase">תאריך</button>
+                            <button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-500 font-black text-[9px] border border-amber-500/50 px-2 py-1.5 rounded uppercase">בית</button>
+                            <button onclick="logout()" class="text-red-500 border border-red-500/30 px-2 py-1.5 rounded"><i data-lucide="log-out" size="14"></i></button>
+                        </div>
+                    </header>
                     <header class="bg-slate-950 p-2 border-b border-white/5 flex justify-between items-center shadow-lg">
                         <div class="font-black italic text-base text-amber-500 pr-2">${venue.name}</div>
                         <div class="flex gap-2">
