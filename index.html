@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V117 - Final Fix</title>
+    <title>ClubPro V118 - Client Identity CRM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -197,52 +197,106 @@
             `;
         }
 
+        // פונקציית מרכז ההזמנות החדשה עם זיהוי CRM חכם וסטטיסטיקת ביקורים
         function renderArchiveMGMT() {
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const venue = allVenues.find(v => v.id === state.venueId);
             
-            const filtered = state.reservations.filter(r => {
-                if (r.status !== 'active' || r.venueId !== state.venueId) return false;
-                const nameMatch = r.name && r.name.toLowerCase().includes(query);
-                const phoneMatch = r.phone && r.phone.includes(query);
-                return nameMatch || phoneMatch;
-            }).sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
+            // 1. נסנן תחילה את כל ההזמנות התקינות ששייכות למועדון הנוכחי
+            const baseReservations = state.reservations.filter(r => r.status === 'active' && r.venueId === state.venueId);
+
+            // 2. נקבץ אותן לפי מספר טלפון ייחודי כדי לחשב פרופיל לקוח
+            const clientMap = {};
+            baseReservations.forEach(r => {
+                const phoneKey = r.phone ? r.phone.replace(/\D/g, '') : '';
+                if (!phoneKey) return; // נתעלם מהזמנות ללא טלפון
+
+                if (!clientMap[phoneKey]) {
+                    clientMap[phoneKey] = {
+                        name: r.name,
+                        phone: r.phone,
+                        visitCount: 0,
+                        lastVisitDate: '',
+                        notesHistory: []
+                    };
+                }
+
+                clientMap[phoneKey].visitCount += 1;
+                
+                // חישוב תאריך ביקור אחרון (התאריך המאוחר ביותר)
+                if (!clientMap[phoneKey].lastVisitDate || r.eventDate > clientMap[phoneKey].lastVisitDate) {
+                    clientMap[phoneKey].lastVisitDate = r.eventDate;
+                }
+
+                if (r.notes && !clientMap[phoneKey].notesHistory.includes(r.notes)) {
+                    clientMap[phoneKey].notesHistory.push(r.notes);
+                }
+            });
+
+            // 3. נהפוך את המפה למערך ונפעיל את מסנן החיפוש שהזנת
+            let clientsArray = Object.values(clientMap);
+            if (query) {
+                clientsArray = clientsArray.filter(c => 
+                    (c.name && c.name.toLowerCase().includes(query)) || 
+                    (c.phone && c.phone.includes(query))
+                );
+            }
+
+            // 4. מיון אוטומטי - הלקוחות המושבעים ביותר (הכי הרבה ביקורים) יופיעו למעלה
+            clientsArray.sort((a, b) => b.visitCount - a.visitCount);
 
             return `
                 <div class="space-y-4 p-1 text-white">
                     <div class="flex justify-between items-center">
                         <button onclick="updateState({showArchiveMGMT: false, archiveSearchQuery: ''})" class="text-tiny font-black text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button>
-                        <h2 class="font-black text-amber-500 text-tiny uppercase">מרכז הזמנות - ${venue.name}</h2>
+                        <h2 class="font-black text-amber-500 text-tiny uppercase">מרכז לקוחות - ${venue.name}</h2>
                     </div>
                     
                     <div class="glass p-3 rounded-xl">
-                        <input id="archive-search" type="text" placeholder="חפש לקוח ב-${venue.name} לפי שם או טלפון..." value="${state.archiveSearchQuery}" 
+                        <input id="archive-search" type="text" placeholder="חפש לקוח לפי שם או טלפון..." value="${state.archiveSearchQuery}" 
                                oninput="state.archiveSearchQuery = this.value; render();" 
                                class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-xs outline-none focus:border-amber-500">
                     </div>
 
-                    <div class="bg-white/5 p-2 text-[10px] font-bold text-slate-400 rounded-lg">נמצאו ${filtered.length} הזמנות במועדון זה</div>
+                    <div class="bg-white/5 p-2 text-[10px] font-bold text-slate-400 rounded-lg">נמצאו ${clientsArray.length} לקוחות ייחודיים במועדון</div>
                     
                     <div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[65vh] overflow-y-auto">
-                        ${filtered.map(r => {
-                            const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
+                        ${clientsArray.map(c => {
+                            // קביעת תג העדיפות של הלקוח לפי כמות הביקורים
+                            let tagColor = 'bg-slate-500/10 text-slate-400';
+                            let tagLabel = 'לקוח חדש';
+                            if (c.visitCount >= 5) {
+                                tagColor = 'bg-red-500/10 text-red-500 animate-pulse';
+                                tagLabel = '🔥 לקוח VIP';
+                            } else if (c.visitCount >= 2) {
+                                tagColor = 'bg-amber-500/10 text-amber-500';
+                                tagLabel = '✨ לקוח חוזר';
+                            }
+
+                            const formattedLastDate = c.lastVisitDate ? c.lastVisitDate.split('-').reverse().join('.') : '--.--.--';
+
                             return `
-                                <div class="p-3 space-y-1">
+                                <div class="p-3 space-y-2 bg-white/[0.01]">
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <p class="font-black text-white text-sm">${r.name} (${r.pax || 0} איש)</p>
-                                            <p class="text-[10px] text-slate-400 font-medium">${r.phone || 'אין טלפון'}</p>
+                                            <p class="font-black text-white text-sm flex items-center gap-2">
+                                                ${c.name}
+                                                <span class="${tagColor} text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider">${tagLabel}</span>
+                                            </p>
+                                            <p class="text-[10px] text-slate-400 font-medium tracking-wide mt-0.5">${c.phone}</p>
                                         </div>
                                         <div class="text-left">
-                                            <span class="bg-amber-500/10 text-amber-500 text-[9px] px-2 py-0.5 rounded font-black uppercase">${venue.name}</span>
-                                            <p class="text-[9px] text-slate-500 mt-1 font-bold">${formattedDate}</p>
+                                            <span class="bg-blue-500/10 text-blue-400 text-[10px] px-2 py-1 rounded-md font-black">ביקר ${c.visitCount} פעמים</span>
                                         </div>
                                     </div>
-                                    ${r.notes ? `<p class="text-[9px] text-slate-500 italic font-bold">💬 ${r.notes}</p>` : ''}
+                                    <div class="flex flex-col gap-0.5 text-[9px] text-slate-500 font-bold border-t border-white/5 pt-1.5">
+                                        <p>⏳ ביקור אחרון ב-${venue.name}: <span class="text-slate-300">${formattedLastDate}</span></p>
+                                        ${c.notesHistory.length ? `<p class="italic text-slate-400 truncate max-w-[280px]">💬 הערות עבר: ${c.notesHistory.join(', ')}</p>` : ''}
+                                    </div>
                                 </div>
                             `;
                         }).join('')}
-                        ${filtered.length === 0 ? '<p class="p-8 text-center text-slate-600 font-bold uppercase">לא נמצאו תוצאות</p>' : ''}
+                        ${clientsArray.length === 0 ? '<p class="p-8 text-center text-slate-600 font-bold uppercase">לא נמצאו לקוחות</p>' : ''}
                     </div>
                 </div>
             `;
