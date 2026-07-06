@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V116 - Booking Archive</title>
+    <title>ClubPro V115 - Fast Venue Switch</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -54,7 +54,6 @@
             isDateConfirmed: !!localStorage.getItem('last_date'),
             reservations: [], users: [], isAdding: false, editingId: null,
             transferId: null, showArrived: false, showUsersMGMT: false,
-            showArchiveMGMT: false, archiveSearchQuery: '', // מצבים חדשים למרכז ההזמנות
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '' }
         };
 
@@ -168,10 +167,7 @@
 
                 <div class="flex flex-col gap-2 mb-3">
                     <div class="flex gap-1">
-                        ${state.role === 'admin' ? `
-                            <button onclick="updateState({showUsersMGMT: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny uppercase border border-white/10">יחצנים</button>
-                            <button onclick="updateState({showArchiveMGMT: true})" class="flex-1 bg-blue-950 text-blue-400 py-2.5 rounded-xl font-black text-tiny uppercase border border-blue-500/20">מרכז הזמנות</button>
-                        ` : ''}
+                        ${state.role === 'admin' ? `<button onclick="updateState({showUsersMGMT: true})" class="flex-1 bg-slate-800 py-2.5 rounded-xl font-black text-tiny uppercase border border-white/10">יחצנים</button>` : ''}
                         <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null,time:'22:30',notes:''}})" class="flex-[2] btn-amber py-2.5 rounded-xl font-black uppercase shadow-lg">צור הזמנה</button>
                     </div>
                     ${venue.map ? `<button onclick="window.location.href='${venue.map}?date=${state.selectedDate}'" class="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black uppercase flex items-center justify-center gap-2 shadow-lg"><i data-lucide="map"></i> מפת שולחנות</button>` : ''}
@@ -193,58 +189,6 @@
                         <i data-lucide="${state.showArrived ? 'chevron-up' : 'chevron-down'}" size="14"></i>
                     </button>
                     ${state.showArrived ? arrivedList.map(r => renderRow(r)).join('') : ''}
-                </div>
-            `;
-        }
-
-        // רינדור של מרכז ההזמנות החדש (ארכיון כללי מכל הזמנים)
-        function renderArchiveMGMT() {
-            const query = state.archiveSearchQuery.trim().toLowerCase();
-            const filtered = state.reservations.filter(r => {
-                if (r.status !== 'active') return false;
-                const nameMatch = r.name && r.name.toLowerCase().includes(query);
-                const phoneMatch = r.phone && r.phone.includes(query);
-                return nameMatch || phoneMatch;
-            }).sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
-
-            return `
-                <div class="space-y-4 p-1 text-white">
-                    <div class="flex justify-between items-center">
-                        <button onclick="updateState({showArchiveMGMT: false, archiveSearchQuery: ''})" class="text-tiny font-black text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button>
-                        <h2 class="font-black text-amber-500 text-tiny uppercase">מרכז הזמנות כללי</h2>
-                    </div>
-                    
-                    <div class="glass p-3 rounded-xl">
-                        <input id="archive-search" type="text" placeholder="חפש לקוח לפי שם או טלפון..." value="${state.archiveSearchQuery}" 
-                               oninput="state.archiveSearchQuery = this.value; render();" 
-                               class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-xs outline-none focus:border-amber-500">
-                    </div>
-
-                    <div class="bg-white/5 p-2 text-[10px] font-bold text-slate-400 rounded-lg">נמצאו ${filtered.length} הזמנות</div>
-                    
-                    <div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[65vh] overflow-y-auto">
-                        ${filtered.map(r => {
-                            const venueObj = allVenues.find(v => v.id === r.venueId);
-                            const vName = venueObj ? venueObj.name : 'Unknown';
-                            const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
-                            return `
-                                <div class="p-3 space-y-1">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <p class="font-black text-white text-sm">${r.name} (${r.pax || 0} איש)</p>
-                                            <p class="text-[10px] text-slate-400 font-medium">${r.phone || 'אין טלפון'}</p>
-                                        </div>
-                                        <div class="text-left">
-                                            <span class="bg-amber-500/10 text-amber-500 text-[9px] px-2 py-0.5 rounded font-black uppercase">${vName}</span>
-                                            <p class="text-[9px] text-slate-500 mt-1 font-bold">${formattedDate}</p>
-                                        </div>
-                                    </div>
-                                    ${r.notes ? `<p class="text-[9px] text-slate-500 italic font-bold">💬 ${r.notes}</p>` : ''}
-                                </div>
-                            `;
-                        }).join('')}
-                        ${filtered.length === 0 ? '<p class="p-8 text-center text-slate-600 font-bold uppercase">לא נמצאו תוצאות</p>' : ''}
-                    </div>
                 </div>
             `;
         }
@@ -289,7 +233,7 @@
                         </div>
                     </header>
                     <main class="flex-1 overflow-y-auto p-2 bg-slate-950/50">
-                        ${state.showArchiveMGMT ? renderArchiveMGMT() : (state.showUsersMGMT ? renderUsersMGMT() : (state.isAdding ? renderForm() : renderDashboard(list)))}
+                        ${state.showUsersMGMT ? renderUsersMGMT() : (state.isAdding ? renderForm() : renderDashboard(list))}
                     </main>
                 </div>`;
             lucide.createIcons();
