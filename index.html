@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V118 - Archive Features Added</title>
+    <title>ClubPro V119 - Archive Features & Version Updated</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -55,7 +55,7 @@
             reservations: [], users: [], isAdding: false, editingId: null,
             transferId: null, showArrived: false, showUsersMGMT: false,
             showArchiveMGMT: false, archiveSearchQuery: '',
-            archiveExportDate: getToday(), // תאריך נבחר לייצוא מתוך ארכיון
+            archiveExportDate: getToday(),
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '' }
         };
 
@@ -119,14 +119,12 @@
             window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/,'972')}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        // פונקציה חדשה: שליחת הודעת פנייה מחדש ממרכז ההזמנות
         function sendReengagementWhatsApp(clientName, clientPhone, eventDateStr) {
             if (!clientPhone) return alert("ללקוח זה אין מספר טלפון מעודכן");
             
             const cleanPhone = clientPhone.replace(/\D/g,'').replace(/^0/,'972');
             const formattedDate = eventDateStr ? eventDateStr.split('-').reverse().join('.') : '';
             
-            // חישוב ימים שעברו מאז ההזמנה
             let daysText = '';
             if (eventDateStr) {
                 const pastDate = new Date(eventDateStr);
@@ -142,7 +140,6 @@
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        // פונקציה חדשה: ייצוא כל ההזמנות של תאריך מסוים מהארכיון ל-WhatsApp
         function exportArchiveDateToWhatsApp() {
             const targetDate = state.archiveExportDate;
             const list = state.reservations.filter(r => r.status === 'active' && r.venueId === state.venueId && r.eventDate === targetDate);
@@ -233,7 +230,6 @@
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const venue = allVenues.find(v => v.id === state.venueId);
             
-            // סינון רק לפי ה-venueId הנוכחי שבו המשתמש נמצא
             const filtered = state.reservations.filter(r => {
                 if (r.status !== 'active' || r.venueId !== state.venueId) return false;
                 const nameMatch = r.name && r.name.toLowerCase().includes(query);
@@ -248,7 +244,6 @@
                         <h2 class="font-black text-amber-500 text-tiny uppercase">מרכז הזמנות - ${venue.name}</h2>
                     </div>
 
-                    <!-- אזור ייצוא תאריך מסוים ל-WhatsApp -->
                     <div class="glass p-3 rounded-xl space-y-2 border border-green-500/30">
                         <p class="text-[10px] font-black text-green-400 uppercase">ייצוא הזמנות לפי תאריך נבחר:</p>
                         <div class="flex gap-2">
@@ -278,7 +273,6 @@
                                         <div class="text-left flex flex-col items-end gap-1">
                                             <span class="bg-amber-500/10 text-amber-500 text-[9px] px-2 py-0.5 rounded font-black uppercase">${venue.name}</span>
                                             <p class="text-[9px] text-slate-500 font-bold">${formattedDate}</p>
-                                            <!-- כפתור פנייה מחדש ללקוח -->
                                             <button onclick="sendReengagementWhatsApp('${r.name.replace(/'/g, "\\'")}', '${r.phone}', '${r.eventDate}')" class="bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-black border border-green-500/30 px-2 py-1 rounded text-[9px] font-black flex items-center gap-1 transition-all mt-1">
                                                 <span>פנה ללקוח</span> <i data-lucide="message-circle" size="12"></i>
                                             </button>
