@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V118 - Archive Features Added</title>
+    <title>ClubPro V118 - Client Identity CRM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -55,7 +55,6 @@
             reservations: [], users: [], isAdding: false, editingId: null,
             transferId: null, showArrived: false, showUsersMGMT: false,
             showArchiveMGMT: false, archiveSearchQuery: '',
-            archiveExportDate: getToday(), // תאריך נבחר לייצוא מתוך ארכיון
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '' }
         };
 
@@ -117,37 +116,6 @@
             const venue = allVenues.find(v => v.id === state.venueId);
             const msg = `אהלן ${res.name}, הזמנתך ל-${venue.name} מאושרת ל ${res.pax} אנשים בשעה ${res.time||'22:30'}.📍 ${venue.waze}. ${venue.wazeLink}`;
             window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/,'972')}?text=${encodeURIComponent(msg)}`, '_blank');
-        }
-
-        // פונקציה חדשה: שליחת הודעת פנייה מחדש ממרכז ההזמנות
-        function sendReengagementWhatsApp(clientName, clientPhone, eventDateStr) {
-            if (!clientPhone) return alert("ללקוח זה אין מספר טלפון מעודכן");
-            
-            const cleanPhone = clientPhone.replace(/\D/g,'').replace(/^0/,'972');
-            const formattedDate = eventDateStr ? eventDateStr.split('-').reverse().join('.') : '';
-            
-            // חישוב ימים שעברו מאז ההזמנה
-            let daysText = '';
-            if (eventDateStr) {
-                const pastDate = new Date(eventDateStr);
-                const today = new Date();
-                const diffTime = Math.abs(today - pastDate);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                daysText = `לפני ${diffDays} ימים (${formattedDate})`;
-            } else {
-                daysText = formattedDate;
-            }
-
-            const msg = `היי ${clientName}, פעם אחרונה הייתה ${daysText}. מתי נראה אותך שישי הזה?`;
-            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-        }
-
-        // פונקציה חדשה: ייצוא כל ההזמנות של תאריך מסוים מהארכיון ל-WhatsApp
-        function exportArchiveDateToWhatsApp() {
-            const targetDate = state.archiveExportDate;
-            const list = state.reservations.filter(r => r.status === 'active' && r.venueId === state.venueId && r.eventDate === targetDate);
-            if (list.length === 0) return alert(`אין הזמנות בתאריך ${targetDate.split('-').reverse().join('.')}`);
-            exportToWhatsApp(targetDate, list);
         }
 
         function renderRow(res) {
@@ -229,66 +197,106 @@
             `;
         }
 
+        // פונקציית מרכז ההזמנות החדשה עם זיהוי CRM חכם וסטטיסטיקת ביקורים
         function renderArchiveMGMT() {
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const venue = allVenues.find(v => v.id === state.venueId);
             
-            // סינון רק לפי ה-venueId הנוכחי שבו המשתמש נמצא
-            const filtered = state.reservations.filter(r => {
-                if (r.status !== 'active' || r.venueId !== state.venueId) return false;
-                const nameMatch = r.name && r.name.toLowerCase().includes(query);
-                const phoneMatch = r.phone && r.phone.includes(query);
-                return nameMatch || phoneMatch;
-            }).sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
+            // 1. נסנן תחילה את כל ההזמנות התקינות ששייכות למועדון הנוכחי
+            const baseReservations = state.reservations.filter(r => r.status === 'active' && r.venueId === state.venueId);
+
+            // 2. נקבץ אותן לפי מספר טלפון ייחודי כדי לחשב פרופיל לקוח
+            const clientMap = {};
+            baseReservations.forEach(r => {
+                const phoneKey = r.phone ? r.phone.replace(/\D/g, '') : '';
+                if (!phoneKey) return; // נתעלם מהזמנות ללא טלפון
+
+                if (!clientMap[phoneKey]) {
+                    clientMap[phoneKey] = {
+                        name: r.name,
+                        phone: r.phone,
+                        visitCount: 0,
+                        lastVisitDate: '',
+                        notesHistory: []
+                    };
+                }
+
+                clientMap[phoneKey].visitCount += 1;
+                
+                // חישוב תאריך ביקור אחרון (התאריך המאוחר ביותר)
+                if (!clientMap[phoneKey].lastVisitDate || r.eventDate > clientMap[phoneKey].lastVisitDate) {
+                    clientMap[phoneKey].lastVisitDate = r.eventDate;
+                }
+
+                if (r.notes && !clientMap[phoneKey].notesHistory.includes(r.notes)) {
+                    clientMap[phoneKey].notesHistory.push(r.notes);
+                }
+            });
+
+            // 3. נהפוך את המפה למערך ונפעיל את מסנן החיפוש שהזנת
+            let clientsArray = Object.values(clientMap);
+            if (query) {
+                clientsArray = clientsArray.filter(c => 
+                    (c.name && c.name.toLowerCase().includes(query)) || 
+                    (c.phone && c.phone.includes(query))
+                );
+            }
+
+            // 4. מיון אוטומטי - הלקוחות המושבעים ביותר (הכי הרבה ביקורים) יופיעו למעלה
+            clientsArray.sort((a, b) => b.visitCount - a.visitCount);
 
             return `
                 <div class="space-y-4 p-1 text-white">
                     <div class="flex justify-between items-center">
                         <button onclick="updateState({showArchiveMGMT: false, archiveSearchQuery: ''})" class="text-tiny font-black text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button>
-                        <h2 class="font-black text-amber-500 text-tiny uppercase">מרכז הזמנות - ${venue.name}</h2>
-                    </div>
-
-                    <!-- אזור ייצוא תאריך מסוים ל-WhatsApp -->
-                    <div class="glass p-3 rounded-xl space-y-2 border border-green-500/30">
-                        <p class="text-[10px] font-black text-green-400 uppercase">ייצוא הזמנות לפי תאריך נבחר:</p>
-                        <div class="flex gap-2">
-                            <input type="date" value="${state.archiveExportDate}" onchange="state.archiveExportDate = this.value;" class="bg-white/10 border border-white/20 rounded-lg p-2 text-white font-bold text-xs outline-none flex-1">
-                            <button onclick="exportArchiveDateToWhatsApp()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-black text-xs flex items-center gap-1 shadow-lg">ייצוא לווצאפ <i data-lucide="share-2" size="14"></i></button>
-                        </div>
+                        <h2 class="font-black text-amber-500 text-tiny uppercase">מרכז לקוחות - ${venue.name}</h2>
                     </div>
                     
                     <div class="glass p-3 rounded-xl">
-                        <input id="archive-search" type="text" placeholder="חפש לקוח ב-${venue.name} לפי שם או טלפון..." value="${state.archiveSearchQuery}" 
+                        <input id="archive-search" type="text" placeholder="חפש לקוח לפי שם או טלפון..." value="${state.archiveSearchQuery}" 
                                oninput="state.archiveSearchQuery = this.value; render();" 
                                class="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white text-xs outline-none focus:border-amber-500">
                     </div>
 
-                    <div class="bg-white/5 p-2 text-[10px] font-bold text-slate-400 rounded-lg">נמצאו ${filtered.length} הזמנות במועדון זה</div>
+                    <div class="bg-white/5 p-2 text-[10px] font-bold text-slate-400 rounded-lg">נמצאו ${clientsArray.length} לקוחות ייחודיים במועדון</div>
                     
-                    <div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[55vh] overflow-y-auto">
-                        ${filtered.map(r => {
-                            const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
+                    <div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[65vh] overflow-y-auto">
+                        ${clientsArray.map(c => {
+                            // קביעת תג העדיפות של הלקוח לפי כמות הביקורים
+                            let tagColor = 'bg-slate-500/10 text-slate-400';
+                            let tagLabel = 'לקוח חדש';
+                            if (c.visitCount >= 5) {
+                                tagColor = 'bg-red-500/10 text-red-500 animate-pulse';
+                                tagLabel = '🔥 לקוח VIP';
+                            } else if (c.visitCount >= 2) {
+                                tagColor = 'bg-amber-500/10 text-amber-500';
+                                tagLabel = '✨ לקוח חוזר';
+                            }
+
+                            const formattedLastDate = c.lastVisitDate ? c.lastVisitDate.split('-').reverse().join('.') : '--.--.--';
+
                             return `
-                                <div class="p-3 space-y-1">
+                                <div class="p-3 space-y-2 bg-white/[0.01]">
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <p class="font-black text-white text-sm">${r.name} (${r.pax || 0} איש)</p>
-                                            <p class="text-[10px] text-slate-400 font-medium">${r.phone || 'אין טלפון'}</p>
+                                            <p class="font-black text-white text-sm flex items-center gap-2">
+                                                ${c.name}
+                                                <span class="${tagColor} text-[8px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider">${tagLabel}</span>
+                                            </p>
+                                            <p class="text-[10px] text-slate-400 font-medium tracking-wide mt-0.5">${c.phone}</p>
                                         </div>
-                                        <div class="text-left flex flex-col items-end gap-1">
-                                            <span class="bg-amber-500/10 text-amber-500 text-[9px] px-2 py-0.5 rounded font-black uppercase">${venue.name}</span>
-                                            <p class="text-[9px] text-slate-500 font-bold">${formattedDate}</p>
-                                            <!-- כפתור פנייה מחדש ללקוח -->
-                                            <button onclick="sendReengagementWhatsApp('${r.name.replace(/'/g, "\\'")}', '${r.phone}', '${r.eventDate}')" class="bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-black border border-green-500/30 px-2 py-1 rounded text-[9px] font-black flex items-center gap-1 transition-all mt-1">
-                                                <span>פנה ללקוח</span> <i data-lucide="message-circle" size="12"></i>
-                                            </button>
+                                        <div class="text-left">
+                                            <span class="bg-blue-500/10 text-blue-400 text-[10px] px-2 py-1 rounded-md font-black">ביקר ${c.visitCount} פעמים</span>
                                         </div>
                                     </div>
-                                    ${r.notes ? `<p class="text-[9px] text-slate-500 italic font-bold">💬 ${r.notes}</p>` : ''}
+                                    <div class="flex flex-col gap-0.5 text-[9px] text-slate-500 font-bold border-t border-white/5 pt-1.5">
+                                        <p>⏳ ביקור אחרון ב-${venue.name}: <span class="text-slate-300">${formattedLastDate}</span></p>
+                                        ${c.notesHistory.length ? `<p class="italic text-slate-400 truncate max-w-[280px]">💬 הערות עבר: ${c.notesHistory.join(', ')}</p>` : ''}
+                                    </div>
                                 </div>
                             `;
                         }).join('')}
-                        ${filtered.length === 0 ? '<p class="p-8 text-center text-slate-600 font-bold uppercase">לא נמצאו תוצאות</p>' : ''}
+                        ${clientsArray.length === 0 ? '<p class="p-8 text-center text-slate-600 font-bold uppercase">לא נמצאו לקוחות</p>' : ''}
                     </div>
                 </div>
             `;
@@ -312,8 +320,6 @@
                 <button onclick="saveCurrentBooking()" class="w-full btn-amber py-4 rounded-xl uppercase font-black shadow-xl">שמור הזמנה</button>
             </div>`;
         }
-
-        function renderUsersMGMT() { return `<div class="space-y-4 p-2 text-white"><div class="flex justify-between items-center"><button onclick="updateState({showUsersMGMT:false})" class="text-tiny font-black text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 text-tiny uppercase">ניהול יחצנים</h2></div><div class="glass p-3 rounded-xl flex gap-1.5"><input id="u-n" placeholder="שם" class="flex-1 bg-white/5 p-2 rounded text-white text-xs outline-none"><input id="u-p" placeholder="טלפון" class="flex-1 bg-white/5 p-2 rounded text-white text-xs outline-none" type="tel"><button onclick="addUserManually()" class="bg-amber-500 text-black px-4 rounded font-black">+</button></div><div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto">${state.users.map(u => `<div class="flex justify-between items-center p-3"><div><p class="font-black text-white text-tiny">${u.name}</p><p class="text-[8px] text-slate-500">${u.id}</p></div><button onclick="db.collection('users').doc('${u.id}').delete()" class="text-red-500 p-2"><i data-lucide="trash-2" size="14"></i></button></div>`).join('')}</div></div>`; }
 
         function render() {
             const root = document.getElementById('app');
@@ -346,6 +352,7 @@
         async function moveReservation(resId, newVenueId) { await db.collection('reservations').doc(resId).update({ venueId: newVenueId, tableNumber: firebase.firestore.FieldValue.delete() }); updateState({ transferId: null }); }
         async function loginUser() { const val = document.getElementById('l-in').value.trim(); if (val.toLowerCase() === 'res') { updateState({ role: 'admin', userName: 'Admin', phone: 'ADMIN' }); localStorage.setItem('club_role', 'admin'); return; } if (val.length >= 10) { const userDoc = await db.collection('users').doc(val).get(); let name = userDoc.exists ? userDoc.data().name : prompt("שם יחצן:"); if (!name) return; if (!userDoc.exists) await db.collection('users').doc(val).set({ name, phone: val }); updateState({ role: 'promoter', userName: name, phone: val }); localStorage.setItem('club_role', 'promoter'); localStorage.setItem('club_name', name); localStorage.setItem('club_phone', val); } }
         function editReservation(id) { const res = state.reservations.find(r => r.id === id); updateState({ editingId: id, isAdding: true, formData: { type: res.type, pax: res.pax, clientName: res.name, clientPhone: res.phone, manualPrice: res.minOrder, time: res.time||'22:30', notes: res.notes||'' } }); }
+        function renderUsersMGMT() { return `<div class="space-y-4 p-2 text-white"><div class="flex justify-between items-center"><button onclick="updateState({showUsersMGMT:false})" class="text-tiny font-black text-slate-400 flex items-center gap-1"><i data-lucide="arrow-right" size="12"></i> חזור</button><h2 class="font-black text-amber-500 text-tiny uppercase">ניהול יחצנים</h2></div><div class="glass p-3 rounded-xl flex gap-1.5"><input id="u-n" placeholder="שם" class="flex-1 bg-white/5 p-2 rounded text-white text-xs outline-none"><input id="u-p" placeholder="טלפון" class="flex-1 bg-white/5 p-2 rounded text-white text-xs outline-none" type="tel"><button onclick="addUserManually()" class="bg-amber-500 text-black px-4 rounded font-black">+</button></div><div class="glass rounded-xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto">${state.users.map(u => `<div class="flex justify-between items-center p-3"><div><p class="font-black text-white text-tiny">${u.name}</p><p class="text-[8px] text-slate-500">${u.id}</p></div><button onclick="db.collection('users').doc('${u.id}').delete()" class="text-red-500 p-2"><i data-lucide="trash-2" size="14"></i></button></div>`).join('')}</div></div>`; }
         async function addUserManually() { const name = document.getElementById('u-n').value; const phone = document.getElementById('u-p').value; if(!name || phone.length < 10) return alert("פרטים חסרים"); await db.collection('users').doc(phone).set({ name, phone }); document.getElementById('u-n').value = ''; document.getElementById('u-p').value = ''; }
         db.collection('reservations').onSnapshot(snap => { state.reservations = snap.docs.map(d => ({id:d.id, ...d.data()})); render(); });
         db.collection('users').onSnapshot(snap => { state.users = snap.docs.map(d => ({id:d.id, ...d.data()})); render(); });
