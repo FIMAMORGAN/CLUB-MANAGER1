@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V121 - Promoters Permissions & Financial Summary</title>
+    <title>ClubPro V122 - Strict Venue Access & Client Loyalty</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -51,7 +51,7 @@
             role: localStorage.getItem('club_role') || null,
             userName: localStorage.getItem('club_name') || '',
             phone: localStorage.getItem('club_phone') || '',
-            allowedVenues: JSON.parse(localStorage.getItem('club_venues') || '["shalvata","q_gallery","ruki_vverh"]'),
+            allowedVenues: JSON.parse(localStorage.getItem('club_venues') || '[]'),
             venueId: localStorage.getItem('last_venue') || null,
             selectedDate: localStorage.getItem('last_date') || getToday(),
             isDateConfirmed: !!localStorage.getItem('last_date'),
@@ -67,6 +67,11 @@
             archiveExportDate: getToday(),
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '' }
         };
+
+        function getAccessibleVenues() {
+            if (state.role === 'admin') return allVenues;
+            return allVenues.filter(v => (state.allowedVenues || []).includes(v.id));
+        }
 
         function updateState(newData) { 
             state = { ...state, ...newData }; 
@@ -183,6 +188,19 @@
             exportToWhatsApp(targetDate, list);
         }
 
+        function getClientBookingCount(name, phone) {
+            const cleanP = phone ? phone.replace(/\D/g, '') : null;
+            const cleanN = name ? name.trim().toLowerCase() : null;
+            return state.reservations.filter(r => {
+                if (r.status !== 'active') return false;
+                const rP = r.phone ? r.phone.replace(/\D/g, '') : null;
+                const rN = r.name ? r.name.trim().toLowerCase() : null;
+                const phoneMatch = cleanP && rP && cleanP === rP;
+                const nameMatch = cleanN && rN && cleanN === rN;
+                return phoneMatch || nameMatch;
+            }).length;
+        }
+
         function renderRow(res) {
             const venue = allVenues.find(v => v.id === state.venueId);
             return `
@@ -214,37 +232,47 @@
             const pendingList = viewList.filter(r => !r.arrived).sort((a,b) => (a.time||'22:30').localeCompare(b.time||'22:30'));
             const arrivedList = viewList.filter(r => r.arrived);
             const venue = allVenues.find(v => v.id === state.venueId);
+            const accessibleVenues = getAccessibleVenues();
 
             const tableTotalMoney = pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.minOrder||0), 0);
             const barTotalMoney = pendingList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.minOrder||0), 0);
             const grandTotalMoney = pendingList.reduce((a,b)=>a+Number(b.minOrder||0), 0);
 
-            const userVenues = state.role === 'admin' ? allVenues : allVenues.filter(v => (state.allowedVenues||[]).includes(v.id));
-
             return `
-                <div class="grid grid-cols-4 gap-1.5 mb-2">
-                    <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">שולחנות</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                    <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">בר</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                    <div class="glass p-2 rounded-xl text-center text-amber-500"><p class="text-[9px] font-bold">מוזמנים</p><p class="font-black text-sm">${pendingList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                    <div class="glass p-2 rounded-xl text-center text-green-400"><p class="text-[9px] font-bold">הגיעו</p><p class="font-black text-sm">${arrivedList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                </div>
+                ${state.role === 'admin' ? `
+                    <div class="grid grid-cols-4 gap-1.5 mb-2">
+                        <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">שולחנות</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">בר</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center text-amber-500"><p class="text-[9px] font-bold">מוזמנים</p><p class="font-black text-sm">${pendingList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center text-green-400"><p class="text-[9px] font-bold">הגיעו</p><p class="font-black text-sm">${arrivedList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                    </div>
 
-                <!-- שורת סיכום כספי מינימום -->
-                <div class="glass p-2 rounded-xl mb-2.5 flex justify-around items-center border border-amber-500/20 bg-amber-500/5">
-                    <div class="text-center"><p class="text-[8px] text-slate-400 uppercase font-bold">מינימום שולחן</p><p class="text-xs font-black text-amber-400">₪${tableTotalMoney.toLocaleString()}</p></div>
-                    <div class="h-5 w-[1px] bg-white/10"></div>
-                    <div class="text-center"><p class="text-[8px] text-slate-400 uppercase font-bold">מינימום בר</p><p class="text-xs font-black text-amber-400">₪${barTotalMoney.toLocaleString()}</p></div>
-                    <div class="h-5 w-[1px] bg-white/10"></div>
-                    <div class="text-center"><p class="text-[8px] text-green-400 uppercase font-bold">סה"כ קופה צפויה</p><p class="text-xs font-black text-green-400">₪${grandTotalMoney.toLocaleString()}</p></div>
-                </div>
+                    <!-- שורת סיכום כספי - מוצג למנהל בלבד -->
+                    <div class="glass p-2 rounded-xl mb-2.5 flex justify-around items-center border border-amber-500/20 bg-amber-500/5">
+                        <div class="text-center"><p class="text-[8px] text-slate-400 uppercase font-bold">מינימום שולחן</p><p class="text-xs font-black text-amber-400">₪${tableTotalMoney.toLocaleString()}</p></div>
+                        <div class="h-5 w-[1px] bg-white/10"></div>
+                        <div class="text-center"><p class="text-[8px] text-slate-400 uppercase font-bold">מינימום בר</p><p class="text-xs font-black text-amber-400">₪${barTotalMoney.toLocaleString()}</p></div>
+                        <div class="h-5 w-[1px] bg-white/10"></div>
+                        <div class="text-center"><p class="text-[8px] text-green-400 uppercase font-bold">סה"כ קופה צפויה</p><p class="text-xs font-black text-green-400">₪${grandTotalMoney.toLocaleString()}</p></div>
+                    </div>
+                ` : `
+                    <!-- מונה נקי ליחצן - ללא בר וללא כסף -->
+                    <div class="grid grid-cols-3 gap-1.5 mb-2.5">
+                        <div class="glass p-2.5 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">שולחנות</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2.5 rounded-xl text-center text-amber-500"><p class="text-[9px] font-bold">מוזמנים</p><p class="font-black text-sm">${pendingList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2.5 rounded-xl text-center text-green-400"><p class="text-[9px] font-bold">הגיעו</p><p class="font-black text-sm">${arrivedList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                    </div>
+                `}
 
-                <div class="flex gap-1.5 bg-white/5 p-1 rounded-xl border border-white/5 mb-2.5">
-                    ${userVenues.map(v => `
-                        <button onclick="updateState({venueId: '${v.id}'})" class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${state.venueId === v.id ? 'bg-amber-500 text-black shadow-md' : 'text-slate-400 hover:text-white bg-transparent'}">
-                            ${v.name}
-                        </button>
-                    `).join('')}
-                </div>
+                ${accessibleVenues.length > 1 ? `
+                    <div class="flex gap-1.5 bg-white/5 p-1 rounded-xl border border-white/5 mb-2.5">
+                        ${accessibleVenues.map(v => `
+                            <button onclick="updateState({venueId: '${v.id}'})" class="flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${state.venueId === v.id ? 'bg-amber-500 text-black shadow-md' : 'text-slate-400 hover:text-white bg-transparent'}">
+                                ${v.name}
+                            </button>
+                        `).join('')}
+                    </div>
+                ` : ''}
 
                 <div class="flex flex-col gap-2 mb-3">
                     <div class="flex gap-1.5">
@@ -328,12 +356,20 @@
                     <div class="glass rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[55vh] overflow-y-auto border border-white/10">
                         ${filtered.slice(0, 100).map(r => {
                             const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
+                            const visitsCount = getClientBookingCount(r.name, r.phone);
+                            const isVip = visitsCount >= 5;
+
                             return `
-                                <div class="p-3 space-y-1 hover:bg-white/[0.02]">
+                                <div class="p-3 space-y-1.5 hover:bg-white/[0.02]">
                                     <div class="flex justify-between items-start">
                                         <div>
-                                            <p class="font-black text-white text-sm">${r.name} (${r.pax || 0} איש)</p>
-                                            <p class="text-[11px] text-slate-400 font-medium">${r.phone || 'אין טלפון'}</p>
+                                            <div class="flex items-center gap-2">
+                                                <p class="font-black text-white text-sm">${r.name} (${r.pax || 0} איש)</p>
+                                                <span class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase border ${isVip ? 'bg-amber-500 text-black border-amber-400 shadow-sm' : visitsCount > 1 ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-white/5 text-slate-400 border-white/10'}">
+                                                    ${isVip ? `⭐ VIP (${visitsCount} פעמים)` : `הזמנה ${visitsCount}`}
+                                                </span>
+                                            </div>
+                                            <p class="text-[11px] text-slate-400 font-medium mt-0.5">${r.phone || 'אין טלפון'}</p>
                                         </div>
                                         <div class="text-left flex flex-col items-end gap-1">
                                             <span class="bg-amber-500/10 text-amber-500 text-[10px] px-2 py-0.5 rounded-md font-black uppercase">${venue.name}</span>
@@ -380,7 +416,6 @@
                     <h2 class="font-black text-amber-500 text-xs uppercase">ניהול והרשאות יחצנים</h2>
                 </div>
 
-                <!-- טופס הוספה מסודר למובייל -->
                 <div class="glass p-3 rounded-2xl border border-white/10 space-y-2">
                     <p class="text-[10px] font-bold text-slate-400 uppercase">הוספת יחצן ידנית:</p>
                     <div class="grid grid-cols-2 gap-2">
@@ -390,11 +425,10 @@
                     <button onclick="addUserManually()" class="w-full bg-amber-500 hover:bg-amber-400 text-black py-2 rounded-xl font-black text-xs uppercase shadow-md transition-all">+ הוסף ואשר יחצן</button>
                 </div>
 
-                <!-- רשימת יחצנים וניהול הרשאות מועדונים -->
                 <div class="glass rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto border border-white/10">
                     ${state.users.map(u => {
                         const isApproved = u.status === 'approved';
-                        const uVenues = u.allowedVenues || ['shalvata','q_gallery','ruki_vverh'];
+                        const uVenues = u.allowedVenues || [];
                         return `
                         <div class="p-3 space-y-2 hover:bg-white/[0.02]">
                             <div class="flex justify-between items-start">
@@ -415,7 +449,6 @@
                                 </div>
                             </div>
                             
-                            <!-- בחירת גישה למועדונים עבור היחצן -->
                             <div class="bg-white/5 p-2 rounded-xl">
                                 <p class="text-[9px] text-slate-400 font-bold mb-1 uppercase">מועדונים מורשים:</p>
                                 <div class="flex gap-1.5">
@@ -440,14 +473,14 @@
         async function approveUser(phone) {
             await db.collection('users').doc(phone).update({
                 status: 'approved',
-                allowedVenues: ['shalvata', 'q_gallery', 'ruki_vverh']
+                allowedVenues: ['q_gallery'] // ברירת מחדל לפולס בלבד או לפי בחירה
             });
         }
 
         async function toggleUserVenue(phone, venueId) {
             const userDoc = await db.collection('users').doc(phone).get();
             if (!userDoc.exists) return;
-            let current = userDoc.data().allowedVenues || ['shalvata', 'q_gallery', 'ruki_vverh'];
+            let current = userDoc.data().allowedVenues || [];
             if (current.includes(venueId)) {
                 current = current.filter(id => id !== venueId);
             } else {
@@ -474,7 +507,7 @@
                         name: name.trim(), 
                         phone: val, 
                         status: 'pending', 
-                        allowedVenues: ['shalvata', 'q_gallery', 'ruki_vverh'],
+                        allowedVenues: [],
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     }); 
                     alert("פרטיך נשלחו בהצלחה! המתן לאישור מנהל לפני שתוכל להתחבר.");
@@ -484,12 +517,16 @@
                     if (uData.status === 'pending') {
                         return alert("חשבונך עדיין ממתין לאישור מנהל.");
                     }
-                    const userAllowed = uData.allowedVenues || ['shalvata', 'q_gallery', 'ruki_vverh'];
+                    const userAllowed = uData.allowedVenues || [];
+                    if (userAllowed.length === 0) {
+                        return alert("חשבונך מאושר אך טרם הוגדרו עבורך מועדונים מורשים. פנה למנהל.");
+                    }
                     updateState({ 
                         role: 'promoter', 
                         userName: uData.name, 
                         phone: val,
-                        allowedVenues: userAllowed
+                        allowedVenues: userAllowed,
+                        venueId: userAllowed.length === 1 ? userAllowed[0] : null
                     }); 
                     localStorage.setItem('club_role', 'promoter'); 
                     localStorage.setItem('club_name', uData.name); 
@@ -513,7 +550,7 @@
                 name, 
                 phone, 
                 status: 'approved', 
-                allowedVenues: ['shalvata', 'q_gallery', 'ruki_vverh'],
+                allowedVenues: ['q_gallery'],
                 createdAt: firebase.firestore.FieldValue.serverTimestamp() 
             }); 
             document.getElementById('u-n').value = ''; 
@@ -527,16 +564,16 @@
                 return; 
             }
 
-            const availableVenues = state.role === 'admin' ? allVenues : allVenues.filter(v => (state.allowedVenues||[]).includes(v.id));
+            const accessibleVenues = getAccessibleVenues();
 
-            if (!state.venueId || !availableVenues.some(v => v.id === state.venueId)) { 
-                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase italic text-center">בחר מועדון</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${availableVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-5 rounded-2xl text-center text-lg font-black uppercase border-white/10 cursor-pointer shadow-xl hover:border-amber-500/50 transition-all">${v.name}</div>`).join('')}</div><button onclick="logout()" class="text-slate-500 hover:text-slate-300 font-bold mt-8 underline text-xs tracking-widest flex items-center gap-2 transition-colors"><i data-lucide="log-out" size="14"></i> LOGOUT</button></div>`; 
+            if (!state.venueId || !accessibleVenues.some(v => v.id === state.venueId)) { 
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase italic text-center">בחר מועדון</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${accessibleVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-5 rounded-2xl text-center text-lg font-black uppercase border-white/10 cursor-pointer shadow-xl hover:border-amber-500/50 transition-all">${v.name}</div>`).join('')}</div><button onclick="logout()" class="text-slate-500 hover:text-slate-300 font-bold mt-8 underline text-xs tracking-widest flex items-center gap-2 transition-colors"><i data-lucide="log-out" size="14"></i> LOGOUT</button></div>`; 
                 lucide.createIcons(); 
                 return; 
             }
 
             if (!state.isDateConfirmed) { 
-                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white"><button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-xs border border-amber-500/30 px-5 py-2 rounded-full uppercase flex items-center gap-1"><i data-lucide="arrow-right" size="14"></i> חזור</button><h2 class="text-xl font-black text-center uppercase">בחר תאריך:</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${state.selectedDate}" onchange="state.selectedDate = this.value; render();" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white font-black text-center outline-none"><button onclick="updateState({isDateConfirmed: true})" class="w-full btn-amber py-4 rounded-xl mt-6 font-black uppercase shadow-lg">אישור</button></div></div>`; 
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white">${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-xs border border-amber-500/30 px-5 py-2 rounded-full uppercase flex items-center gap-1"><i data-lucide="arrow-right" size="14"></i> חזור</button>` : ''}<h2 class="text-xl font-black text-center uppercase">בחר תאריך:</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${state.selectedDate}" onchange="state.selectedDate = this.value; render();" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white font-black text-center outline-none"><button onclick="updateState({isDateConfirmed: true})" class="w-full btn-amber py-4 rounded-xl mt-6 font-black uppercase shadow-lg">אישור</button></div></div>`; 
                 lucide.createIcons(); 
                 return; 
             }
@@ -546,12 +583,12 @@
 
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden text-right text-white relative">
-                    ${state.transferId ? `<div class="transfer-overlay"><div class="glass p-6 rounded-3xl w-full max-w-xs text-center space-y-4 border border-white/10"><h3 class="font-black text-amber-500 uppercase">שינוע הזמנה</h3><div class="flex flex-col gap-2">${availableVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-3.5 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-400 font-bold pt-2">ביטול</button></div></div>` : ''}
+                    ${state.transferId ? `<div class="transfer-overlay"><div class="glass p-6 rounded-3xl w-full max-w-xs text-center space-y-4 border border-white/10"><h3 class="font-black text-amber-500 uppercase">שינוע הזמנה</h3><div class="flex flex-col gap-2">${accessibleVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-3.5 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-400 font-bold pt-2">ביטול</button></div></div>` : ''}
                     <header class="bg-slate-950 p-2.5 border-b border-white/5 flex justify-between items-center shadow-lg">
                         <div class="font-black italic text-base text-amber-500 pr-2">${venue.name}</div>
                         <div class="flex gap-2">
                             <button onclick="updateState({isDateConfirmed: false})" class="text-slate-300 font-black text-[10px] border border-white/10 px-2.5 py-1.5 rounded-lg uppercase hover:bg-white/5">תאריך</button>
-                            <button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-500 font-black text-[10px] border border-amber-500/50 px-2.5 py-1.5 rounded-lg uppercase hover:bg-amber-500/10">בית</button>
+                            ${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-500 font-black text-[10px] border border-amber-500/50 px-2.5 py-1.5 rounded-lg uppercase hover:bg-amber-500/10">בית</button>` : ''}
                             <button onclick="logout()" class="text-red-400 border border-red-500/30 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10"><i data-lucide="log-out" size="14"></i></button>
                         </div>
                     </header>
@@ -562,7 +599,6 @@
             lucide.createIcons();
         }
 
-        // טעינת נתונים
         db.collection('reservations').where('status', '==', 'active').onSnapshot(snap => { 
             state.reservations = snap.docs.map(d => ({id:d.id, ...d.data()})); 
             render(); 
