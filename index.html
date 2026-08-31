@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V123 - Full Nightlife CRM</title>
+    <title>ClubPro V124 - Clean Mobile UI</title>
     <meta name="theme-color" content="#020617">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -147,6 +145,15 @@
             updateState({ isAdding: false, editingId: null });
         }
 
+        async function toggleCheckIn(id, isArrived, totalPax) {
+            const newArrived = !isArrived;
+            await db.collection('reservations').doc(id).update({
+                arrived: newArrived,
+                arrivedPax: newArrived ? totalPax : 0,
+                arrivalStatus: newArrived ? 'arrived' : 'pending'
+            });
+        }
+
         async function updateArrivalSplit(id, totalPax) {
             const val = prompt(`כמה אנשים הגיעו בפועל מתוך ${totalPax}?`, totalPax);
             if (val === null) return;
@@ -160,11 +167,13 @@
             });
         }
 
-        async function setArrivalStatus(id, newStatus) {
+        async function setArrivalStatus(id, newStatus, totalPax) {
             const isArr = newStatus === 'arrived' || newStatus === 'partial';
+            const res = state.reservations.find(r => r.id === id);
             await db.collection('reservations').doc(id).update({
                 arrivalStatus: newStatus,
-                arrived: isArr
+                arrived: isArr,
+                arrivedPax: newStatus === 'arrived' ? (totalPax || res?.pax || 0) : (newStatus === 'pending' || newStatus === 'cancelled' ? 0 : (res?.arrivedPax || 1))
             });
         }
 
@@ -282,49 +291,72 @@
 
         function renderRow(res) {
             const venue = allVenues.find(v => v.id === state.venueId);
+            const isArrived = !!res.arrived;
+            const currentStatus = res.arrivalStatus || (isArrived ? 'arrived' : 'pending');
+
             const statusColors = {
-                arrived: 'bg-green-500/20 text-green-400 border-green-500/30',
-                partial: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-                cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
-                late: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-                pending: 'bg-white/5 text-slate-400 border-white/10'
+                arrived: 'text-green-400 bg-green-500/10 border-green-500/30',
+                partial: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+                cancelled: 'text-red-400 bg-red-500/10 border-red-500/30',
+                late: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+                pending: 'text-amber-400 bg-amber-500/10 border-amber-500/30'
             };
 
-            const arrivedDisplay = res.arrivedPax ? `${res.arrivedPax}/${res.pax}` : `${res.pax}`;
-
             return `
-            <div class="flex flex-col p-2.5 border-b border-white/5 hover:bg-white/[0.02] ${res.arrived ? 'bg-green-950/10' : ''}">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2 text-right flex-1 overflow-hidden">
-                        <button onclick="updateArrivalSplit('${res.id}', ${res.pax})" class="px-2 py-1 rounded-lg border text-[10px] font-black ${statusColors[res.arrivalStatus || (res.arrived ? 'arrived' : 'pending')]}">
-                            ${res.arrived ? `✓ ${arrivedDisplay}` : 'כניסה'}
+            <div class="p-3 border-b border-white/5 hover:bg-white/[0.02] transition-all ${isArrived ? 'bg-green-950/10' : ''}">
+                <!-- שורה 1: צ'ק-אין, שם הלקוח המלא ושעה -->
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                        <!-- כפתור כניסה מהיר עם אפשרות לחיצה ארוכה לפיצול -->
+                        <button onclick="toggleCheckIn('${res.id}', ${isArrived}, ${res.pax})" 
+                                ondblclick="updateArrivalSplit('${res.id}', ${res.pax})" 
+                                title="קליק: הגעה מלאה | דאבל קליק: פיצול כמות"
+                                class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-transform active:scale-95 ${isArrived ? 'bg-green-500 text-black border-green-400 font-black shadow-lg shadow-green-500/20' : 'bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/50'}">
+                            ${isArrived ? '<i data-lucide="check" size="18"></i>' : '<i data-lucide="user-check" size="16"></i>'}
                         </button>
-                        <div class="overflow-hidden">
-                            <div class="flex items-center gap-1.5">
-                                <p class="font-black text-white leading-tight truncate text-xs">${res.name} (${res.pax})</p>
-                                ${res.tag && res.tag !== 'רגיל' ? `<span class="text-[8px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded font-bold">${res.tag}</span>` : ''}
-                                <span class="text-blue-400 text-[10px] font-bold">${res.time || '22:30'}</span>
+                        
+                        <!-- שם הלקוח המלא - גדול, קריא ובולט ללא חיתוך -->
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="font-black text-white text-sm tracking-wide break-words">${res.name}</span>
+                                <span class="text-slate-400 font-bold text-xs">(${res.arrivedPax ? `${res.arrivedPax}/` : ''}${res.pax})</span>
+                                ${res.tag && res.tag !== 'רגיל' ? `<span class="text-[8px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-md font-black">${res.tag}</span>` : ''}
                             </div>
-                            <p class="text-[10px] font-bold uppercase truncate ${res.tableNumber ? 'text-amber-500' : 'text-slate-400'}">
-                                ${res.tableNumber ? `שולחן ${res.tableNumber} | ` : ''} ₪${res.minOrder || 0}
-                            </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <select onchange="setArrivalStatus('${res.id}', this.value)" class="bg-slate-900 border border-white/10 text-[9px] text-slate-300 rounded p-1 outline-none">
-                            <option value="pending" ${res.arrivalStatus==='pending'?'selected':''}>🟡 ממתין</option>
-                            <option value="arrived" ${res.arrivalStatus==='arrived'?'selected':''}>🟢 הגיע</option>
-                            <option value="late" ${res.arrivalStatus==='late'?'selected':''}>🟣 מאחר</option>
-                            <option value="cancelled" ${res.arrivalStatus==='cancelled'?'selected':''}>🔴 ביטול</option>
+
+                    <!-- שעת הגעה -->
+                    <span class="text-blue-400 font-black text-xs shrink-0 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">${res.time || '22:30'}</span>
+                </div>
+
+                <!-- שורה 2: סטטוס הגעה, מינימום הזמנה/שולחן, וכפתורי פעולה -->
+                <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.04]">
+                    <!-- סטטוס הגעה נפתח קומפקטי + מידע כספי -->
+                    <div class="flex items-center gap-2">
+                        <select onchange="setArrivalStatus('${res.id}', this.value, ${res.pax})" 
+                                class="text-[10px] font-black rounded-lg px-2 py-1 outline-none border cursor-pointer ${statusColors[currentStatus]}">
+                            <option value="pending" ${currentStatus==='pending'?'selected':''}>🟡 ממתין</option>
+                            <option value="arrived" ${currentStatus==='arrived'?'selected':''}>🟢 הגיע</option>
+                            <option value="late" ${currentStatus==='late'?'selected':''}>🟣 מאחר</option>
+                            <option value="cancelled" ${currentStatus==='cancelled'?'selected':''}>🔴 ביטול</option>
                         </select>
-                        <button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-1 hover:bg-purple-500/10 rounded"><i data-lucide="move-horizontal" size="16"></i></button>
-                        ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1 hover:bg-blue-500/10 rounded"><i data-lucide="map-pin" size="16"></i></button>` : ''}
-                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-500 p-1 hover:bg-green-500/10 rounded"><i data-lucide="message-circle" size="16"></i></button>
-                        <button onclick="editReservation('${res.id}')" class="text-amber-500 p-1 hover:bg-amber-500/10 rounded"><i data-lucide="edit-2" size="16"></i></button>
-                        <button onclick="if(confirm('למחוק?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-500 p-1 hover:bg-red-500/10 rounded"><i data-lucide="trash-2" size="16"></i></button>
+                        
+                        <span class="text-[10px] font-bold ${res.tableNumber ? 'text-amber-400' : 'text-slate-400'}">
+                            ${res.tableNumber ? `שולחן ${res.tableNumber} • ` : ''}₪${res.minOrder || 0}
+                        </span>
+                    </div>
+
+                    <!-- סרגל כפתורי פעולה נקי ומרווח -->
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-1.5 hover:bg-purple-500/10 rounded-lg" title="שינוע"><i data-lucide="move-horizontal" size="16"></i></button>
+                        ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1.5 hover:bg-blue-500/10 rounded-lg" title="מפה"><i data-lucide="map-pin" size="16"></i></button>` : ''}
+                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-400 p-1.5 hover:bg-green-500/10 rounded-lg" title="וואטסאפ"><i data-lucide="message-circle" size="16"></i></button>
+                        <button onclick="editReservation('${res.id}')" class="text-amber-400 p-1.5 hover:bg-amber-500/10 rounded-lg" title="עריכה"><i data-lucide="edit-2" size="16"></i></button>
+                        <button onclick="if(confirm('למחוק הזמנה זו?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg" title="מחיקה"><i data-lucide="trash-2" size="16"></i></button>
                     </div>
                 </div>
-                ${res.notes ? `<p class="text-[10px] text-slate-400 italic pr-7 mt-1 font-medium truncate">💬 ${res.notes}</p>` : ''}
+
+                ${res.notes ? `<div class="mt-1.5 text-[10px] text-slate-400 bg-white/[0.03] p-1.5 rounded-lg border border-white/5 font-medium truncate">💬 ${res.notes}</div>` : ''}
             </div>`;
         }
 
@@ -343,7 +375,6 @@
             const barTotalMoney = pendingList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.minOrder||0), 0);
             const grandTotalMoney = pendingList.reduce((a,b)=>a+Number(b.minOrder||0), 0);
 
-            // מחשבון עמלות אישי ליחצן
             const promoterPax = viewList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax||0),0);
             const promoterBarPax = viewList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.pax||0),0);
             const estimatedCommission = (promoterPax * 15) + (promoterBarPax * 10);
@@ -374,7 +405,6 @@
                         <div class="glass p-2 rounded-xl text-center text-green-400"><p class="text-[9px] font-bold">הגיעו</p><p class="font-black text-sm">${arrivedList.reduce((a,b)=>a+Number(b.arrivedPax || b.pax),0)}</p></div>
                     </div>
 
-                    <!-- סרגל יעד ועמלות אישי ליחצן -->
                     <div class="glass p-2.5 rounded-xl mb-2.5 border border-amber-500/20 space-y-1.5">
                         <div class="flex justify-between items-center text-[10px] font-black">
                             <span class="text-amber-400">🎯 יעד: ${totalMyInvited}/${promoterTarget} מוזמנים</span>
@@ -396,7 +426,7 @@
                     </div>
                 ` : ''}
 
-                <!-- שורת חיפוש מהיר בדשבורד -->
+                <!-- שורת חיפוש מהיר בדלת -->
                 <div class="mb-2.5">
                     <input type="text" placeholder="🔍 חיפוש מהיר בדלת לפי שם/טלפון..." value="${state.dashboardFilter}" oninput="state.dashboardFilter = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs outline-none focus:border-amber-500">
                 </div>
@@ -456,7 +486,6 @@
             const filtered = state.reservations.filter(r => {
                 if (r.status !== 'active' || r.venueId !== state.venueId) return false;
                 
-                // סינון לפי טאבים
                 if (state.archiveFilterTab === 'vip') {
                     if (getClientBookingCount(r.name, r.phone) < 5 && r.tag !== 'VIP') return false;
                 } else if (state.archiveFilterTab === 'dormant') {
@@ -490,7 +519,6 @@
                         </div>
                     </div>
                     
-                    <!-- טאבים לפילוח חכם -->
                     <div class="flex gap-1 bg-white/5 p-1 rounded-xl">
                         <button onclick="updateState({archiveFilterTab: 'all'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='all'?'bg-amber-500 text-black':'text-slate-400'}">הכל (${state.reservations.filter(r=>r.venueId===state.venueId).length})</button>
                         <button onclick="updateState({archiveFilterTab: 'vip'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='vip'?'bg-amber-500 text-black':'text-slate-400'}">⭐ VIP</button>
