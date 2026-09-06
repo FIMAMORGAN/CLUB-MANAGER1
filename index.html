@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro</title>
+    <title>ClubPro V127</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -34,6 +34,8 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
+        const APP_VERSION = "V127";
+
         const manifestObj = {
             "name": "ClubPro",
             "short_name": "ClubPro",
@@ -68,6 +70,11 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
+        // הפעלת Persistence מקומי - טעינה מידית ממסך הבית גם ללא אינטרנט יציב
+        try {
+            db.enablePersistence({ synchronizeTabs: true });
+        } catch(e) {}
+
         const getToday = () => new Date().toLocaleDateString('sv-SE');
 
         const allVenues = [
@@ -92,6 +99,7 @@
             reservations: [], 
             archiveReservations: [],
             isArchiveLoading: false,
+            isUsersLoading: false,
             users: [], 
             isAdding: false, 
             editingId: null,
@@ -110,7 +118,7 @@
             const audio = document.getElementById('alert-sound');
             if (audio) {
                 audio.currentTime = 0;
-                audio.play().catch(e => console.log('Audio blocked:', e));
+                audio.play().catch(() => {});
             }
         }
 
@@ -124,7 +132,7 @@
             return allVenues.filter(v => (state.allowedVenues || []).includes(v.id));
         }
 
-        // האזנה ממוקדת אך ורק לתאריך ולמועדון שנבחרו - טעינה במהירות שיא
+        // האזנה אולטרה-מהירה ללא צורך באינדקסים מורכבים
         function bindDayReservations() {
             if (unsubscribeReservations) {
                 unsubscribeReservations();
@@ -136,9 +144,12 @@
             unsubscribeReservations = db.collection('reservations')
                 .where('venueId', '==', state.venueId)
                 .where('eventDate', '==', state.selectedDate)
-                .where('status', '==', 'active')
                 .onSnapshot(snap => {
-                    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    // סינון status מהיר בזיכרון המכשיר בלבד
+                    const docs = snap.docs
+                        .map(d => ({ id: d.id, ...d.data() }))
+                        .filter(r => r.status === 'active');
+
                     if (initialSnapshotDone && docs.length > prevResCount) {
                         playAlertSound();
                     }
@@ -157,14 +168,28 @@
             try {
                 const snap = await db.collection('reservations')
                     .where('venueId', '==', state.venueId)
-                    .where('status', '==', 'active')
-                    .limit(300)
+                    .limit(200)
                     .get();
-                state.archiveReservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                state.archiveReservations = snap.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(r => r.status === 'active');
             } catch (e) {
                 console.error("Archive fetch error:", e);
             }
             state.isArchiveLoading = false;
+            render();
+        }
+
+        async function loadUsersData() {
+            state.isUsersLoading = true;
+            render();
+            try {
+                const snap = await db.collection('users').get();
+                state.users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            } catch (e) {
+                console.error("Users fetch error:", e);
+            }
+            state.isUsersLoading = false;
             render();
         }
 
@@ -182,6 +207,10 @@
 
             if (newData.showArchiveMGMT === true && state.archiveReservations.length === 0) {
                 loadArchiveData();
+            }
+
+            if (newData.showUsersMGMT === true && state.users.length === 0) {
+                loadUsersData();
             }
 
             render(); 
@@ -378,9 +407,11 @@
             const snap = await db.collection('reservations')
                 .where('venueId', '==', state.venueId)
                 .where('eventDate', '==', targetDate)
-                .where('status', '==', 'active')
                 .get();
-            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const list = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(r => r.status === 'active');
+
             if (list.length === 0) return alert(`אין הזמנות בתאריך ${targetDate.split('-').reverse().join('.')}`);
             exportToWhatsApp(targetDate, list);
         }
@@ -569,13 +600,14 @@
         function renderArchiveMGMT() {
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const venue = allVenues.find(v => v.id === state.venueId);
-            
             const dataSource = state.archiveReservations.length ? state.archiveReservations : state.reservations;
 
-            // חישוב מפת נאמנות מהיר פעם אחת
             const bookingFreqMap = {};
             dataSource.forEach(r => {
-                if (r.phone) bookingFreqMap[r.phone.replace(/\D/g, '')] = (bookingFreqMap[r.phone.replace(/\D/g, '')] || 0) + 1;
+                if (r.phone) {
+                    const cleanP = r.phone.replace(/\D/g, '');
+                    bookingFreqMap[cleanP] = (bookingFreqMap[cleanP] || 0) + 1;
+                }
             });
 
             const filtered = dataSource.filter(r => {
@@ -712,6 +744,8 @@
                     <button onclick="addUserManually()" class="w-full bg-amber-500 hover:bg-amber-400 text-black py-2 rounded-xl font-black text-xs uppercase shadow-md transition-all">+ הוסף ואשר יחצן</button>
                 </div>
 
+                ${state.isUsersLoading ? '<p class="text-center text-amber-500 font-bold py-6">טוען יחצנים...</p>' : ''}
+
                 <div class="glass rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto border border-white/10">
                     ${state.users.map(u => {
                         const isApproved = u.status === 'approved';
@@ -732,7 +766,7 @@
                                     ${!isApproved ? `
                                         <button onclick="approveUser('${u.id}')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow transition-all">אשר</button>
                                     ` : ''}
-                                    <button onclick="if(confirm('למחוק יחצן זה?')) db.collection('users').doc('${u.id}').delete()" class="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors"><i data-lucide="trash-2" size="16"></i></button>
+                                    <button onclick="if(confirm('למחוק יחצן זה?')) db.collection('users').doc('${u.id}').delete().then(() => loadUsersData())" class="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors"><i data-lucide="trash-2" size="16"></i></button>
                                 </div>
                             </div>
                             
@@ -752,7 +786,7 @@
                         </div>
                         `;
                     }).join('')}
-                    ${state.users.length === 0 ? '<p class="p-6 text-center text-slate-500 font-bold text-xs">אין יחצנים רשומים</p>' : ''}
+                    ${state.users.length === 0 && !state.isUsersLoading ? '<p class="p-6 text-center text-slate-500 font-bold text-xs">אין יחצנים רשומים</p>' : ''}
                 </div>
             </div>`; 
         }
@@ -762,6 +796,7 @@
                 status: 'approved',
                 allowedVenues: ['q_gallery']
             });
+            loadUsersData();
         }
 
         async function toggleUserVenue(phone, venueId) {
@@ -774,6 +809,7 @@
                 current.push(venueId);
             }
             await db.collection('users').doc(phone).update({ allowedVenues: current });
+            loadUsersData();
         }
 
         async function loginUser() { 
@@ -854,6 +890,7 @@
             }); 
             document.getElementById('u-n').value = ''; 
             document.getElementById('u-p').value = ''; 
+            loadUsersData();
         }
 
         function render() {
@@ -866,7 +903,7 @@
                                 <i data-lucide="crown" size="32" class="text-amber-500"></i>
                             </div>
                             <h2 class="text-2xl font-black mb-1 text-amber-500 italic uppercase">CLUBPRO</h2>
-                            <p class="text-[10px] text-slate-400 mb-6 font-bold uppercase tracking-wider">Nightlife Management</p>
+                            <div class="inline-block bg-white/10 border border-white/15 px-2.5 py-0.5 rounded-full text-[10px] font-mono text-amber-400 font-bold mb-5">${APP_VERSION}</div>
                             <input id="l-in" type="text" placeholder="מספר טלפון / קוד" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 mb-4 text-center text-white outline-none font-bold text-lg focus:border-amber-500">
                             <button onclick="loginUser()" class="w-full btn-amber py-3.5 rounded-xl uppercase font-black shadow-lg">כניסה</button>
                         </div>
@@ -878,7 +915,15 @@
             const accessibleVenues = getAccessibleVenues();
 
             if (!state.venueId || !accessibleVenues.some(v => v.id === state.venueId)) { 
-                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white"><h2 class="text-lg font-black text-amber-500 uppercase italic text-center">בחר מועדון</h2><div class="grid grid-cols-1 gap-3 w-full max-w-xs">${accessibleVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-5 rounded-2xl text-center text-lg font-black uppercase border-white/10 cursor-pointer shadow-xl hover:border-amber-500/50 transition-all">${v.name}</div>`).join('')}</div><button onclick="logout()" class="text-slate-500 hover:text-slate-300 font-bold mt-8 underline text-xs tracking-widest flex items-center gap-2 transition-colors"><i data-lucide="log-out" size="14"></i> LOGOUT</button></div>`; 
+                root.innerHTML = `
+                    <div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white">
+                        <div class="text-center mb-2">
+                            <h2 class="text-lg font-black text-amber-500 uppercase italic">בחר מועדון</h2>
+                            <span class="text-[10px] font-mono text-slate-500 font-bold">${APP_VERSION}</span>
+                        </div>
+                        <div class="grid grid-cols-1 gap-3 w-full max-w-xs">${accessibleVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-5 rounded-2xl text-center text-lg font-black uppercase border-white/10 cursor-pointer shadow-xl hover:border-amber-500/50 transition-all">${v.name}</div>`).join('')}</div>
+                        <button onclick="logout()" class="text-slate-500 hover:text-slate-300 font-bold mt-8 underline text-xs tracking-widest flex items-center gap-2 transition-colors"><i data-lucide="log-out" size="14"></i> LOGOUT</button>
+                    </div>`; 
                 lucide.createIcons(); 
                 return; 
             }
@@ -900,6 +945,7 @@
                                 <i data-lucide="crown" size="14" class="text-amber-500"></i>
                             </div>
                             <div class="font-black italic text-base text-amber-500">${venue.name}</div>
+                            <span class="text-[9px] font-mono text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold">${APP_VERSION}</span>
                         </div>
                         <div class="flex gap-2">
                             <button onclick="updateState({isDateConfirmed: false})" class="text-slate-300 font-black text-[10px] border border-white/10 px-2.5 py-1.5 rounded-lg uppercase hover:bg-white/5">תאריך</button>
@@ -913,11 +959,6 @@
                 </div>`;
             lucide.createIcons();
         }
-
-        db.collection('users').onSnapshot(snap => { 
-            state.users = snap.docs.map(d => ({id:d.id, ...d.data()})); 
-            render(); 
-        });
 
         auth.onAuthStateChanged(u => { 
             if(!u) auth.signInAnonymously(); 
