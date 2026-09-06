@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ClubPro</title>
     
-    <!-- PWA & Mobile Icons -->
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ClubPro">
     
-    <!-- SVG Data Icon for Home Screen & Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%23020617'/><path d='M256 120 L340 280 L440 280 L350 350 L380 460 L256 380 L132 460 L162 350 L72 280 L172 280 Z' fill='%23f59e0b'/><circle cx='256' cy='256' r='40' fill='%23020617'/></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%23020617'/><path d='M256 120 L340 280 L440 280 L350 350 L380 460 L256 380 L132 460 L162 350 L72 280 L172 280 Z' fill='%23f59e0b'/><circle cx='256' cy='256' r='40' fill='%23020617'/></svg>">
 
@@ -36,7 +34,6 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
-        // PWA Auto Manifest Injection
         const manifestObj = {
             "name": "ClubPro",
             "short_name": "ClubPro",
@@ -80,6 +77,7 @@
         ];
 
         let searchDebounceTimer = null;
+        let unsubscribeReservations = null;
         let initialSnapshotDone = false;
         let prevResCount = 0;
 
@@ -92,6 +90,8 @@
             selectedDate: localStorage.getItem('last_date') || getToday(),
             isDateConfirmed: !!localStorage.getItem('last_date'),
             reservations: [], 
+            archiveReservations: [],
+            isArchiveLoading: false,
             users: [], 
             isAdding: false, 
             editingId: null,
@@ -110,16 +110,13 @@
             const audio = document.getElementById('alert-sound');
             if (audio) {
                 audio.currentTime = 0;
-                audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+                audio.play().catch(e => console.log('Audio blocked:', e));
             }
         }
 
-        // אפשור שמע לאחר לחיצה ראשונה על המסך
         document.addEventListener('click', () => {
             const audio = document.getElementById('alert-sound');
-            if (audio && audio.paused && audio.currentTime === 0) {
-                audio.load();
-            }
+            if (audio && audio.paused && audio.currentTime === 0) audio.load();
         }, { once: true });
 
         function getAccessibleVenues() {
@@ -127,10 +124,66 @@
             return allVenues.filter(v => (state.allowedVenues || []).includes(v.id));
         }
 
+        // האזנה ממוקדת אך ורק לתאריך ולמועדון שנבחרו - טעינה במהירות שיא
+        function bindDayReservations() {
+            if (unsubscribeReservations) {
+                unsubscribeReservations();
+                unsubscribeReservations = null;
+            }
+            if (!state.venueId || !state.selectedDate) return;
+
+            initialSnapshotDone = false;
+            unsubscribeReservations = db.collection('reservations')
+                .where('venueId', '==', state.venueId)
+                .where('eventDate', '==', state.selectedDate)
+                .where('status', '==', 'active')
+                .onSnapshot(snap => {
+                    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    if (initialSnapshotDone && docs.length > prevResCount) {
+                        playAlertSound();
+                    }
+                    prevResCount = docs.length;
+                    initialSnapshotDone = true;
+                    state.reservations = docs;
+                    render();
+                }, err => {
+                    console.error("Query err:", err);
+                });
+        }
+
+        async function loadArchiveData() {
+            state.isArchiveLoading = true;
+            render();
+            try {
+                const snap = await db.collection('reservations')
+                    .where('venueId', '==', state.venueId)
+                    .where('status', '==', 'active')
+                    .limit(300)
+                    .get();
+                state.archiveReservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            } catch (e) {
+                console.error("Archive fetch error:", e);
+            }
+            state.isArchiveLoading = false;
+            render();
+        }
+
         function updateState(newData) { 
+            const prevVenue = state.venueId;
+            const prevDate = state.selectedDate;
             state = { ...state, ...newData }; 
+            
             if (state.selectedDate) localStorage.setItem('last_date', state.selectedDate);
             if (state.venueId) localStorage.setItem('last_venue', state.venueId);
+
+            if (state.venueId !== prevVenue || state.selectedDate !== prevDate) {
+                bindDayReservations();
+            }
+
+            if (newData.showArchiveMGMT === true && state.archiveReservations.length === 0) {
+                loadArchiveData();
+            }
+
             render(); 
         }
 
@@ -244,7 +297,7 @@
 
         function exportNightReport() {
             const venue = allVenues.find(v => v.id === state.venueId);
-            const list = state.reservations.filter(r => r.status === 'active' && r.eventDate === state.selectedDate && r.venueId === state.venueId);
+            const list = state.reservations;
             const totalInvited = list.reduce((a,b)=>a+Number(b.pax||0),0);
             const totalArrived = list.filter(r=>r.arrived).reduce((a,b)=>a+Number(b.arrivedPax || b.pax || 0),0);
             const showRate = totalInvited > 0 ? Math.round((totalArrived / totalInvited) * 100) : 0;
@@ -273,7 +326,7 @@
 
         function exportToCSV() {
             const venue = allVenues.find(v => v.id === state.venueId);
-            const list = state.reservations.filter(r => r.status === 'active' && r.venueId === state.venueId);
+            const list = state.archiveReservations.length ? state.archiveReservations : state.reservations;
             
             let csvContent = "\uFEFFשם לקוח,טלפון,מוזמנים,הגיעו בפועל,סוג,מינימום הזמנה,שעה,תאריך,יחצן,תגית,הערות\n";
             list.forEach(r => {
@@ -320,24 +373,16 @@
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
-        function exportArchiveDateToWhatsApp() {
+        async function exportArchiveDateToWhatsApp() {
             const targetDate = state.archiveExportDate;
-            const list = state.reservations.filter(r => r.status === 'active' && r.venueId === state.venueId && r.eventDate === targetDate);
+            const snap = await db.collection('reservations')
+                .where('venueId', '==', state.venueId)
+                .where('eventDate', '==', targetDate)
+                .where('status', '==', 'active')
+                .get();
+            const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             if (list.length === 0) return alert(`אין הזמנות בתאריך ${targetDate.split('-').reverse().join('.')}`);
             exportToWhatsApp(targetDate, list);
-        }
-
-        function getClientBookingCount(name, phone) {
-            const cleanP = phone ? phone.replace(/\D/g, '') : null;
-            const cleanN = name ? name.trim().toLowerCase() : null;
-            return state.reservations.filter(r => {
-                if (r.status !== 'active') return false;
-                const rP = r.phone ? r.phone.replace(/\D/g, '') : null;
-                const rN = r.name ? r.name.trim().toLowerCase() : null;
-                const phoneMatch = cleanP && rP && cleanP === rP;
-                const nameMatch = cleanN && rN && cleanN === rN;
-                return phoneMatch || nameMatch;
-            }).length;
         }
 
         function renderRow(res) {
@@ -525,11 +570,18 @@
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const venue = allVenues.find(v => v.id === state.venueId);
             
-            const filtered = state.reservations.filter(r => {
-                if (r.status !== 'active' || r.venueId !== state.venueId) return false;
-                
+            const dataSource = state.archiveReservations.length ? state.archiveReservations : state.reservations;
+
+            // חישוב מפת נאמנות מהיר פעם אחת
+            const bookingFreqMap = {};
+            dataSource.forEach(r => {
+                if (r.phone) bookingFreqMap[r.phone.replace(/\D/g, '')] = (bookingFreqMap[r.phone.replace(/\D/g, '')] || 0) + 1;
+            });
+
+            const filtered = dataSource.filter(r => {
                 if (state.archiveFilterTab === 'vip') {
-                    if (getClientBookingCount(r.name, r.phone) < 5 && r.tag !== 'VIP') return false;
+                    const count = r.phone ? (bookingFreqMap[r.phone.replace(/\D/g, '')] || 0) : 0;
+                    if (count < 5 && r.tag !== 'VIP') return false;
                 } else if (state.archiveFilterTab === 'dormant') {
                     if (!r.eventDate) return false;
                     const diffDays = Math.ceil(Math.abs(new Date() - new Date(r.eventDate)) / (1000 * 60 * 60 * 24));
@@ -562,9 +614,9 @@
                     </div>
                     
                     <div class="flex gap-1 bg-white/5 p-1 rounded-xl">
-                        <button onclick="updateState({archiveFilterTab: 'all'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='all'?'bg-amber-500 text-black':'text-slate-400'}">הכל (${state.reservations.filter(r=>r.venueId===state.venueId).length})</button>
+                        <button onclick="updateState({archiveFilterTab: 'all'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='all'?'bg-amber-500 text-black':'text-slate-400'}">הכל (${dataSource.length})</button>
                         <button onclick="updateState({archiveFilterTab: 'vip'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='vip'?'bg-amber-500 text-black':'text-slate-400'}">⭐ VIP</button>
-                        <button onclick="updateState({archiveFilterTab: 'dormant'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='dormant'?'bg-amber-500 text-black':'text-slate-400'}">💤 רדומים (30+ יום)</button>
+                        <button onclick="updateState({archiveFilterTab: 'dormant'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='dormant'?'bg-amber-500 text-black':'text-slate-400'}">💤 רדומים</button>
                     </div>
 
                     <div class="glass p-3 rounded-2xl border border-white/10">
@@ -573,10 +625,12 @@
                                class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-xs outline-none focus:border-amber-500">
                     </div>
 
+                    ${state.isArchiveLoading ? '<p class="text-center text-amber-500 font-bold py-6">טוען מאגר לקוחות...</p>' : ''}
+
                     <div class="glass rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[50vh] overflow-y-auto border border-white/10">
-                        ${filtered.slice(0, 100).map(r => {
+                        ${filtered.slice(0, 80).map(r => {
                             const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
-                            const visitsCount = getClientBookingCount(r.name, r.phone);
+                            const visitsCount = r.phone ? (bookingFreqMap[r.phone.replace(/\D/g, '')] || 1) : 1;
                             const isVip = visitsCount >= 5 || r.tag === 'VIP';
 
                             return `
@@ -604,7 +658,7 @@
                                 </div>
                             `;
                         }).join('')}
-                        ${filtered.length === 0 ? '<p class="p-8 text-center text-slate-500 font-bold text-xs uppercase">לא נמצאו תוצאות</p>' : ''}
+                        ${filtered.length === 0 && !state.isArchiveLoading ? '<p class="p-8 text-center text-slate-500 font-bold text-xs uppercase">לא נמצאו תוצאות</p>' : ''}
                     </div>
                 </div>
             `;
@@ -771,9 +825,21 @@
             }
         }
 
-        async function logout() { localStorage.clear(); location.reload(); }
-        async function moveReservation(resId, newVenueId) { await db.collection('reservations').doc(resId).update({ venueId: newVenueId, tableNumber: firebase.firestore.FieldValue.delete() }); updateState({ transferId: null }); }
-        function editReservation(id) { const res = state.reservations.find(r => r.id === id); updateState({ editingId: id, isAdding: true, formData: { type: res.type, pax: res.pax, clientName: res.name, clientPhone: res.phone, manualPrice: res.minOrder, time: res.time||'22:30', notes: res.notes||'', tag: res.tag||'רגיל' } }); }
+        async function logout() { 
+            if (unsubscribeReservations) unsubscribeReservations();
+            localStorage.clear(); 
+            location.reload(); 
+        }
+
+        async function moveReservation(resId, newVenueId) { 
+            await db.collection('reservations').doc(resId).update({ venueId: newVenueId, tableNumber: firebase.firestore.FieldValue.delete() }); 
+            updateState({ transferId: null }); 
+        }
+
+        function editReservation(id) { 
+            const res = state.reservations.find(r => r.id === id); 
+            updateState({ editingId: id, isAdding: true, formData: { type: res.type, pax: res.pax, clientName: res.name, clientPhone: res.phone, manualPrice: res.minOrder, time: res.time||'22:30', notes: res.notes||'', tag: res.tag||'רגיל' } }); 
+        }
         
         async function addUserManually() { 
             const name = document.getElementById('u-n').value.trim(); 
@@ -796,7 +862,6 @@
                 root.innerHTML = `
                     <div class="h-screen flex items-center justify-center p-4 text-white">
                         <div class="w-full max-w-xs glass p-8 rounded-3xl text-center shadow-2xl border-white/10">
-                            <!-- Logo App Icon -->
                             <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
                                 <i data-lucide="crown" size="32" class="text-amber-500"></i>
                             </div>
@@ -825,7 +890,6 @@
             }
             
             const venue = allVenues.find(v => v.id === state.venueId);
-            const list = state.reservations.filter(r => r.status === 'active' && r.eventDate === state.selectedDate && r.venueId === state.venueId);
 
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden text-right text-white relative">
@@ -844,35 +908,22 @@
                         </div>
                     </header>
                     <main class="flex-1 overflow-y-auto p-2.5 bg-slate-950/50">
-                        ${state.showArchiveMGMT ? renderArchiveMGMT() : (state.showUsersMGMT ? renderUsersMGMT() : (state.isAdding ? renderForm() : renderDashboard(list)))}
+                        ${state.showArchiveMGMT ? renderArchiveMGMT() : (state.showUsersMGMT ? renderUsersMGMT() : (state.isAdding ? renderForm() : renderDashboard(state.reservations)))}
                     </main>
                 </div>`;
             lucide.createIcons();
         }
-
-        // טעינה חכמה ומואצת: האזנה פעילה עם התראת סאונד על הזמנה חדשה
-        db.collection('reservations')
-            .where('status', '==', 'active')
-            .onSnapshot(snap => { 
-                const newDocs = snap.docs.map(d => ({id:d.id, ...d.data()}));
-                
-                // השמעת סאונד בזמן אמת כשיש הזמנה חדשה שנוספה
-                if (initialSnapshotDone && newDocs.length > prevResCount) {
-                    playAlertSound();
-                }
-                
-                prevResCount = newDocs.length;
-                initialSnapshotDone = true;
-                state.reservations = newDocs; 
-                render(); 
-            });
 
         db.collection('users').onSnapshot(snap => { 
             state.users = snap.docs.map(d => ({id:d.id, ...d.data()})); 
             render(); 
         });
 
-        auth.onAuthStateChanged(u => { if(!u) auth.signInAnonymously(); });
+        auth.onAuthStateChanged(u => { 
+            if(!u) auth.signInAnonymously(); 
+            bindDayReservations();
+        });
+
         render();
     </script>
 </body>
