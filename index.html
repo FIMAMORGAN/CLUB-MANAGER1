@@ -3,13 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V124 - Clean Mobile UI</title>
+    <title>ClubPro</title>
+    
+    <!-- PWA & Mobile Icons -->
     <meta name="theme-color" content="#020617">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ClubPro">
+    
+    <!-- SVG Data Icon for Home Screen & Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%23020617'/><path d='M256 120 L340 280 L440 280 L350 350 L380 460 L256 380 L132 460 L162 350 L72 280 L172 280 Z' fill='%23f59e0b'/><circle cx='256' cy='256' r='40' fill='%23020617'/></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%23020617'/><path d='M256 120 L340 280 L440 280 L350 350 L380 460 L256 380 L132 460 L162 350 L72 280 L172 280 Z' fill='%23f59e0b'/><circle cx='256' cy='256' r='40' fill='%23020617'/></svg>">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; text-align: right; font-size: 12px; overflow-x: hidden; user-select: none; }
@@ -22,9 +33,31 @@
 </head>
 <body>
     <div id="app"></div>
-    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3" preload="auto"></audio>
+    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
+        // PWA Auto Manifest Injection
+        const manifestObj = {
+            "name": "ClubPro",
+            "short_name": "ClubPro",
+            "start_url": "./",
+            "display": "standalone",
+            "background_color": "#020617",
+            "theme_color": "#020617",
+            "icons": [{
+                "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%23020617'/><path d='M256 120 L340 280 L440 280 L350 350 L380 460 L256 380 L132 460 L162 350 L72 280 L172 280 Z' fill='%23f59e0b'/><circle cx='256' cy='256' r='40' fill='%23020617'/></svg>",
+                "sizes": "192x192 512x512",
+                "type": "image/svg+xml",
+                "purpose": "any maskable"
+            }]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        const linkTag = document.createElement('link');
+        linkTag.rel = 'manifest';
+        linkTag.href = manifestURL;
+        document.head.appendChild(linkTag);
+
         const config = {
             apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
             authDomain: "clubpro-system.firebaseapp.com",
@@ -47,6 +80,8 @@
         ];
 
         let searchDebounceTimer = null;
+        let initialSnapshotDone = false;
+        let prevResCount = 0;
 
         let state = {
             role: localStorage.getItem('club_role') || null,
@@ -70,6 +105,22 @@
             archiveExportDate: getToday(),
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '', tag: 'רגיל' }
         };
+
+        function playAlertSound() {
+            const audio = document.getElementById('alert-sound');
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log('Audio autoplay prevented:', e));
+            }
+        }
+
+        // אפשור שמע לאחר לחיצה ראשונה על המסך
+        document.addEventListener('click', () => {
+            const audio = document.getElementById('alert-sound');
+            if (audio && audio.paused && audio.currentTime === 0) {
+                audio.load();
+            }
+        }, { once: true });
 
         function getAccessibleVenues() {
             if (state.role === 'admin') return allVenues;
@@ -304,18 +355,14 @@
 
             return `
             <div class="p-3 border-b border-white/5 hover:bg-white/[0.02] transition-all ${isArrived ? 'bg-green-950/10' : ''}">
-                <!-- שורה 1: צ'ק-אין, שם הלקוח המלא ושעה -->
                 <div class="flex items-center justify-between gap-2 mb-2">
                     <div class="flex items-center gap-2.5 flex-1 min-w-0">
-                        <!-- כפתור כניסה מהיר עם אפשרות לחיצה ארוכה לפיצול -->
                         <button onclick="toggleCheckIn('${res.id}', ${isArrived}, ${res.pax})" 
                                 ondblclick="updateArrivalSplit('${res.id}', ${res.pax})" 
-                                title="קליק: הגעה מלאה | דאבל קליק: פיצול כמות"
                                 class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-transform active:scale-95 ${isArrived ? 'bg-green-500 text-black border-green-400 font-black shadow-lg shadow-green-500/20' : 'bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/50'}">
                             ${isArrived ? '<i data-lucide="check" size="18"></i>' : '<i data-lucide="user-check" size="16"></i>'}
                         </button>
                         
-                        <!-- שם הלקוח המלא - גדול, קריא ובולט ללא חיתוך -->
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="font-black text-white text-sm tracking-wide break-words">${res.name}</span>
@@ -325,13 +372,10 @@
                         </div>
                     </div>
 
-                    <!-- שעת הגעה -->
                     <span class="text-blue-400 font-black text-xs shrink-0 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">${res.time || '22:30'}</span>
                 </div>
 
-                <!-- שורה 2: סטטוס הגעה, מינימום הזמנה/שולחן, וכפתורי פעולה -->
                 <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.04]">
-                    <!-- סטטוס הגעה נפתח קומפקטי + מידע כספי -->
                     <div class="flex items-center gap-2">
                         <select onchange="setArrivalStatus('${res.id}', this.value, ${res.pax})" 
                                 class="text-[10px] font-black rounded-lg px-2 py-1 outline-none border cursor-pointer ${statusColors[currentStatus]}">
@@ -346,13 +390,12 @@
                         </span>
                     </div>
 
-                    <!-- סרגל כפתורי פעולה נקי ומרווח -->
                     <div class="flex items-center gap-1 shrink-0">
-                        <button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-1.5 hover:bg-purple-500/10 rounded-lg" title="שינוע"><i data-lucide="move-horizontal" size="16"></i></button>
-                        ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1.5 hover:bg-blue-500/10 rounded-lg" title="מפה"><i data-lucide="map-pin" size="16"></i></button>` : ''}
-                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-400 p-1.5 hover:bg-green-500/10 rounded-lg" title="וואטסאפ"><i data-lucide="message-circle" size="16"></i></button>
-                        <button onclick="editReservation('${res.id}')" class="text-amber-400 p-1.5 hover:bg-amber-500/10 rounded-lg" title="עריכה"><i data-lucide="edit-2" size="16"></i></button>
-                        <button onclick="if(confirm('למחוק הזמנה זו?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg" title="מחיקה"><i data-lucide="trash-2" size="16"></i></button>
+                        <button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-1.5 hover:bg-purple-500/10 rounded-lg"><i data-lucide="move-horizontal" size="16"></i></button>
+                        ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1.5 hover:bg-blue-500/10 rounded-lg"><i data-lucide="map-pin" size="16"></i></button>` : ''}
+                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-400 p-1.5 hover:bg-green-500/10 rounded-lg"><i data-lucide="message-circle" size="16"></i></button>
+                        <button onclick="editReservation('${res.id}')" class="text-amber-400 p-1.5 hover:bg-amber-500/10 rounded-lg"><i data-lucide="edit-2" size="16"></i></button>
+                        <button onclick="if(confirm('למחוק הזמנה זו?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg"><i data-lucide="trash-2" size="16"></i></button>
                     </div>
                 </div>
 
@@ -426,7 +469,6 @@
                     </div>
                 ` : ''}
 
-                <!-- שורת חיפוש מהיר בדלת -->
                 <div class="mb-2.5">
                     <input type="text" placeholder="🔍 חיפוש מהיר בדלת לפי שם/טלפון..." value="${state.dashboardFilter}" oninput="state.dashboardFilter = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs outline-none focus:border-amber-500">
                 </div>
@@ -751,7 +793,20 @@
         function render() {
             const root = document.getElementById('app');
             if (!state.role) { 
-                root.innerHTML = `<div class="h-screen flex items-center justify-center p-4 text-white"><div class="w-full max-w-xs glass p-8 rounded-3xl text-center shadow-2xl border-white/10"><h2 class="text-2xl font-black mb-8 text-amber-500 italic uppercase">CLUBPRO</h2><input id="l-in" type="text" placeholder="מספר טלפון / קוד" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 mb-4 text-center text-white outline-none font-bold text-lg"><button onclick="loginUser()" class="w-full btn-amber py-3.5 rounded-xl uppercase font-black shadow-lg">כניסה</button></div></div>`; 
+                root.innerHTML = `
+                    <div class="h-screen flex items-center justify-center p-4 text-white">
+                        <div class="w-full max-w-xs glass p-8 rounded-3xl text-center shadow-2xl border-white/10">
+                            <!-- Logo App Icon -->
+                            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
+                                <i data-lucide="crown" size="32" class="text-amber-500"></i>
+                            </div>
+                            <h2 class="text-2xl font-black mb-1 text-amber-500 italic uppercase">CLUBPRO</h2>
+                            <p class="text-[10px] text-slate-400 mb-6 font-bold uppercase tracking-wider">Nightlife Management</p>
+                            <input id="l-in" type="text" placeholder="מספר טלפון / קוד" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 mb-4 text-center text-white outline-none font-bold text-lg focus:border-amber-500">
+                            <button onclick="loginUser()" class="w-full btn-amber py-3.5 rounded-xl uppercase font-black shadow-lg">כניסה</button>
+                        </div>
+                    </div>`; 
+                lucide.createIcons();
                 return; 
             }
 
@@ -776,7 +831,12 @@
                 <div class="flex flex-col h-screen overflow-hidden text-right text-white relative">
                     ${state.transferId ? `<div class="transfer-overlay"><div class="glass p-6 rounded-3xl w-full max-w-xs text-center space-y-4 border border-white/10"><h3 class="font-black text-amber-500 uppercase">שינוע הזמנה</h3><div class="flex flex-col gap-2">${accessibleVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-3.5 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-400 font-bold pt-2">ביטול</button></div></div>` : ''}
                     <header class="bg-slate-950 p-2.5 border-b border-white/5 flex justify-between items-center shadow-lg">
-                        <div class="font-black italic text-base text-amber-500 pr-2">${venue.name}</div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
+                                <i data-lucide="crown" size="14" class="text-amber-500"></i>
+                            </div>
+                            <div class="font-black italic text-base text-amber-500">${venue.name}</div>
+                        </div>
                         <div class="flex gap-2">
                             <button onclick="updateState({isDateConfirmed: false})" class="text-slate-300 font-black text-[10px] border border-white/10 px-2.5 py-1.5 rounded-lg uppercase hover:bg-white/5">תאריך</button>
                             ${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-500 font-black text-[10px] border border-amber-500/50 px-2.5 py-1.5 rounded-lg uppercase hover:bg-amber-500/10">בית</button>` : ''}
@@ -790,10 +850,22 @@
             lucide.createIcons();
         }
 
-        db.collection('reservations').where('status', '==', 'active').onSnapshot(snap => { 
-            state.reservations = snap.docs.map(d => ({id:d.id, ...d.data()})); 
-            render(); 
-        });
+        // טעינה חכמה ומואצת: האזנה פעילה עם התראת סאונד על הזמנה חדשה
+        db.collection('reservations')
+            .where('status', '==', 'active')
+            .onSnapshot(snap => { 
+                const newDocs = snap.docs.map(d => ({id:d.id, ...d.data()}));
+                
+                // השמעת סאונד בזמן אמת כשיש הזמנה חדשה שנוספה
+                if (initialSnapshotDone && newDocs.length > prevResCount) {
+                    playAlertSound();
+                }
+                
+                prevResCount = newDocs.length;
+                initialSnapshotDone = true;
+                state.reservations = newDocs; 
+                render(); 
+            });
 
         db.collection('users').onSnapshot(snap => { 
             state.users = snap.docs.map(d => ({id:d.id, ...d.data()})); 
