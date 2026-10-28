@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V128</title>
+    <title>ClubPro V129</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,10 +21,12 @@
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; text-align: right; font-size: 12px; overflow-x: hidden; user-select: none; }
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; font-size: 12px; overflow-x: hidden; user-select: none; }
         .glass { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .btn-amber { background-color: #f59e0b; color: #000; font-weight: 900; }
-        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, transparent 100%); border-right: 3px solid #f59e0b; font-size: 11px; padding: 6px 10px; color: #f59e0b; font-weight: 900; }
+        .group-header { background: linear-gradient(90deg, rgba(245, 158, 11, 0.12) 0%, transparent 100%); font-size: 11px; padding: 6px 10px; color: #f59e0b; font-weight: 900; }
+        html[dir="rtl"] .group-header { border-right: 3px solid #f59e0b; }
+        html[dir="ltr"] .group-header { border-left: 3px solid #f59e0b; text-align: left; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .transfer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 20px; }
     </style>
@@ -34,28 +36,148 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V128";
+        const APP_VERSION = "V129";
 
-        const manifestObj = {
-            "name": "ClubPro",
-            "short_name": "ClubPro",
-            "start_url": "./",
-            "display": "standalone",
-            "background_color": "#020617",
-            "theme_color": "#020617",
-            "icons": [{
-                "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='120' fill='%23020617'/><path d='M256 120 L340 280 L440 280 L350 350 L380 460 L256 380 L132 460 L162 350 L72 280 L172 280 Z' fill='%23f59e0b'/><circle cx='256' cy='256' r='40' fill='%23020617'/></svg>",
-                "sizes": "192x192 512x512",
-                "type": "image/svg+xml",
-                "purpose": "any maskable"
-            }]
+        const translations = {
+            he: {
+                tables: "שולחנות",
+                bar: "בר",
+                free: "חינם",
+                guests: "מוזמנים",
+                arrived: "הגיעו",
+                minTable: "מינימום שולחן",
+                minBar: "מינימום בר",
+                expectedTill: 'סה"כ קופה צפויה',
+                promoters: "יחצנים",
+                bookingCenter: "מרכז הזמנות",
+                createBooking: "צור הזמנה",
+                tableMap: "מפת שולחנות",
+                exportWhatsApp: "ייצוא לווצאפ",
+                nightReport: "דוח לילה",
+                searchPlaceholder: "🔍 חיפוש מהיר בדלת לפי שם/טלפון...",
+                date: "תאריך",
+                home: "בית",
+                logout: "התנתק",
+                noBookings: "אין הזמנות ממתינות לתאריך זה",
+                clickToCreate: "לחץ על 'צור הזמנה' או בחר תאריך אחר",
+                arrivedGuests: "לקוחות שהגיעו",
+                bookingDetails: "פרטי הזמנה",
+                clientName: "שם לקוח",
+                phone: "טלפון",
+                hour: "שעה",
+                people: "אנשים",
+                minOrder: "מינימום הזמנה ₪",
+                clientTag: "תגית לקוח",
+                notes: "הערות...",
+                saveBooking: "שמור הזמנה",
+                back: "חזור",
+                selectVenue: "בחר מועדון",
+                selectDate: "בחר תאריך:",
+                confirm: "אישור",
+                moveBooking: "שינוע הזמנה",
+                cancel: "ביטול",
+                statusPending: "🟡 ממתין",
+                statusArrived: "🟢 הגיע",
+                statusLate: "🟣 מאחר",
+                statusCancelled: "🔴 ביטול",
+                tagRegular: "רגיל",
+                tagVip: "⭐ VIP",
+                tagBirthday: "🎂 יום הולדת",
+                tagHighSpender: "🍾 מוציא כבד",
+                tagProblematic: "⚠️ בעייתי",
+                target: "יעד",
+                estCommission: "עמלה צפויה",
+                tablePrefix: "שולחן",
+                exportAllPhones: "ייצוא מלא לווצאפ (טלפונים בלבד - מכל הזמנים)",
+                exportByDate: "ייצוא הזמנות לפי תאריך נבחר:",
+                excel: "אקסל",
+                all: "הכל",
+                dormant: "💤 רדומים",
+                contactClient: "פנה ללקוח",
+                promoterManagement: "ניהול והרשאות יחצנים",
+                addPromoter: "הוספת יחצן ידנית:",
+                promoterNamePlaceholder: "שם היחצן",
+                promoterPhonePlaceholder: "טלפון (10 ספרות)",
+                addAndApprove: "+ הוסף ואשר יחצן",
+                approved: "מאושר",
+                waitingApproval: "ממתין לאישור",
+                approve: "אשר",
+                allowedVenues: "מועדונים מורשים:",
+                loginPlaceholder: "מספר טלפון / קוד",
+                loginButton: "כניסה",
+                deleteConfirm: "למחוק הזמנה זו?",
+                deletePromoterConfirm: "למחוק יחצן זה?"
+            },
+            ru: {
+                tables: "Столы",
+                bar: "Бар",
+                free: "Бесплатно",
+                guests: "Гости",
+                arrived: "Пришли",
+                minTable: "Мин. стол",
+                minBar: "Мин. бар",
+                expectedTill: "Ожидаемая касса",
+                promoters: "Промоутеры",
+                bookingCenter: "База броней",
+                createBooking: "Создать бронь",
+                tableMap: "Карта столов",
+                exportWhatsApp: "Экспорт в WhatsApp",
+                nightReport: "Ночной отчет",
+                searchPlaceholder: "🔍 Быстрый поиск на входе...",
+                date: "Дата",
+                home: "Меню",
+                logout: "Выход",
+                noBookings: "Нет броней на эту дату",
+                clickToCreate: "Нажмите 'Создать бронь' или выберите другую дату",
+                arrivedGuests: "Гости в клубе",
+                bookingDetails: "Детали бронирования",
+                clientName: "Имя клиента",
+                phone: "Телефон",
+                hour: "Время",
+                people: "Человек",
+                minOrder: "Депозит ₪",
+                clientTag: "Категория",
+                notes: "Примечания...",
+                saveBooking: "Сохранить",
+                back: "Назад",
+                selectVenue: "Выберите клуб",
+                selectDate: "Выберите дату:",
+                confirm: "Подтвердить",
+                moveBooking: "Перенос брони",
+                cancel: "Отмена",
+                statusPending: "🟡 Ожидает",
+                statusArrived: "🟢 Прибыл",
+                statusLate: "🟣 Опаздывает",
+                statusCancelled: "🔴 Отмена",
+                tagRegular: "Обычный",
+                tagVip: "⭐ VIP",
+                tagBirthday: "🎂 День рождения",
+                tagHighSpender: "🍾 Большой чек",
+                tagProblematic: "⚠️ Проблемный",
+                target: "Цель",
+                estCommission: "Комиссия",
+                tablePrefix: "Стол",
+                exportAllPhones: "Экспорт всех номеров в WhatsApp (вся история)",
+                exportByDate: "Экспорт по дате:",
+                excel: "Excel",
+                all: "Все",
+                dormant: "💤 Неактивные",
+                contactClient: "Написать",
+                promoterManagement: "Управление промоутерами",
+                addPromoter: "Добавить промоутера:",
+                promoterNamePlaceholder: "Имя промоутера",
+                promoterPhonePlaceholder: "Телефон (10 цифр)",
+                addAndApprove: "+ Добавить и подтвердить",
+                approved: "Одобрен",
+                waitingApproval: "Ожидает",
+                approve: "Одобрить",
+                allowedVenues: "Доступные клубы:",
+                loginPlaceholder: "Номер телефона / код",
+                loginButton: "Войти",
+                deleteConfirm: "Удалить эту бронь?",
+                deletePromoterConfirm: "Удалить этого промоутера?"
+            }
         };
-        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
-        const manifestURL = URL.createObjectURL(manifestBlob);
-        const linkTag = document.createElement('link');
-        linkTag.rel = 'manifest';
-        linkTag.href = manifestURL;
-        document.head.appendChild(linkTag);
 
         const config = {
             apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
@@ -88,6 +210,7 @@
         let prevResCount = 0;
 
         let state = {
+            lang: localStorage.getItem('club_lang') || 'he',
             role: localStorage.getItem('club_role') || null,
             userName: localStorage.getItem('club_name') || '',
             phone: localStorage.getItem('club_phone') || '',
@@ -113,6 +236,18 @@
             archiveExportDate: getToday(),
             formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '', tag: 'רגיל' }
         };
+
+        function t(key) {
+            return (translations[state.lang] && translations[state.lang][key]) || translations['he'][key] || key;
+        }
+
+        function setLanguage(lang) {
+            state.lang = lang;
+            localStorage.setItem('club_lang', lang);
+            document.getElementById('html-root').setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+            document.getElementById('html-root').setAttribute('lang', lang);
+            render();
+        }
 
         function playAlertSound() {
             const audio = document.getElementById('alert-sound');
@@ -178,7 +313,6 @@
             render();
         }
 
-        // ייצוא מלא של כל הלקוחות שיש להם טלפון מכל הזמנים
         async function exportAllPhonesHistoricalWhatsApp() {
             const venue = allVenues.find(v => v.id === state.venueId);
             state.isExportingAll = true;
@@ -194,19 +328,18 @@
                     .filter(r => r.status === 'active' && r.phone && r.phone.replace(/\D/g, '').length >= 9);
 
                 if (docs.length === 0) {
-                    alert(`לא נמצאו לקוחות עם מספרי טלפון במועדון ${venue.name}`);
+                    alert(state.lang === 'ru' ? `Не найдено клиентов с номерами в клубе ${venue.name}` : `לא נמצאו לקוחות עם מספרי טלפון במועדון ${venue.name}`);
                     state.isExportingAll = false;
                     render();
                     return;
                 }
 
-                // איחוד כפילויות לפי טלפון
                 const clientsMap = {};
                 docs.forEach(r => {
                     const cleanP = r.phone.replace(/\D/g, '');
                     if (!clientsMap[cleanP]) {
                         clientsMap[cleanP] = {
-                            name: r.name ? r.name.trim() : 'ללא שם',
+                            name: r.name ? r.name.trim() : (state.lang === 'ru' ? 'Без имени' : 'ללא שם'),
                             phone: r.phone.trim(),
                             count: 1,
                             lastDate: r.eventDate || ''
@@ -221,18 +354,21 @@
 
                 const uniqueClients = Object.values(clientsMap).sort((a,b) => b.count - a.count);
 
-                let text = `📱 *מאגר לקוחות מלא - ${venue.name}*\n`;
-                text += `סה"כ לקוחות עם טלפון: ${uniqueClients.length}\n\n`;
+                let text = state.lang === 'ru'
+                    ? `📱 *Полная база контактов - ${venue.name}*\nВсего клиентов с номерами: ${uniqueClients.length}\n\n`
+                    : `📱 *מאגר לקוחות מלא - ${venue.name}*\nסה"כ לקוחות עם טלפון: ${uniqueClients.length}\n\n`;
 
                 uniqueClients.forEach((c, idx) => {
                     const formattedDate = c.lastDate ? c.lastDate.split('-').reverse().join('.') : '';
-                    text += `${idx+1}. *${c.name}* | ${c.phone} | ${c.count} הזמנות${formattedDate ? ' | אחרונה: ' + formattedDate : ''}\n`;
+                    const bookingText = state.lang === 'ru' ? 'броней' : 'הזמנות';
+                    const lastText = state.lang === 'ru' ? 'последняя' : 'אחרונה';
+                    text += `${idx+1}. *${c.name}* | ${c.phone} | ${c.count} ${bookingText}${formattedDate ? ` | ${lastText}: ` + formattedDate : ''}\n`;
                 });
 
                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
             } catch(e) {
                 console.error("Export all phones error:", e);
-                alert("אירעה שגיאה בעת שליפת הנתונים");
+                alert(state.lang === 'ru' ? "Ошибка загрузки данных" : "אירעה שגיאה בעת שליפת הנתונים");
             }
 
             state.isExportingAll = false;
@@ -308,7 +444,7 @@
             const price = document.getElementById('f-price').value;
             const notes = document.getElementById('f-notes').value;
             const tag = document.getElementById('f-tag')?.value || 'רגיל';
-            if(!name || !pax) return alert("חובה שם וכמות מוזמנים");
+            if(!name || !pax) return alert(state.lang === 'ru' ? "Укажите имя и количество гостей" : "חובה שם וכמות מוזמנים");
             const venue = allVenues.find(v => v.id === state.venueId);
             const data = {
                 venueId: state.venueId, 
@@ -347,10 +483,10 @@
         }
 
         async function updateArrivalSplit(id, totalPax) {
-            const val = prompt(`כמה אנשים הגיעו בפועל מתוך ${totalPax}?`, totalPax);
+            const val = prompt(state.lang === 'ru' ? `Сколько человек пришло из ${totalPax}?` : `כמה אנשים הגיעו בפועל מתוך ${totalPax}?`, totalPax);
             if (val === null) return;
             const num = Number(val);
-            if (isNaN(num) || num < 0 || num > totalPax) return alert("כמות לא תקינה");
+            if (isNaN(num) || num < 0 || num > totalPax) return alert(state.lang === 'ru' ? "Некорректное число" : "כמות לא תקינה");
             
             await db.collection('reservations').doc(id).update({
                 arrived: num > 0,
@@ -372,11 +508,15 @@
         function exportToWhatsApp(date, list) {
             const vName = allVenues.find(v => v.id === state.venueId)?.name || "Club";
             let text = `*${vName.toUpperCase()} - ${date.split('-').reverse().join('.')}*\n\n`;
-            [{id:'table',l:'שולחנות'},{id:'bar',l:'בר'}].forEach(t => {
-                const filtered = list.filter(r => r.type === t.id);
+            [{id:'table', l: t('tables')},{id:'bar', l: t('bar')}].forEach(tItem => {
+                const filtered = list.filter(r => r.type === tItem.id);
                 if (filtered.length) {
-                    text += `*🏠 ${t.l}:*\n`;
-                    filtered.forEach((r, i) => { text += `${i+1}. *${r.name.trim()}* | ${r.pax} איש | ${r.time||'22:30'} | ${r.tableNumber?'שולחן '+r.tableNumber:'₪'+r.minOrder}${r.notes?' | '+r.notes:''}\n`; });
+                    text += `*🏠 ${tItem.l}:*\n`;
+                    filtered.forEach((r, i) => { 
+                        const tableStr = r.tableNumber ? `${t('tablePrefix')} ` + r.tableNumber : '₪' + r.minOrder;
+                        const peopleWord = state.lang === 'ru' ? 'чел' : 'איש';
+                        text += `${i+1}. *${r.name.trim()}* | ${r.pax} ${peopleWord} | ${r.time||'22:30'} | ${tableStr}${r.notes?' | '+r.notes:''}\n`; 
+                    });
                     text += `\n`;
                 }
             });
@@ -391,22 +531,21 @@
             const showRate = totalInvited > 0 ? Math.round((totalArrived / totalInvited) * 100) : 0;
             const totalMoney = list.reduce((a,b)=>a+Number(b.minOrder||0),0);
 
-            let text = `📊 *דוח סוף ערב - ${venue.name}*\n📅 תאריך: ${state.selectedDate.split('-').reverse().join('.')}\n\n`;
-            text += `👥 סה"כ מוזמנים: ${totalInvited}\n`;
-            text += `✅ סה"כ הגיעו: ${totalArrived} (${showRate}% הגעה)\n`;
-            text += `💰 מחזור הזמנות צפוי: ₪${totalMoney.toLocaleString()}\n\n`;
-            text += `*חלוקה לפי יחצנים:*\n`;
+            let text = state.lang === 'ru'
+                ? `📊 *Ночной отчет - ${venue.name}*\n📅 Дата: ${state.selectedDate.split('-').reverse().join('.')}\n\n👥 Всего гостей: ${totalInvited}\n✅ Прибыло: ${totalArrived} (${showRate}% явка)\n💰 Ожидаемая касса: ₪${totalMoney.toLocaleString()}\n\n*По промоутерам:*\n`
+                : `📊 *דוח סוף ערב - ${venue.name}*\n📅 תאריך: ${state.selectedDate.split('-').reverse().join('.')}\n\n👥 סה"כ מוזמנים: ${totalInvited}\n✅ סה"כ הגיעו: ${totalArrived} (${showRate}% הגעה)\n💰 מחזור הזמנות צפוי: ₪${totalMoney.toLocaleString()}\n\n*חלוקה לפי יחצנים:*\n`;
 
             const byPromoter = {};
             list.forEach(r => {
-                const p = r.promoterName || 'כללי';
+                const p = r.promoterName || (state.lang === 'ru' ? 'Общие' : 'כללי');
                 if (!byPromoter[p]) byPromoter[p] = { inv: 0, arr: 0 };
                 byPromoter[p].inv += Number(r.pax||0);
                 if (r.arrived) byPromoter[p].arr += Number(r.arrivedPax || r.pax || 0);
             });
 
             Object.keys(byPromoter).forEach(p => {
-                text += `▫️ *${p}*: ${byPromoter[p].arr}/${byPromoter[p].inv} איש\n`;
+                const peopleWord = state.lang === 'ru' ? 'чел' : 'איש';
+                text += `▫️ *${p}*: ${byPromoter[p].arr}/${byPromoter[p].inv} ${peopleWord}\n`;
             });
 
             window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -416,7 +555,10 @@
             const venue = allVenues.find(v => v.id === state.venueId);
             const list = state.archiveReservations.length ? state.archiveReservations : state.reservations;
             
-            let csvContent = "\uFEFFשם לקוח,טלפון,מוזמנים,הגיעו בפועל,סוג,מינימום הזמנה,שעה,תאריך,יחצן,תגית,הערות\n";
+            let csvContent = state.lang === 'ru'
+                ? "\uFEFFИмя,Телефон,Гости,Прибыло,Тип,Депозит,Время,Дата,Промоутер,Категория,Примечания\n"
+                : "\uFEFFשם לקוח,טלפון,מוזמנים,הגיעו בפועל,סוג,מינימום הזמנה,שעה,תאריך,יחצן,תגית,הערות\n";
+
             list.forEach(r => {
                 csvContent += `"${r.name}","${r.phone||''}","${r.pax}","${r.arrivedPax||(r.arrived?r.pax:0)}","${r.type}","${r.minOrder||0}","${r.time||''}","${r.eventDate||''}","${r.promoterName||''}","${r.tag||'רגיל'}","${(r.notes||'').replace(/"/g, '""')}"\n`;
             });
@@ -434,17 +576,24 @@
         function sendWhatsAppToClient(id) {
             const res = state.reservations.find(r => r.id === id);
             const venue = allVenues.find(v => v.id === state.venueId);
-            let msg = `אהלן ${res.name}, הזמנתך ל-${venue.name} מאושרת ל-${res.pax} אנשים בשעה ${res.time||'22:30'}.📍 ${venue.waze}. ${venue.wazeLink}`;
+            
+            let msg = state.lang === 'ru'
+                ? `Привет, ${res.name}! Ваша бронь в ${venue.name} подтверждена на ${res.pax} чел. к ${res.time||'22:30'}.📍 ${venue.waze}. ${venue.wazeLink}`
+                : `אהלן ${res.name}, הזמנתך ל-${venue.name} מאושרת ל-${res.pax} אנשים בשעה ${res.time||'22:30'}.📍 ${venue.waze}. ${venue.wazeLink}`;
             
             if (venue.id === 'q_gallery') {
-                msg += `\n\n🚗 יש חניון ברוטשילד 1, עלות חנייה חד פעמית 35 ש"ח.\n⏰ הגעה בין 22:00 ל-22:30.\n⚠️ אם יש שינויים בהזמנה או לא מגיעים, יש להודיע מראש.`;
+                if (state.lang === 'ru') {
+                    msg += `\n\n🚗 Есть парковка на Ротшильд 1, разовый тариф 35 ₪.\n⏰ Время прибытия с 22:00 до 22:30.\n⚠️ При любых изменениях просьба сообщить заранее.`;
+                } else {
+                    msg += `\n\n🚗 יש חניון ברוטשילד 1, עלות חנייה חד פעמית 35 ש"ח.\n⏰ הגעה בין 22:00 ל-22:30.\n⚠️ אם יש שינויים בהזמנה או לא מגיעים, יש להודיע מראש.`;
+                }
             }
             
             window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/,'972')}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
         function sendReengagementWhatsApp(clientName, clientPhone, eventDateStr) {
-            if (!clientPhone) return alert("ללקוח זה אין מספר טלפון מעודכן");
+            if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g,'').replace(/^0/,'972');
             const formattedDate = eventDateStr ? eventDateStr.split('-').reverse().join('.') : '';
             let daysText = '';
@@ -453,11 +602,15 @@
                 const today = new Date();
                 const diffTime = Math.abs(today - pastDate);
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                daysText = `לפני ${diffDays} ימים (${formattedDate})`;
+                daysText = state.lang === 'ru' ? `${diffDays} дней назад (${formattedDate})` : `לפני ${diffDays} ימים (${formattedDate})`;
             } else {
                 daysText = formattedDate;
             }
-            const msg = `היי ${clientName}, פעם אחרונה הייתה ${daysText}. מתי נראה אותך שישי הזה?`;
+            
+            const msg = state.lang === 'ru'
+                ? `Привет, ${clientName}! В прошлый раз вы отдыхали у нас ${daysText}. Ждем вас в эту пятницу?`
+                : `היי ${clientName}, פעם אחרונה הייתה ${daysText}. מתי נראה אותך שישי הזה?`;
+
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
@@ -471,7 +624,7 @@
                 .map(d => ({ id: d.id, ...d.data() }))
                 .filter(r => r.status === 'active');
 
-            if (list.length === 0) return alert(`אין הזמנות בתאריך ${targetDate.split('-').reverse().join('.')}`);
+            if (list.length === 0) return alert(state.lang === 'ru' ? `Нет броней на дату ${targetDate.split('-').reverse().join('.')}` : `אין הזמנות בתאריך ${targetDate.split('-').reverse().join('.')}`);
             exportToWhatsApp(targetDate, list);
         }
 
@@ -514,14 +667,14 @@
                     <div class="flex items-center gap-2">
                         <select onchange="setArrivalStatus('${res.id}', this.value, ${res.pax})" 
                                 class="text-[10px] font-black rounded-lg px-2 py-1 outline-none border cursor-pointer ${statusColors[currentStatus]}">
-                            <option value="pending" ${currentStatus==='pending'?'selected':''}>🟡 ממתין</option>
-                            <option value="arrived" ${currentStatus==='arrived'?'selected':''}>🟢 הגיע</option>
-                            <option value="late" ${currentStatus==='late'?'selected':''}>🟣 מאחר</option>
-                            <option value="cancelled" ${currentStatus==='cancelled'?'selected':''}>🔴 ביטול</option>
+                            <option value="pending" ${currentStatus==='pending'?'selected':''}>${t('statusPending')}</option>
+                            <option value="arrived" ${currentStatus==='arrived'?'selected':''}>${t('statusArrived')}</option>
+                            <option value="late" ${currentStatus==='late'?'selected':''}>${t('statusLate')}</option>
+                            <option value="cancelled" ${currentStatus==='cancelled'?'selected':''}>${t('statusCancelled')}</option>
                         </select>
                         
                         <span class="text-[10px] font-bold ${res.tableNumber ? 'text-amber-400' : 'text-slate-400'}">
-                            ${res.tableNumber ? `שולחן ${res.tableNumber} • ` : ''}₪${res.minOrder || 0}
+                            ${res.tableNumber ? `${t('tablePrefix')} ${res.tableNumber} • ` : ''}₪${res.minOrder || 0}
                         </span>
                     </div>
 
@@ -530,7 +683,7 @@
                         ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1.5 hover:bg-blue-500/10 rounded-lg"><i data-lucide="map-pin" size="16"></i></button>` : ''}
                         <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-400 p-1.5 hover:bg-green-500/10 rounded-lg"><i data-lucide="message-circle" size="16"></i></button>
                         <button onclick="editReservation('${res.id}')" class="text-amber-400 p-1.5 hover:bg-amber-500/10 rounded-lg"><i data-lucide="edit-2" size="16"></i></button>
-                        <button onclick="if(confirm('למחוק הזמנה זו?')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg"><i data-lucide="trash-2" size="16"></i></button>
+                        <button onclick="if(confirm('${t('deleteConfirm')}')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg"><i data-lucide="trash-2" size="16"></i></button>
                     </div>
                 </div>
 
@@ -563,30 +716,30 @@
             return `
                 ${state.role === 'admin' ? `
                     <div class="grid grid-cols-4 gap-1.5 mb-2">
-                        <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">שולחנות</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                        <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">בר</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                        <div class="glass p-2 rounded-xl text-center text-amber-500"><p class="text-[9px] font-bold">מוזמנים</p><p class="font-black text-sm">${pendingList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                        <div class="glass p-2 rounded-xl text-center text-green-400"><p class="text-[9px] font-bold">הגיעו</p><p class="font-black text-sm">${arrivedList.reduce((a,b)=>a+Number(b.arrivedPax || b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">${t('tables')}</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">${t('bar')}</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='bar').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center text-amber-500"><p class="text-[9px] font-bold">${t('guests')}</p><p class="font-black text-sm">${pendingList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center text-green-400"><p class="text-[9px] font-bold">${t('arrived')}</p><p class="font-black text-sm">${arrivedList.reduce((a,b)=>a+Number(b.arrivedPax || b.pax),0)}</p></div>
                     </div>
 
                     <div class="glass p-2 rounded-xl mb-2.5 flex justify-around items-center border border-amber-500/20 bg-amber-500/5">
-                        <div class="text-center"><p class="text-[8px] text-slate-400 uppercase font-bold">מינימום שולחן</p><p class="text-xs font-black text-amber-400">₪${tableTotalMoney.toLocaleString()}</p></div>
+                        <div class="text-center"><p class="text-[8px] text-slate-400 uppercase font-bold">${t('minTable')}</p><p class="text-xs font-black text-amber-400">₪${tableTotalMoney.toLocaleString()}</p></div>
                         <div class="h-5 w-[1px] bg-white/10"></div>
-                        <div class="text-center"><p class="text-[8px] text-slate-400 uppercase font-bold">מינימום בר</p><p class="text-xs font-black text-amber-400">₪${barTotalMoney.toLocaleString()}</p></div>
+                        <div class="text-center"><p class="text-[8px] text-slate-400 uppercase font-bold">${t('minBar')}</p><p class="text-xs font-black text-amber-400">₪${barTotalMoney.toLocaleString()}</p></div>
                         <div class="h-5 w-[1px] bg-white/10"></div>
-                        <div class="text-center"><p class="text-[8px] text-green-400 uppercase font-bold">סה"כ קופה צפויה</p><p class="text-xs font-black text-green-400">₪${grandTotalMoney.toLocaleString()}</p></div>
+                        <div class="text-center"><p class="text-[8px] text-green-400 uppercase font-bold">${t('expectedTill')}</p><p class="text-xs font-black text-green-400">₪${grandTotalMoney.toLocaleString()}</p></div>
                     </div>
                 ` : `
                     <div class="grid grid-cols-3 gap-1.5 mb-2">
-                        <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">שולחנות</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                        <div class="glass p-2 rounded-xl text-center text-amber-500"><p class="text-[9px] font-bold">מוזמנים</p><p class="font-black text-sm">${pendingList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
-                        <div class="glass p-2 rounded-xl text-center text-green-400"><p class="text-[9px] font-bold">הגיעו</p><p class="font-black text-sm">${arrivedList.reduce((a,b)=>a+Number(b.arrivedPax || b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center"><p class="text-[9px] text-slate-400 font-bold uppercase">${t('tables')}</p><p class="font-black text-sm text-white">${pendingList.filter(r=>r.type==='table').reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center text-amber-500"><p class="text-[9px] font-bold">${t('guests')}</p><p class="font-black text-sm">${pendingList.reduce((a,b)=>a+Number(b.pax),0)}</p></div>
+                        <div class="glass p-2 rounded-xl text-center text-green-400"><p class="text-[9px] font-bold">${t('arrived')}</p><p class="font-black text-sm">${arrivedList.reduce((a,b)=>a+Number(b.arrivedPax || b.pax),0)}</p></div>
                     </div>
 
                     <div class="glass p-2.5 rounded-xl mb-2.5 border border-amber-500/20 space-y-1.5">
                         <div class="flex justify-between items-center text-[10px] font-black">
-                            <span class="text-amber-400">🎯 יעד: ${totalMyInvited}/${promoterTarget} מוזמנים</span>
-                            <span class="text-green-400">💰 עמלה צפויה: ₪${estimatedCommission}</span>
+                            <span class="text-amber-400">🎯 ${t('target')}: ${totalMyInvited}/${promoterTarget}</span>
+                            <span class="text-green-400">💰 ${t('estCommission')}: ₪${estimatedCommission}</span>
                         </div>
                         <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
                             <div class="bg-amber-500 h-full transition-all" style="width: ${progressPercent}%"></div>
@@ -605,23 +758,23 @@
                 ` : ''}
 
                 <div class="mb-2.5">
-                    <input type="text" placeholder="🔍 חיפוש מהיר בדלת לפי שם/טלפון..." value="${state.dashboardFilter}" oninput="state.dashboardFilter = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs outline-none focus:border-amber-500">
+                    <input type="text" placeholder="${t('searchPlaceholder')}" value="${state.dashboardFilter}" oninput="state.dashboardFilter = this.value; render();" class="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs outline-none focus:border-amber-500">
                 </div>
 
                 <div class="flex flex-col gap-2 mb-3">
                     <div class="flex gap-1.5">
                         ${state.role === 'admin' ? `
-                            <button onclick="updateState({showUsersMGMT: true})" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl font-black text-[10px] uppercase border border-white/10 transition-colors">יחצנים</button>
-                            <button onclick="updateState({showArchiveMGMT: true})" class="flex-1 bg-blue-950 text-blue-400 hover:bg-blue-900 py-2.5 rounded-xl font-black text-[10px] uppercase border border-blue-500/20 transition-colors">מרכז הזמנות</button>
+                            <button onclick="updateState({showUsersMGMT: true})" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl font-black text-[10px] uppercase border border-white/10 transition-colors">${t('promoters')}</button>
+                            <button onclick="updateState({showArchiveMGMT: true})" class="flex-1 bg-blue-950 text-blue-400 hover:bg-blue-900 py-2.5 rounded-xl font-black text-[10px] uppercase border border-blue-500/20 transition-colors">${t('bookingCenter')}</button>
                         ` : ''}
-                        <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null,time:'22:30',notes:'',tag:'רגיל'}})" class="flex-[2] btn-amber hover:bg-amber-400 py-2.5 rounded-xl font-black uppercase shadow-lg transition-colors">צור הזמנה</button>
+                        <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null,time:'22:30',notes:'',tag:'רגיל'}})" class="flex-[2] btn-amber hover:bg-amber-400 py-2.5 rounded-xl font-black uppercase shadow-lg transition-colors">${t('createBooking')}</button>
                     </div>
-                    ${venue.map ? `<button onclick="window.location.href='${venue.map}?date=${state.selectedDate}'" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black uppercase flex items-center justify-center gap-2 shadow-lg transition-colors"><i data-lucide="map" size="16"></i> מפת שולחנות</button>` : ''}
+                    ${venue.map ? `<button onclick="window.location.href='${venue.map}?date=${state.selectedDate}'" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black uppercase flex items-center justify-center gap-2 shadow-lg transition-colors"><i data-lucide="map" size="16"></i> ${t('tableMap')}</button>` : ''}
                     
                     <div class="flex justify-between items-center gap-2">
-                        <button onclick="exportToWhatsApp('${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 uppercase shadow-xl transition-colors">ייצוא לווצאפ <i data-lucide="share-2" size="14"></i></button>
+                        <button onclick="exportToWhatsApp('${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 uppercase shadow-xl transition-colors">${t('exportWhatsApp')} <i data-lucide="share-2" size="14"></i></button>
                         ${state.role === 'admin' ? `
-                            <button onclick="exportNightReport()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl font-black text-xs flex items-center gap-1 uppercase shadow-xl transition-colors">דוח לילה <i data-lucide="file-text" size="14"></i></button>
+                            <button onclick="exportNightReport()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl font-black text-xs flex items-center gap-1 uppercase shadow-xl transition-colors">${t('nightReport')} <i data-lucide="file-text" size="14"></i></button>
                         ` : ''}
                     </div>
                 </div>
@@ -634,21 +787,22 @@
                     
                     ${['table', 'bar', 'free'].map(type => {
                         const g = pendingList.filter(r => r.type === type);
-                        return g.length ? `<div><div class="group-header uppercase">${type==='table'?'שולחנות':type==='bar'?'בר':'חינם'}</div>${g.map(r => renderRow(r)).join('')}</div>` : '';
+                        const label = type==='table' ? t('tables') : type==='bar' ? t('bar') : t('free');
+                        return g.length ? `<div><div class="group-header uppercase">${label}</div>${g.map(r => renderRow(r)).join('')}</div>` : '';
                     }).join('')}
                     
                     ${pendingList.length === 0 ? `
                         <div class="py-12 px-4 text-center">
                             <i data-lucide="calendar-x" size="28" class="mx-auto text-slate-600 mb-2"></i>
-                            <p class="text-slate-400 font-bold text-xs">אין הזמנות ממתינות לתאריך זה</p>
-                            <p class="text-slate-600 text-[10px] mt-0.5">לחץ על "צור הזמנה" או בחר תאריך אחר</p>
+                            <p class="text-slate-400 font-bold text-xs">${t('noBookings')}</p>
+                            <p class="text-slate-600 text-[10px] mt-0.5">${t('clickToCreate')}</p>
                         </div>
                     ` : ''}
                 </div>
 
                 <div class="mt-4 glass rounded-2xl overflow-hidden border border-green-500/20 shadow-lg">
                     <button onclick="updateState({showArrived: !state.showArrived})" class="w-full flex justify-between items-center p-3 text-green-400 font-black uppercase text-xs bg-green-500/10 hover:bg-green-500/20 transition-colors">
-                        <span>לקוחות שהגיעו (${arrivedList.length})</span>
+                        <span>${t('arrivedGuests')} (${arrivedList.length})</span>
                         <i data-lucide="${state.showArrived ? 'chevron-up' : 'chevron-down'}" size="16"></i>
                     </button>
                     ${state.showArrived ? arrivedList.map(r => renderRow(r)).join('') : ''}
@@ -689,69 +843,69 @@
             return `
                 <div class="space-y-4 p-1 text-white">
                     <div class="flex justify-between items-center">
-                        <button onclick="updateState({showArchiveMGMT: false, archiveSearchQuery: ''})" class="text-xs font-black text-slate-400 flex items-center gap-1 hover:text-white"><i data-lucide="arrow-right" size="14"></i> חזור</button>
-                        <h2 class="font-black text-amber-500 text-xs uppercase">מרכז לקוחות & CRM - ${venue.name}</h2>
+                        <button onclick="updateState({showArchiveMGMT: false, archiveSearchQuery: ''})" class="text-xs font-black text-slate-400 flex items-center gap-1 hover:text-white"><i data-lucide="arrow-right" size="14"></i> ${t('back')}</button>
+                        <h2 class="font-black text-amber-500 text-xs uppercase">${t('bookingCenter')} - ${venue.name}</h2>
                     </div>
 
-                    <!-- קופסת ייצוא חכמה הכוללת ייצוא היסטורי מלא -->
                     <div class="glass p-3 rounded-2xl space-y-2 border border-green-500/30 shadow-lg">
                         <div class="flex justify-between items-center">
-                            <p class="text-[11px] font-black text-green-400 uppercase">ייצוא הזמנות לפי תאריך נבחר:</p>
-                            <button onclick="exportToCSV()" class="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1">אקסל <i data-lucide="download" size="12"></i></button>
+                            <p class="text-[11px] font-black text-green-400 uppercase">${t('exportByDate')}</p>
+                            <button onclick="exportToCSV()" class="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1">${t('excel')} <i data-lucide="download" size="12"></i></button>
                         </div>
                         <div class="flex gap-2">
                             <input type="date" value="${state.archiveExportDate}" onchange="state.archiveExportDate = this.value;" class="bg-white/10 border border-white/20 rounded-xl p-2 text-white font-bold text-xs outline-none flex-1">
-                            <button onclick="exportArchiveDateToWhatsApp()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-lg transition-colors">לווצאפ <i data-lucide="share-2" size="14"></i></button>
+                            <button onclick="exportArchiveDateToWhatsApp()" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-lg transition-colors">WhatsApp <i data-lucide="share-2" size="14"></i></button>
                         </div>
 
-                        <!-- כפתור ייצוא מלא של כל הטלפונים מכל הזמנים -->
                         <div class="pt-2 border-t border-white/10">
                             <button onclick="exportAllPhonesHistoricalWhatsApp()" 
                                     class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 uppercase shadow-xl transition-all ${state.isExportingAll ? 'opacity-50 cursor-not-allowed' : ''}">
                                 <i data-lucide="phone-call" size="14"></i>
-                                <span>${state.isExportingAll ? 'שולף נתונים מכל הזמנים...' : 'ייצוא מלא לווצאפ (טלפונים בלבד - מכל הזמנים)'}</span>
+                                <span>${state.isExportingAll ? '...' : t('exportAllPhones')}</span>
                             </button>
                         </div>
                     </div>
                     
                     <div class="flex gap-1 bg-white/5 p-1 rounded-xl">
-                        <button onclick="updateState({archiveFilterTab: 'all'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='all'?'bg-amber-500 text-black':'text-slate-400'}">הכל (${dataSource.length})</button>
-                        <button onclick="updateState({archiveFilterTab: 'vip'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='vip'?'bg-amber-500 text-black':'text-slate-400'}">⭐ VIP</button>
-                        <button onclick="updateState({archiveFilterTab: 'dormant'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='dormant'?'bg-amber-500 text-black':'text-slate-400'}">💤 רדומים</button>
+                        <button onclick="updateState({archiveFilterTab: 'all'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='all'?'bg-amber-500 text-black':'text-slate-400'}">${t('all')} (${dataSource.length})</button>
+                        <button onclick="updateState({archiveFilterTab: 'vip'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='vip'?'bg-amber-500 text-black':'text-slate-400'}">${t('tagVip')}</button>
+                        <button onclick="updateState({archiveFilterTab: 'dormant'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='dormant'?'bg-amber-500 text-black':'text-slate-400'}">${t('dormant')}</button>
                     </div>
 
                     <div class="glass p-3 rounded-2xl border border-white/10">
-                        <input id="archive-search" type="text" placeholder="חפש לקוח לפי שם, טלפון או תגית..." value="${state.archiveSearchQuery}" 
+                        <input id="archive-search" type="text" placeholder="${state.lang === 'ru' ? 'Поиск клиента...' : 'חפש לקוח לפי שם, טלפון או תגית...'}" value="${state.archiveSearchQuery}" 
                                oninput="handleSearchInput(this.value)" 
                                class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-xs outline-none focus:border-amber-500">
                     </div>
 
-                    ${state.isArchiveLoading ? '<p class="text-center text-amber-500 font-bold py-6">טוען מאגר לקוחות...</p>' : ''}
+                    ${state.isArchiveLoading ? `<p class="text-center text-amber-500 font-bold py-6">${state.lang === 'ru' ? 'Загрузка...' : 'טוען מאגר לקוחות...'}</p>` : ''}
 
                     <div class="glass rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[50vh] overflow-y-auto border border-white/10">
                         ${filtered.slice(0, 80).map(r => {
                             const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
                             const visitsCount = r.phone ? (bookingFreqMap[r.phone.replace(/\D/g, '')] || 1) : 1;
                             const isVip = visitsCount >= 5 || r.tag === 'VIP';
+                            const orderLabel = state.lang === 'ru' ? 'Бронь' : 'הזמנה';
+                            const timesWord = state.lang === 'ru' ? 'раз' : 'פעמים';
 
                             return `
                                 <div class="p-3 space-y-1.5 hover:bg-white/[0.02]">
                                     <div class="flex justify-between items-start">
                                         <div>
                                             <div class="flex items-center gap-2">
-                                                <p class="font-black text-white text-sm">${r.name} (${r.pax || 0} איש)</p>
+                                                <p class="font-black text-white text-sm">${r.name} (${r.pax || 0})</p>
                                                 <span class="text-[9px] px-2 py-0.5 rounded-full font-black uppercase border ${isVip ? 'bg-amber-500 text-black border-amber-400 shadow-sm' : visitsCount > 1 ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-white/5 text-slate-400 border-white/10'}">
-                                                    ${isVip ? `⭐ VIP (${visitsCount} פעמים)` : `הזמנה ${visitsCount}`}
+                                                    ${isVip ? `⭐ VIP (${visitsCount} ${timesWord})` : `${orderLabel} ${visitsCount}`}
                                                 </span>
                                                 ${r.tag && r.tag !== 'רגיל' ? `<span class="text-[8px] bg-slate-800 text-slate-300 border border-white/10 px-1.5 py-0.2 rounded font-bold">${r.tag}</span>` : ''}
                                             </div>
-                                            <p class="text-[11px] text-slate-400 font-medium mt-0.5">${r.phone || 'אין טלפון'}</p>
+                                            <p class="text-[11px] text-slate-400 font-medium mt-0.5">${r.phone || ''}</p>
                                         </div>
                                         <div class="text-left flex flex-col items-end gap-1">
                                             <span class="bg-amber-500/10 text-amber-500 text-[10px] px-2 py-0.5 rounded-md font-black uppercase">${venue.name}</span>
                                             <p class="text-[10px] text-slate-500 font-bold">${formattedDate}</p>
                                             <button onclick="sendReengagementWhatsApp('${r.name.replace(/'/g, "\\'")}', '${r.phone}', '${r.eventDate}')" class="bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-black border border-green-500/30 px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 transition-all mt-1">
-                                                <span>פנה ללקוח</span> <i data-lucide="message-circle" size="12"></i>
+                                                <span>${t('contactClient')}</span> <i data-lucide="message-circle" size="12"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -759,7 +913,6 @@
                                 </div>
                             `;
                         }).join('')}
-                        ${filtered.length === 0 && !state.isArchiveLoading ? '<p class="p-8 text-center text-slate-500 font-bold text-xs uppercase">לא נמצאו תוצאות</p>' : ''}
                     </div>
                 </div>
             `;
@@ -770,29 +923,32 @@
             const venue = allVenues.find(v => v.id === state.venueId);
             const initialPrice = d.manualPrice || (Number(d.pax || 0) * venue.minP);
             return `<div class="glass p-5 rounded-[2rem] space-y-4 text-white shadow-2xl border border-white/10">
-                <div class="flex justify-between items-center"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-400 hover:text-white font-black uppercase text-xs">חזור</button><h2 class="text-amber-500 font-black uppercase text-xs">פרטי הזמנה</h2></div>
-                <input id="f-name" placeholder="שם לקוח" value="${d.clientName || ''}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-white font-bold outline-none focus:border-amber-500">
-                <input id="f-phone" placeholder="טלפון" type="tel" value="${d.clientPhone || ''}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-left text-white outline-none focus:border-amber-500" dir="ltr">
+                <div class="flex justify-between items-center"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-400 hover:text-white font-black uppercase text-xs">${t('back')}</button><h2 class="text-amber-500 font-black uppercase text-xs">${t('bookingDetails')}</h2></div>
+                <input id="f-name" placeholder="${t('clientName')}" value="${d.clientName || ''}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-white font-bold outline-none focus:border-amber-500">
+                <input id="f-phone" placeholder="${t('phone')}" type="tel" value="${d.clientPhone || ''}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 text-white outline-none focus:border-amber-500" dir="ltr">
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold">שעה</label><input id="f-time" type="time" value="${d.time || '22:30'}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white font-bold outline-none"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold">אנשים</label><input id="f-pax" type="number" inputmode="numeric" placeholder="0" value="${d.pax || ''}" onblur="const p=document.getElementById('f-price'); if(!p.value) p.value = this.value * ${venue.minP}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-center font-black text-lg outline-none"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold">${t('hour')}</label><input id="f-time" type="time" value="${d.time || '22:30'}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white font-bold outline-none"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold">${t('people')}</label><input id="f-pax" type="number" inputmode="numeric" placeholder="0" value="${d.pax || ''}" onblur="const p=document.getElementById('f-price'); if(!p.value) p.value = this.value * ${venue.minP}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-center font-black text-lg outline-none"></div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="text-[9px] text-amber-500 uppercase font-bold">מינימום ₪</label><input id="f-price" type="number" inputmode="numeric" value="${initialPrice || ''}" class="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-500 text-center font-black text-sm outline-none"></div>
+                    <div><label class="text-[9px] text-amber-500 uppercase font-bold">${t('minOrder')}</label><input id="f-price" type="number" inputmode="numeric" value="${initialPrice || ''}" class="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-500 text-center font-black text-sm outline-none"></div>
                     <div>
-                        <label class="text-[9px] text-slate-400 uppercase font-bold">תגית לקוח</label>
+                        <label class="text-[9px] text-slate-400 uppercase font-bold">${t('clientTag')}</label>
                         <select id="f-tag" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white font-bold text-xs outline-none">
-                            <option value="רגיל" ${d.tag==='רגיל'?'selected':''}>רגיל</option>
-                            <option value="VIP" ${d.tag==='VIP'?'selected':''}>⭐ VIP</option>
-                            <option value="יום הולדת" ${d.tag==='יום הולדת'?'selected':''}>🎂 יום הולדת</option>
-                            <option value="מוציא כבד" ${d.tag==='מוציא כבד'?'selected':''}>🍾 מוציא כבד</option>
-                            <option value="בעייתי" ${d.tag==='בעייתי'?'selected':''}>⚠️ בעייתי</option>
+                            <option value="רגיל" ${d.tag==='רגיל'?'selected':''}>${t('tagRegular')}</option>
+                            <option value="VIP" ${d.tag==='VIP'?'selected':''}>${t('tagVip')}</option>
+                            <option value="יום הולדת" ${d.tag==='יום הולדת'?'selected':''}>${t('tagBirthday')}</option>
+                            <option value="מוציא כבד" ${d.tag==='מוציא כבד'?'selected':''}>${t('tagHighSpender')}</option>
+                            <option value="בעייתי" ${d.tag==='בעייתי'?'selected':''}>${t('tagProblematic')}</option>
                         </select>
                     </div>
                 </div>
-                <textarea id="f-notes" placeholder="הערות..." class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none h-16 text-xs focus:border-amber-500">${d.notes || ''}</textarea>
-                <div class="flex gap-1.5">${['table','bar','free'].map(t => `<button onclick="syncFormAndSetType('${t}')" class="flex-1 py-3 rounded-xl border-2 font-black uppercase transition-all ${state.formData.type===t?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10 hover:border-white/20'}">${t==='table'?'שולחן':t==='bar'?'בר':'חינם'}</button>`).join('')}</div>
-                <button onclick="saveCurrentBooking()" class="w-full btn-amber hover:bg-amber-400 py-3.5 rounded-xl uppercase font-black shadow-xl transition-colors">שמור הזמנה</button>
+                <textarea id="f-notes" placeholder="${t('notes')}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white outline-none h-16 text-xs focus:border-amber-500">${d.notes || ''}</textarea>
+                <div class="flex gap-1.5">${['table','bar','free'].map(type => {
+                    const label = type==='table' ? t('tables') : type==='bar' ? t('bar') : t('free');
+                    return `<button onclick="syncFormAndSetType('${type}')" class="flex-1 py-3 rounded-xl border-2 font-black uppercase transition-all ${state.formData.type===type?'bg-amber-500 text-black border-amber-500 shadow-md':'bg-white/5 text-slate-400 border-white/10 hover:border-white/20'}">${label}</button>`;
+                }).join('')}</div>
+                <button onclick="saveCurrentBooking()" class="w-full btn-amber hover:bg-amber-400 py-3.5 rounded-xl uppercase font-black shadow-xl transition-colors">${t('saveBooking')}</button>
             </div>`;
         }
 
@@ -800,20 +956,20 @@
             return `
             <div class="space-y-4 p-2 text-white">
                 <div class="flex justify-between items-center">
-                    <button onclick="updateState({showUsersMGMT:false})" class="text-xs font-black text-slate-400 flex items-center gap-1 hover:text-white"><i data-lucide="arrow-right" size="14"></i> חזור</button>
-                    <h2 class="font-black text-amber-500 text-xs uppercase">ניהול והרשאות יחצנים</h2>
+                    <button onclick="updateState({showUsersMGMT:false})" class="text-xs font-black text-slate-400 flex items-center gap-1 hover:text-white"><i data-lucide="arrow-right" size="14"></i> ${t('back')}</button>
+                    <h2 class="font-black text-amber-500 text-xs uppercase">${t('promoterManagement')}</h2>
                 </div>
 
                 <div class="glass p-3 rounded-2xl border border-white/10 space-y-2">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase">הוספת יחצן ידנית:</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">${t('addPromoter')}</p>
                     <div class="grid grid-cols-2 gap-2">
-                        <input id="u-n" placeholder="שם היחצן" class="bg-white/5 p-2.5 rounded-xl text-white text-xs outline-none border border-white/10 focus:border-amber-500">
-                        <input id="u-p" placeholder="טלפון (10 ספרות)" class="bg-white/5 p-2.5 rounded-xl text-white text-xs outline-none border border-white/10 focus:border-amber-500" type="tel" dir="ltr">
+                        <input id="u-n" placeholder="${t('promoterNamePlaceholder')}" class="bg-white/5 p-2.5 rounded-xl text-white text-xs outline-none border border-white/10 focus:border-amber-500">
+                        <input id="u-p" placeholder="${t('promoterPhonePlaceholder')}" class="bg-white/5 p-2.5 rounded-xl text-white text-xs outline-none border border-white/10 focus:border-amber-500" type="tel" dir="ltr">
                     </div>
-                    <button onclick="addUserManually()" class="w-full bg-amber-500 hover:bg-amber-400 text-black py-2 rounded-xl font-black text-xs uppercase shadow-md transition-all">+ הוסף ואשר יחצן</button>
+                    <button onclick="addUserManually()" class="w-full bg-amber-500 hover:bg-amber-400 text-black py-2 rounded-xl font-black text-xs uppercase shadow-md transition-all">${t('addAndApprove')}</button>
                 </div>
 
-                ${state.isUsersLoading ? '<p class="text-center text-amber-500 font-bold py-6">טוען יחצנים...</p>' : ''}
+                ${state.isUsersLoading ? '<p class="text-center text-amber-500 font-bold py-6">...</p>' : ''}
 
                 <div class="glass rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[60vh] overflow-y-auto border border-white/10">
                     ${state.users.map(u => {
@@ -826,21 +982,21 @@
                                     <p class="font-black text-white text-sm flex items-center gap-2">
                                         ${u.name}
                                         <span class="text-[9px] px-2 py-0.5 rounded font-black uppercase ${isApproved ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}">
-                                            ${isApproved ? 'מאושר' : 'ממתין לאישור'}
+                                            ${isApproved ? t('approved') : t('waitingApproval')}
                                         </span>
                                     </p>
                                     <p class="text-[10px] text-slate-400 font-mono">${u.id}</p>
                                 </div>
                                 <div class="flex gap-1">
                                     ${!isApproved ? `
-                                        <button onclick="approveUser('${u.id}')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow transition-all">אשר</button>
+                                        <button onclick="approveUser('${u.id}')" class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow transition-all">${t('approve')}</button>
                                     ` : ''}
-                                    <button onclick="if(confirm('למחוק יחצן זה?')) db.collection('users').doc('${u.id}').delete().then(() => loadUsersData())" class="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors"><i data-lucide="trash-2" size="16"></i></button>
+                                    <button onclick="if(confirm('${t('deletePromoterConfirm')}')) db.collection('users').doc('${u.id}').delete().then(() => loadUsersData())" class="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors"><i data-lucide="trash-2" size="16"></i></button>
                                 </div>
                             </div>
                             
                             <div class="bg-white/5 p-2 rounded-xl">
-                                <p class="text-[9px] text-slate-400 font-bold mb-1 uppercase">מועדונים מורשים:</p>
+                                <p class="text-[9px] text-slate-400 font-bold mb-1 uppercase">${t('allowedVenues')}</p>
                                 <div class="flex gap-1.5">
                                     ${allVenues.map(v => {
                                         const hasAccess = uVenues.includes(v.id);
@@ -855,7 +1011,6 @@
                         </div>
                         `;
                     }).join('')}
-                    ${state.users.length === 0 && !state.isUsersLoading ? '<p class="p-6 text-center text-slate-500 font-bold text-xs">אין יחצנים רשומים</p>' : ''}
                 </div>
             </div>`; 
         }
@@ -893,7 +1048,7 @@
             if (val.length >= 10) { 
                 const userDoc = await db.collection('users').doc(val).get(); 
                 if (!userDoc.exists) {
-                    let name = prompt("שם יחצן:"); 
+                    let name = prompt(state.lang === 'ru' ? "Имя промоутера:" : "שם יחצן:"); 
                     if (!name) return; 
                     await db.collection('users').doc(val).set({ 
                         name: name.trim(), 
@@ -902,16 +1057,16 @@
                         allowedVenues: [],
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     }); 
-                    alert("פרטיך נשלחו בהצלחה! המתן לאישור מנהל לפני שתוכל להתחבר.");
+                    alert(state.lang === 'ru' ? "Заявка отправлена. Ожидайте подтверждения." : "פרטיך נשלחו בהצלחה! המתן לאישור מנהל לפני שתוכל להתחבר.");
                     return;
                 } else {
                     const uData = userDoc.data();
                     if (uData.status === 'pending') {
-                        return alert("חשבונך עדיין ממתין לאישור מנהל.");
+                        return alert(state.lang === 'ru' ? "Аккаунт ожидает подтверждения администратора." : "חשבונך עדיין ממתין לאישור מנהל.");
                     }
                     const userAllowed = uData.allowedVenues || [];
                     if (userAllowed.length === 0) {
-                        return alert("חשבונך מאושר אך טרם הוגדרו עבורך מועדונים מורשים. פנה למנהל.");
+                        return alert(state.lang === 'ru' ? "Нет разрешенных клубов. Обратитесь к администратору." : "חשבונך מאושר אך טרם הוגדרו עבורך מועדונים מורשים. פנה למנהל.");
                     }
                     updateState({ 
                         role: 'promoter', 
@@ -926,7 +1081,7 @@
                     localStorage.setItem('club_venues', JSON.stringify(userAllowed));
                 }
             } else {
-                alert("יש להזין קוד תקין או מספר טלפון בן 10 ספרות");
+                alert(state.lang === 'ru' ? "Введите корректный номер телефона" : "יש להזין קוד תקין או מספר טלפון בן 10 ספרות");
             }
         }
 
@@ -949,7 +1104,7 @@
         async function addUserManually() { 
             const name = document.getElementById('u-n').value.trim(); 
             const phone = document.getElementById('u-p').value.trim(); 
-            if(!name || phone.length < 10) return alert("יש למלא שם ומספר טלפון תקין (10 ספרות)"); 
+            if(!name || phone.length < 10) return alert(state.lang === 'ru' ? "Заполните имя и корректный номер телефона" : "יש למלא שם ומספר טלפון תקין (10 ספרות)"); 
             await db.collection('users').doc(phone).set({ 
                 name, 
                 phone, 
@@ -964,17 +1119,25 @@
 
         function render() {
             const root = document.getElementById('app');
+            document.getElementById('html-root').setAttribute('dir', state.lang === 'he' ? 'rtl' : 'ltr');
+
             if (!state.role) { 
                 root.innerHTML = `
                     <div class="h-screen flex items-center justify-center p-4 text-white">
-                        <div class="w-full max-w-xs glass p-8 rounded-3xl text-center shadow-2xl border-white/10">
+                        <div class="w-full max-w-xs glass p-8 rounded-3xl text-center shadow-2xl border-white/10 relative">
+                            <!-- Language Toggle -->
+                            <div class="absolute top-4 right-4 flex gap-1">
+                                <button onclick="setLanguage('he')" class="px-2 py-1 text-[10px] font-bold rounded-md ${state.lang==='he'?'bg-amber-500 text-black':'text-slate-400 bg-white/5'}">עב</button>
+                                <button onclick="setLanguage('ru')" class="px-2 py-1 text-[10px] font-bold rounded-md ${state.lang==='ru'?'bg-amber-500 text-black':'text-slate-400 bg-white/5'}">RU</button>
+                            </div>
+
                             <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shadow-lg shadow-amber-500/10">
                                 <i data-lucide="crown" size="32" class="text-amber-500"></i>
                             </div>
                             <h2 class="text-2xl font-black mb-1 text-amber-500 italic uppercase">CLUBPRO</h2>
                             <div class="inline-block bg-white/10 border border-white/15 px-2.5 py-0.5 rounded-full text-[10px] font-mono text-amber-400 font-bold mb-5">${APP_VERSION}</div>
-                            <input id="l-in" type="text" placeholder="מספר טלפון / קוד" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 mb-4 text-center text-white outline-none font-bold text-lg focus:border-amber-500">
-                            <button onclick="loginUser()" class="w-full btn-amber py-3.5 rounded-xl uppercase font-black shadow-lg">כניסה</button>
+                            <input id="l-in" type="text" placeholder="${t('loginPlaceholder')}" class="w-full bg-white/5 border border-white/10 rounded-xl p-3.5 mb-4 text-center text-white outline-none font-bold text-lg focus:border-amber-500">
+                            <button onclick="loginUser()" class="w-full btn-amber py-3.5 rounded-xl uppercase font-black shadow-lg">${t('loginButton')}</button>
                         </div>
                     </div>`; 
                 lucide.createIcons();
@@ -987,18 +1150,18 @@
                 root.innerHTML = `
                     <div class="h-screen p-6 flex flex-col items-center justify-center space-y-4 text-white">
                         <div class="text-center mb-2">
-                            <h2 class="text-lg font-black text-amber-500 uppercase italic">בחר מועדון</h2>
+                            <h2 class="text-lg font-black text-amber-500 uppercase italic">${t('selectVenue')}</h2>
                             <span class="text-[10px] font-mono text-slate-500 font-bold">${APP_VERSION}</span>
                         </div>
                         <div class="grid grid-cols-1 gap-3 w-full max-w-xs">${accessibleVenues.map(v => `<div onclick="updateState({venueId: '${v.id}'})" class="glass p-5 rounded-2xl text-center text-lg font-black uppercase border-white/10 cursor-pointer shadow-xl hover:border-amber-500/50 transition-all">${v.name}</div>`).join('')}</div>
-                        <button onclick="logout()" class="text-slate-500 hover:text-slate-300 font-bold mt-8 underline text-xs tracking-widest flex items-center gap-2 transition-colors"><i data-lucide="log-out" size="14"></i> LOGOUT</button>
+                        <button onclick="logout()" class="text-slate-500 hover:text-slate-300 font-bold mt-8 underline text-xs tracking-widest flex items-center gap-2 transition-colors"><i data-lucide="log-out" size="14"></i> ${t('logout')}</button>
                     </div>`; 
                 lucide.createIcons(); 
                 return; 
             }
 
             if (!state.isDateConfirmed) { 
-                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white">${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-xs border border-amber-500/30 px-5 py-2 rounded-full uppercase flex items-center gap-1"><i data-lucide="arrow-right" size="14"></i> חזור</button>` : ''}<h2 class="text-xl font-black text-center uppercase">בחר תאריך:</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${state.selectedDate}" onchange="state.selectedDate = this.value; render();" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white font-black text-center outline-none"><button onclick="updateState({isDateConfirmed: true})" class="w-full btn-amber py-4 rounded-xl mt-6 font-black uppercase shadow-lg">אישור</button></div></div>`; 
+                root.innerHTML = `<div class="h-screen p-6 flex flex-col items-center justify-center space-y-6 text-white">${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null})" class="text-amber-500 font-black text-xs border border-amber-500/30 px-5 py-2 rounded-full uppercase flex items-center gap-1"><i data-lucide="arrow-right" size="14"></i> ${t('back')}</button>` : ''}<h2 class="text-xl font-black text-center uppercase">${t('selectDate')}</h2><div class="glass p-8 rounded-3xl w-full max-w-xs text-center border-white/5 shadow-2xl"><input type="date" value="${state.selectedDate}" onchange="state.selectedDate = this.value; render();" class="w-full bg-white/10 border border-white/20 rounded-xl p-4 text-white font-black text-center outline-none"><button onclick="updateState({isDateConfirmed: true})" class="w-full btn-amber py-4 rounded-xl mt-6 font-black uppercase shadow-lg">${t('confirm')}</button></div></div>`; 
                 lucide.createIcons(); 
                 return; 
             }
@@ -1006,8 +1169,8 @@
             const venue = allVenues.find(v => v.id === state.venueId);
 
             root.innerHTML = `
-                <div class="flex flex-col h-screen overflow-hidden text-right text-white relative">
-                    ${state.transferId ? `<div class="transfer-overlay"><div class="glass p-6 rounded-3xl w-full max-w-xs text-center space-y-4 border border-white/10"><h3 class="font-black text-amber-500 uppercase">שינוע הזמנה</h3><div class="flex flex-col gap-2">${accessibleVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-3.5 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-400 font-bold pt-2">ביטול</button></div></div>` : ''}
+                <div class="flex flex-col h-screen overflow-hidden text-white relative">
+                    ${state.transferId ? `<div class="transfer-overlay"><div class="glass p-6 rounded-3xl w-full max-w-xs text-center space-y-4 border border-white/10"><h3 class="font-black text-amber-500 uppercase">${t('moveBooking')}</h3><div class="flex flex-col gap-2">${accessibleVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-3.5 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-400 font-bold pt-2">${t('cancel')}</button></div></div>` : ''}
                     <header class="bg-slate-950 p-2.5 border-b border-white/5 flex justify-between items-center shadow-lg">
                         <div class="flex items-center gap-2">
                             <div class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
@@ -1016,10 +1179,14 @@
                             <div class="font-black italic text-base text-amber-500">${venue.name}</div>
                             <span class="text-[9px] font-mono text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 font-bold">${APP_VERSION}</span>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="updateState({isDateConfirmed: false})" class="text-slate-300 font-black text-[10px] border border-white/10 px-2.5 py-1.5 rounded-lg uppercase hover:bg-white/5">תאריך</button>
-                            ${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-500 font-black text-[10px] border border-amber-500/50 px-2.5 py-1.5 rounded-lg uppercase hover:bg-amber-500/10">בית</button>` : ''}
-                            <button onclick="logout()" class="text-red-400 border border-red-500/30 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10"><i data-lucide="log-out" size="14"></i></button>
+                        <div class="flex items-center gap-1.5">
+                            <!-- כפתור מעבר שפה מהיר -->
+                            <button onclick="setLanguage(state.lang === 'he' ? 'ru' : 'he')" class="bg-white/10 border border-white/20 text-amber-400 font-bold text-[10px] px-2 py-1 rounded-lg">
+                                ${state.lang === 'he' ? 'RU' : 'עב'}
+                            </button>
+                            <button onclick="updateState({isDateConfirmed: false})" class="text-slate-300 font-black text-[10px] border border-white/10 px-2 py-1.5 rounded-lg uppercase hover:bg-white/5">${t('date')}</button>
+                            ${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-500 font-black text-[10px] border border-amber-500/50 px-2 py-1.5 rounded-lg uppercase hover:bg-amber-500/10">${t('home')}</button>` : ''}
+                            <button onclick="logout()" class="text-red-400 border border-red-500/30 px-2 py-1.5 rounded-lg hover:bg-red-500/10"><i data-lucide="log-out" size="14"></i></button>
                         </div>
                     </header>
                     <main class="flex-1 overflow-y-auto p-2.5 bg-slate-950/50">
