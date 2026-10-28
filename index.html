@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V136</title>
+    <title>ClubPro V137</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V136";
+        const APP_VERSION = "V137";
 
         const translations = {
             he: {
@@ -78,6 +78,7 @@
                 confirm: "אישור",
                 moveBooking: "שינוע הזמנה",
                 cancel: "ביטול",
+                close: "סגור",
                 tagRegular: "רגיל",
                 tagVip: "⭐ VIP",
                 tagBirthday: "🎂 יום הולדת",
@@ -104,7 +105,8 @@
                 loginPlaceholder: "מספר טלפון / קוד",
                 loginButton: "כניסה",
                 deleteConfirm: "למחוק הזמנה זו?",
-                deletePromoterConfirm: "למחוק יחצן זה?"
+                deletePromoterConfirm: "למחוק יחצן זה?",
+                noteFor: "הערה עבור"
             },
             ru: {
                 tables: "Столы",
@@ -143,6 +145,7 @@
                 confirm: "Подтвердить",
                 moveBooking: "Перенос брони",
                 cancel: "Отмена",
+                close: "Закрыть",
                 tagRegular: "Обычный",
                 tagVip: "⭐ VIP",
                 tagBirthday: "🎂 День рождения",
@@ -169,7 +172,8 @@
                 loginPlaceholder: "Номер телефона / код",
                 loginButton: "Войти",
                 deleteConfirm: "Удалить эту бронь?",
-                deletePromoterConfirm: "Удалить этого промоутера?"
+                deletePromoterConfirm: "Удалить этого промоутера?",
+                noteFor: "Примечание для"
             }
         };
 
@@ -241,7 +245,8 @@
             users: [], 
             isAdding: false, 
             editingId: null,
-            transferId: null, 
+            transferId: null,
+            activeModalNote: null, // מכיל אובייקט של הערה פעילה להצגה מלאה { name, notes }
             showArrived: false, 
             showUsersMGMT: false,
             showArchiveMGMT: false,
@@ -633,7 +638,40 @@
             exportToWhatsApp(targetDate, list);
         }
 
-        // אפשרות 1: בלון הודעה לחיץ (💬) - 0 תוספת לגובה השורה
+        function openNoteModal(resId) {
+            const res = state.reservations.find(r => r.id === resId);
+            if (res && res.notes) {
+                updateState({ activeModalNote: { name: res.name, notes: res.notes } });
+            }
+        }
+
+        function renderNoteModal() {
+            if (!state.activeModalNote) return '';
+            return `
+            <div class="transfer-overlay" onclick="updateState({activeModalNote: null})">
+                <div class="glass-card p-5 rounded-3xl w-full max-w-sm text-right space-y-3.5 border border-amber-500/30 shadow-2xl animate-in fade-in zoom-in-95 duration-150" onclick="event.stopPropagation()">
+                    <div class="flex justify-between items-center border-b border-white/10 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-base">💬</span>
+                            <h3 class="font-black text-amber-400 text-xs uppercase">${t('noteFor')}: ${state.activeModalNote.name}</h3>
+                        </div>
+                        <button onclick="updateState({activeModalNote: null})" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                            <i data-lucide="x" size="16"></i>
+                        </button>
+                    </div>
+
+                    <!-- אזור תוכן ההערה עם גלילה מלאה לכל אורך הטקסט -->
+                    <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-white/10 text-slate-200 text-xs font-medium max-h-[45vh] overflow-y-auto whitespace-pre-wrap break-words leading-relaxed select-text">
+                        ${state.activeModalNote.notes}
+                    </div>
+
+                    <button onclick="updateState({activeModalNote: null})" class="w-full btn-amber py-2.5 rounded-xl font-black uppercase text-xs shadow-lg">
+                        ${t('close')}
+                    </button>
+                </div>
+            </div>`;
+        }
+
         function renderRow(res) {
             const venue = allVenues.find(v => v.id === state.venueId);
             const isArrived = !!res.arrived;
@@ -642,7 +680,7 @@
             return `
             <div class="px-2.5 py-1.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${isArrived ? 'bg-emerald-950/20' : ''}">
                 
-                <!-- שורה 1: כפתור הגעה + שם הלקוח + אייקון הודעה לחיץ + שעת הגעה -->
+                <!-- שורה 1: כפתור הגעה + שם הלקוח + בלון הערה לחיץ + שעת הגעה -->
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-1.5 min-w-0 flex-1">
                         <button onclick="toggleCheckIn('${res.id}', ${isArrived}, ${res.pax})" 
@@ -655,12 +693,13 @@
                         <div class="flex items-center gap-1.5 min-w-0 truncate">
                             <span class="font-bold text-white text-[13px] tracking-tight truncate">${res.name}</span>
 
-                            <!-- אייקון הודעה קומפקטי לחיץ (אפשרות 1) -->
+                            <!-- בלון הודעה מודרני שפותח חלון מלא לכל אורך ההערה -->
                             ${hasNotes ? `
-                                <button onclick="alert('💬 הערה עבור ${res.name}:\\n\\n${res.notes.replace(/'/g, "\\'")}')" 
-                                        title="לחץ לקריאת ההערה"
-                                        class="bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 rounded px-1 py-0.2 text-[10px] font-bold flex items-center gap-0.5 shrink-0 transition-colors">
-                                    💬
+                                <button onclick="openNoteModal('${res.id}')" 
+                                        title="לחץ לקריאת ההערה המלאה"
+                                        class="bg-amber-500/20 hover:bg-amber-500/35 border border-amber-500/40 text-amber-300 rounded px-1.5 py-0.2 text-[10px] font-bold flex items-center gap-1 shrink-0 transition-transform active:scale-95 shadow-sm">
+                                    <span>💬</span>
+                                    <span class="text-[9px] font-black text-amber-400">הערה</span>
                                 </button>
                             ` : ''}
 
@@ -1242,6 +1281,9 @@
                 <div class="flex flex-col h-screen overflow-hidden text-white relative">
                     ${state.transferId ? `<div class="transfer-overlay"><div class="glass-card p-6 rounded-3xl w-full max-w-xs text-center space-y-4 border border-white/10"><h3 class="font-black text-amber-500 uppercase">${t('moveBooking')}</h3><div class="flex flex-col gap-2">${accessibleVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-3 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase text-xs">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-400 font-bold pt-2">${t('cancel')}</button></div></div>` : ''}
                     
+                    <!-- מודאל הערה מלא ונגיש -->
+                    ${renderNoteModal()}
+
                     <header class="bg-slate-950/80 backdrop-blur-md px-3 py-2 border-b border-white/[0.06] flex justify-between items-center shadow-lg">
                         <div class="flex items-center gap-2">
                             <div class="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
