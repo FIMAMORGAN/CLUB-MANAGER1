@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V130</title>
+    <title>ClubPro V131</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -32,10 +32,11 @@
 </head>
 <body>
     <div id="app"></div>
-    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <!-- צליל צ'יים נעים ומעודן -->
+    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V130";
+        const APP_VERSION = "V131";
 
         const translations = {
             he: {
@@ -190,9 +191,30 @@
         const getToday = () => new Date().toLocaleDateString('sv-SE');
 
         const allVenues = [
-            { id: 'shalvata', name: 'Fashion-Bar', map: 'shalvata.html', waze: 'התערוכה 3, ת"א', wazeLink: 'https://waze.com/ul?q=התערוכה%203%20תל%20אביב&navigate=yes', minP: 250 },
-            { id: 'q_gallery', name: 'PULSE TLV', map: 'floorplan.html', waze: 'רוטשילד 19, ת"א', wazeLink: 'https://waze.com/ul?q=רוטשילד%2019%20תל%20אביב&navigate=yes', minP: 200 },
-            { id: 'ruki_vverh', name: 'RUKI-VERH', map: null, waze: 'טברסקי 14, ת"א', wazeLink: 'https://waze.com/ul?q=טברסקי%2014%20תל%20אביב&navigate=yes', minP: 150 }
+            { 
+                id: 'shalvata', 
+                name: 'Fashion-Bar', 
+                map: 'shalvata.html', 
+                address: 'טברסקי 14 תל אביב',
+                wazeLink: 'https://ul.waze.com/ul?venue_id=22806849.228002951.411752&overview=yes&utm_campaign=live_map&utm_source=waze_website&utm_medium=lm_share_location', 
+                minP: 250 
+            },
+            { 
+                id: 'q_gallery', 
+                name: 'PULSE TLV', 
+                map: 'floorplan.html', 
+                address: 'רוטשילד 19, ת"א', 
+                wazeLink: 'https://waze.com/ul?q=רוטשילד%2019%20תל%20אביב&navigate=yes', 
+                minP: 200 
+            },
+            { 
+                id: 'ruki_vverh', 
+                name: 'RUKI-VERH', 
+                map: null, 
+                address: 'טברסקי 14, ת"א', 
+                wazeLink: 'https://waze.com/ul?q=טברסקי%2014%20תל%20אביב&navigate=yes', 
+                minP: 150 
+            }
         ];
 
         let searchDebounceTimer = null;
@@ -551,20 +573,25 @@
             document.body.removeChild(link);
         }
 
+        // שליחת וואטסאפ ללקוח עם הנוסח המעודכן ל-Fashion-Bar
         function sendWhatsAppToClient(id) {
             const res = state.reservations.find(r => r.id === id);
             const venue = allVenues.find(v => v.id === state.venueId);
             
-            let msg = state.lang === 'ru'
-                ? `Привет, ${res.name}! Ваша бронь в ${venue.name} подтверждена на ${res.pax} чел. к ${res.time||'22:30'}.📍 ${venue.waze}. ${venue.wazeLink}`
-                : `אהלן ${res.name}, הזמנתך ל-${venue.name} מאושרת ל-${res.pax} אנשים בשעה ${res.time||'22:30'}.📍 ${venue.waze}. ${venue.wazeLink}`;
-            
-            if (venue.id === 'q_gallery') {
+            let msg = "";
+
+            if (venue.id === 'shalvata') { // Fashion-Bar
+                msg = `הזמנה מאושרת ל פשיין-בר תל אביב לכמות ${res.pax} אנשים לשעה ${res.time||'22:30'}  , אם יש שינוים יש להודיע מראש, כתובות טברסקי 14 תל אביב:\nקישור ל WAZE : \nhttps://ul.waze.com/ul?venue_id=22806849.228002951.411752&overview=yes&utm_campaign=live_map&utm_source=waze_website&utm_medium=lm_share_location\nנא לאשר הזמנה`;
+            } else if (venue.id === 'q_gallery') {
                 if (state.lang === 'ru') {
-                    msg += `\n\n🚗 Есть парковка на Ротшильд 1, разовый тариф 35 ₪.\n⏰ Время прибытия с 22:00 до 22:30.\n⚠️ При любых изменениях просьба сообщить заранее.`;
+                    msg = `Привет, ${res.name}! Ваша бронь в ${venue.name} подтверждена на ${res.pax} чел. к ${res.time||'22:30'}.📍 ${venue.address}. ${venue.wazeLink}\n\n🚗 Есть парковка на Ротшильд 1, разовый тариф 35 ₪.\n⏰ Время прибытия с 22:00 до 22:30.\n⚠️ При любых изменениях просьба сообщить заранее.`;
                 } else {
-                    msg += `\n\n🚗 יש חניון ברוטשילד 1, עלות חנייה חד פעמית 35 ש"ח.\n⏰ הגעה בין 22:00 ל-22:30.\n⚠️ אם יש שינויים בהזמנה או לא מגיעים, יש להודיע מראש.`;
+                    msg = `אהלן ${res.name}, הזמנתך ל-${venue.name} מאושרת ל-${res.pax} אנשים בשעה ${res.time||'22:30'}.📍 ${venue.address}. ${venue.wazeLink}\n\n🚗 יש חניון ברוטשילד 1, עלות חנייה חד פעמית 35 ש"ח.\n⏰ הגעה בין 22:00 ל-22:30.\n⚠️ אם יש שינויים בהזמנה או לא מגיעים, יש להודיע מראש.`;
                 }
+            } else {
+                msg = state.lang === 'ru'
+                    ? `Привет, ${res.name}! Ваша бронь в ${venue.name} подтверждена на ${res.pax} чел. к ${res.time||'22:30'}.📍 ${venue.address}. ${venue.wazeLink}`
+                    : `אהלן ${res.name}, הזמנתך ל-${venue.name} מאושרת ל-${res.pax} אנשים בשעה ${res.time||'22:30'}.📍 ${venue.address}. ${venue.wazeLink}`;
             }
             
             window.open(`https://wa.me/${res.phone.replace(/\D/g,'').replace(/^0/,'972')}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -611,45 +638,45 @@
             const isArrived = !!res.arrived;
 
             return `
-            <div class="p-3 border-b border-white/5 hover:bg-white/[0.02] transition-all ${isArrived ? 'bg-green-950/20' : ''}">
-                <div class="flex items-center justify-between gap-2 mb-2">
-                    <div class="flex items-center gap-2.5 flex-1 min-w-0">
-                        <!-- סימון כניסה ירוק פשוט בלחיצה אחת -->
+            <div class="p-2.5 border-b border-white/5 hover:bg-white/[0.02] transition-all ${isArrived ? 'bg-green-950/20' : ''}">
+                <div class="flex items-center justify-between gap-2 mb-1.5">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
                         <button onclick="toggleCheckIn('${res.id}', ${isArrived}, ${res.pax})" 
                                 ondblclick="updateArrivalSplit('${res.id}', ${res.pax})" 
-                                class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border transition-transform active:scale-95 ${isArrived ? 'bg-green-500 text-black border-green-400 font-black shadow-lg shadow-green-500/20' : 'bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/50'}">
-                            ${isArrived ? '<i data-lucide="check" size="18"></i>' : '<i data-lucide="user" size="16"></i>'}
+                                class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border transition-transform active:scale-95 ${isArrived ? 'bg-green-500 text-black border-green-400 font-black shadow-lg shadow-green-500/20' : 'bg-white/5 border-white/10 text-slate-400 hover:border-amber-500/50'}">
+                            ${isArrived ? '<i data-lucide="check" size="15"></i>' : '<i data-lucide="user" size="14"></i>'}
                         </button>
                         
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="font-black text-white text-sm tracking-wide break-words">${res.name}</span>
-                                <span class="text-slate-400 font-bold text-xs">(${res.arrivedPax ? `${res.arrivedPax}/` : ''}${res.pax})</span>
-                                ${res.tag && res.tag !== 'רגיל' ? `<span class="text-[8px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded-md font-black">${res.tag}</span>` : ''}
+                                <span class="font-black text-white text-xs tracking-wide break-words">${res.name}</span>
+                                <span class="text-slate-400 font-bold text-[11px]">(${res.arrivedPax ? `${res.arrivedPax}/` : ''}${res.pax})</span>
+                                ${res.tag && res.tag !== 'רגיל' ? `<span class="text-[8px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1 py-0.5 rounded font-black">${res.tag}</span>` : ''}
                             </div>
                         </div>
                     </div>
 
-                    <span class="text-blue-400 font-black text-xs shrink-0 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">${res.time || '22:30'}</span>
+                    <span class="text-blue-400 font-black text-[11px] shrink-0 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">${res.time || '22:30'}</span>
                 </div>
 
                 <div class="flex items-center justify-between gap-2 pt-1 border-t border-white/[0.04]">
                     <div>
-                        <span class="text-xs font-black ${res.tableNumber ? 'text-amber-400' : 'text-slate-300'}">
+                        <span class="text-[11px] font-black ${res.tableNumber ? 'text-amber-400' : 'text-slate-300'}">
                             ${res.tableNumber ? `${t('tablePrefix')} ${res.tableNumber} • ` : ''}₪${res.minOrder || 0}
                         </span>
                     </div>
 
-                    <div class="flex items-center gap-1 shrink-0">
-                        <button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-1.5 hover:bg-purple-500/10 rounded-lg"><i data-lucide="move-horizontal" size="16"></i></button>
-                        ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1.5 hover:bg-blue-500/10 rounded-lg"><i data-lucide="map-pin" size="16"></i></button>` : ''}
-                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-400 p-1.5 hover:bg-green-500/10 rounded-lg"><i data-lucide="message-circle" size="16"></i></button>
-                        <button onclick="editReservation('${res.id}')" class="text-amber-400 p-1.5 hover:bg-amber-500/10 rounded-lg"><i data-lucide="edit-2" size="16"></i></button>
-                        <button onclick="if(confirm('${t('deleteConfirm')}')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-400 p-1.5 hover:bg-red-500/10 rounded-lg"><i data-lucide="trash-2" size="16"></i></button>
+                    <!-- סמלים מוקטנים בעיצוב קומפקטי -->
+                    <div class="flex items-center gap-0.5 shrink-0">
+                        <button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-1 hover:bg-purple-500/10 rounded" title="שינוע"><i data-lucide="move-horizontal" size="13"></i></button>
+                        ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-1 hover:bg-blue-500/10 rounded" title="מפה"><i data-lucide="map-pin" size="13"></i></button>` : ''}
+                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-green-400 p-1 hover:bg-green-500/10 rounded" title="וואטסאפ"><i data-lucide="message-circle" size="13"></i></button>
+                        <button onclick="editReservation('${res.id}')" class="text-amber-400 p-1 hover:bg-amber-500/10 rounded" title="עריכה"><i data-lucide="edit-2" size="13"></i></button>
+                        <button onclick="if(confirm('${t('deleteConfirm')}')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-red-400 p-1 hover:bg-red-500/10 rounded" title="מחיקה"><i data-lucide="trash-2" size="13"></i></button>
                     </div>
                 </div>
 
-                ${res.notes ? `<div class="mt-1.5 text-[10px] text-slate-400 bg-white/[0.03] p-1.5 rounded-lg border border-white/5 font-medium truncate">💬 ${res.notes}</div>` : ''}
+                ${res.notes ? `<div class="mt-1 text-[9px] text-slate-400 bg-white/[0.03] p-1 rounded border border-white/5 font-medium truncate">💬 ${res.notes}</div>` : ''}
             </div>`;
         }
 
@@ -664,7 +691,6 @@
             const venue = allVenues.find(v => v.id === state.venueId);
             const accessibleVenues = getAccessibleVenues();
 
-            // חישובי כמות פיזית (הזמנות) וכמות אנשים
             const pendingTables = pendingList.filter(r => r.type === 'table');
             const pendingBars = pendingList.filter(r => r.type === 'bar');
 
@@ -691,16 +717,14 @@
             return `
                 ${state.role === 'admin' ? `
                     <div class="grid grid-cols-4 gap-1.5 mb-2">
-                        <!-- מונה שולחנות: כמות שולחנות פיזית + כמות אנשים -->
                         <div class="glass p-2 rounded-xl text-center border-t-2 border-amber-500">
                             <p class="text-[9px] text-slate-400 font-bold uppercase">${t('tables')}</p>
-                            <p class="font-black text-sm text-amber-400">${tableCount} <span class="text-[10px] text-slate-400 font-normal">(${tablePax} איש)</span></p>
+                            <p class="font-black text-sm text-amber-400">${tableCount} <span class="text-[10px] text-slate-400 font-normal">(${tablePax})</span></p>
                         </div>
 
-                        <!-- מונה בר: כמות עמדות/הזמנות + כמות אנשים -->
                         <div class="glass p-2 rounded-xl text-center border-t-2 border-blue-500">
                             <p class="text-[9px] text-slate-400 font-bold uppercase">${t('bar')}</p>
-                            <p class="font-black text-sm text-blue-400">${barCount} <span class="text-[10px] text-slate-400 font-normal">(${barPax} איש)</span></p>
+                            <p class="font-black text-sm text-blue-400">${barCount} <span class="text-[10px] text-slate-400 font-normal">(${barPax})</span></p>
                         </div>
 
                         <div class="glass p-2 rounded-xl text-center text-amber-500">
@@ -780,17 +804,22 @@
                     </div>
                 </div>
 
-                <!-- תאריך מוגדל וברור בראש הרשימות -->
+                <!-- תאריך גדול שהוא גם בורר תאריכים ישיר (אינפוט מובנה) -->
                 <div class="flex justify-between items-center mb-3 px-1">
                     <span class="text-sm font-black text-amber-400 uppercase tracking-wider">${venue.name}</span>
-                    <span class="text-base font-black text-white bg-slate-900 px-4 py-1.5 rounded-xl border border-white/20 shadow-md">
-                        📅 ${state.selectedDate.split('-').reverse().join('.')}
-                    </span>
+                    <div class="relative">
+                        <input type="date" value="${state.selectedDate}" 
+                               onchange="state.selectedDate = this.value; updateState({selectedDate: this.value});"
+                               class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10">
+                        <div class="text-base font-black text-white bg-slate-900 hover:bg-slate-800 px-4 py-1.5 rounded-xl border border-white/20 shadow-md flex items-center gap-2 cursor-pointer transition-colors">
+                            <span>📅 ${state.selectedDate.split('-').reverse().join('.')}</span>
+                            <i data-lucide="chevron-down" size="14" class="text-amber-400"></i>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- הפרדה מוחלטת ומובנית בין שולחנות לבר -->
                 <div class="space-y-4">
-                    <!-- בלוק שולחנות נפרד -->
                     <div class="glass rounded-2xl overflow-hidden text-white section-table shadow-xl">
                         <div class="bg-amber-500/10 px-4 py-2.5 flex justify-between items-center border-b border-amber-500/20">
                             <span class="text-xs font-black text-amber-400 uppercase flex items-center gap-1.5">
@@ -801,7 +830,6 @@
                         ${pendingTables.length === 0 ? `<p class="p-4 text-center text-slate-500 font-bold text-xs">אין שולחנות ממתינים</p>` : ''}
                     </div>
 
-                    <!-- בלוק בר נפרד -->
                     <div class="glass rounded-2xl overflow-hidden text-white section-bar shadow-xl">
                         <div class="bg-blue-500/10 px-4 py-2.5 flex justify-between items-center border-b border-blue-500/20">
                             <span class="text-xs font-black text-blue-400 uppercase flex items-center gap-1.5">
@@ -952,7 +980,7 @@
                             <option value="VIP" ${d.tag==='VIP'?'selected':''}>${t('tagVip')}</option>
                             <option value="יום הולדת" ${d.tag==='יום הולדת'?'selected':''}>${t('tagBirthday')}</option>
                             <option value="מוציא כבד" ${d.tag==='מוציא כבד'?'selected':''}>${t('tagHighSpender')}</option>
-                            <option value="בעייתי" ${d.tag==='בעייתי'?'selected':''}>${t('tagProblematic')}</option>
+                            <option value="בעייתי" ${d.tag==='בעייתי'?'selected':''}>⚠️ בעייתי</option>
                         </select>
                     </div>
                 </div>
@@ -1203,7 +1231,6 @@
                             <button onclick="setLanguage(state.lang === 'he' ? 'ru' : 'he')" class="bg-white/10 border border-white/20 text-amber-400 font-bold text-[10px] px-2 py-1 rounded-lg">
                                 ${state.lang === 'he' ? 'RU' : 'עב'}
                             </button>
-                            <button onclick="updateState({isDateConfirmed: false})" class="text-slate-300 font-black text-[10px] border border-white/10 px-2.5 py-1.5 rounded-lg uppercase hover:bg-white/5">${t('date')}</button>
                             ${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-500 font-black text-[10px] border border-amber-500/50 px-2.5 py-1.5 rounded-lg uppercase hover:bg-amber-500/10">${t('home')}</button>` : ''}
                             <button onclick="logout()" class="text-red-400 border border-red-500/30 px-2.5 py-1.5 rounded-lg hover:bg-red-500/10"><i data-lucide="log-out" size="14"></i></button>
                         </div>
