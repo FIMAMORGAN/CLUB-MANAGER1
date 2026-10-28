@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V134</title>
+    <title>ClubPro V135</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V134";
+        const APP_VERSION = "V135";
 
         const translations = {
             he: {
@@ -633,17 +633,18 @@
             exportToWhatsApp(targetDate, list);
         }
 
-        // עיצוב שורה סופר-קומפקטי, מסודר ואסתטי (Micro-Row)
+        // אפשרות 3: נקודת חיווי זוהרת (Badge Dot) ליד שם הלקוח לפתיחה בקליק
         function renderRow(res) {
             const venue = allVenues.find(v => v.id === state.venueId);
             const isArrived = !!res.arrived;
+            const hasNotes = !!(res.notes && res.notes.trim());
 
             return `
             <div class="px-2.5 py-1.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${isArrived ? 'bg-emerald-950/20' : ''}">
                 
-                <!-- שורה 1: כפתור הגעה + שם הלקוח המלא + שעה מצד שמאל -->
+                <!-- שורה 1: כפתור הגעה + שם הלקוח + נקודת חיווי להערה + שעת הגעה -->
                 <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 min-w-0 flex-1">
                         <button onclick="toggleCheckIn('${res.id}', ${isArrived}, ${res.pax})" 
                                 ondblclick="updateArrivalSplit('${res.id}', ${res.pax})" 
                                 title="קליק: הגעה | דאבל קליק: פיצול כמות"
@@ -651,26 +652,40 @@
                             ${isArrived ? '<i data-lucide="check" size="13" stroke-width="3"></i>' : '<i data-lucide="square" size="11" class="opacity-30"></i>'}
                         </button>
                         
-                        <span class="font-bold text-white text-[13px] tracking-tight truncate">${res.name}</span>
-                        ${res.tag && res.tag !== 'רגיל' ? `<span class="text-[8px] bg-amber-500/15 text-amber-300 border border-amber-500/25 px-1 rounded font-black shrink-0">${res.tag}</span>` : ''}
+                        <div class="flex items-center gap-1.5 min-w-0 truncate">
+                            <span class="font-bold text-white text-[13px] tracking-tight truncate cursor-pointer ${hasNotes ? 'hover:text-amber-300' : ''}" 
+                                  onclick="${hasNotes ? `alert('💬 הערה עבור ${res.name}:\\n\\n${res.notes.replace(/'/g, "\\'")}')` : ''}">
+                                ${res.name}
+                            </span>
+
+                            <!-- נקודת חיווי זוהרת (Badge Dot) להערה בלחיצה -->
+                            ${hasNotes ? `
+                                <button onclick="alert('💬 הערה עבור ${res.name}:\\n\\n${res.notes.replace(/'/g, "\\'")}')" 
+                                        title="יש הערה - לחץ לצפייה" 
+                                        class="relative flex h-2 w-2 shrink-0">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                </button>
+                            ` : ''}
+
+                            ${res.tag && res.tag !== 'רגיל' ? `<span class="text-[8px] bg-amber-500/15 text-amber-300 border border-amber-500/25 px-1 rounded font-black shrink-0">${res.tag}</span>` : ''}
+                        </div>
                     </div>
 
                     <span class="text-sky-400 font-bold text-[10px] bg-sky-500/10 px-1.5 py-0.2 rounded border border-sky-500/20 shrink-0 font-mono">${res.time || '22:30'}</span>
                 </div>
 
-                <!-- שורה 2: פרטים מסודרים בצד ימין + כפתורי פעולה קטנים בצד שמאל -->
-                <div class="flex items-center justify-between gap-1 mt-0.5 pr-7">
-                    
+                <!-- שורה 2: פרטים מסודרים בצד ימין + כפתורי פעולה בצד שמאל -->
+                <div class="flex items-center justify-between gap-1 mt-0.5 pr-6">
                     <div class="flex items-center gap-2 text-slate-400 text-[11px] min-w-0 flex-1">
                         <span class="font-bold text-slate-300">👥 ${res.arrivedPax ? `${res.arrivedPax}/` : ''}${res.pax}</span>
                         <span class="text-white/20">•</span>
                         <span class="font-bold ${res.tableNumber ? 'text-amber-400' : 'text-slate-400'}">
                             ${res.tableNumber ? `ש'${res.tableNumber}` : ''} ₪${res.minOrder || 0}
                         </span>
-                        ${res.notes ? `<span class="text-[9px] text-slate-500 italic truncate max-w-[130px]">💬 ${res.notes}</span>` : ''}
                     </div>
 
-                    <!-- סרגל אייקונים קומפקטי ומיושר -->
+                    <!-- סרגל אייקונים קומפקטי -->
                     <div class="flex items-center gap-0.5 shrink-0">
                         <button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-0.5 hover:bg-purple-500/15 rounded" title="שינוע"><i data-lucide="move-horizontal" size="13"></i></button>
                         ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-0.5 hover:bg-blue-500/15 rounded" title="מפה"><i data-lucide="map-pin" size="13"></i></button>` : ''}
@@ -678,7 +693,6 @@
                         <button onclick="editReservation('${res.id}')" class="text-amber-400 p-0.5 hover:bg-amber-500/15 rounded" title="עריכה"><i data-lucide="edit-2" size="13"></i></button>
                         <button onclick="if(confirm('${t('deleteConfirm')}')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-rose-400 p-0.5 hover:bg-rose-500/15 rounded" title="מחיקה"><i data-lucide="trash-2" size="13"></i></button>
                     </div>
-
                 </div>
 
             </div>`;
@@ -822,7 +836,7 @@
                     </div>
                 </div>
 
-                <!-- רשימות שולחנות ובר מופרדות לחלוטין בעיצוב שורה דקה ומהודקת -->
+                <!-- רשימות שולחנות ובר עם שורה דקה ונקודת חיווי להערות -->
                 <div class="space-y-3">
                     
                     <!-- קוביית שולחנות -->
