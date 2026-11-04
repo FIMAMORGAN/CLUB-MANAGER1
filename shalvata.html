@@ -50,7 +50,7 @@
             transform: translate(-50%, -50%) scale(0.95);
         }
 
-        /* בחירת שולחן: מסגרת זהב ניאון זוהרת ללא החשכה של פנים השולחן */
+        /* בחירת שולחן מרובה: מסגרת זהב ניאון מהבהבת ללא החשכה */
         .spot-selected {
             background: transparent !important;
             outline: 2px solid #f59e0b !important;
@@ -64,24 +64,23 @@
             100% { box-shadow: 0 0 18px rgba(245, 158, 11, 0.9); }
         }
 
-        /* מנעול תלוי חיצוני: יושב מעל הקובייה מבחוץ ואינו דורך על שום מספר */
-        .lock-badge-corner {
+        /* תגית "משובץ" חיצונית בפינה ללא הפרעה למספרי השולחנות */
+        .assigned-badge {
             position: absolute;
-            top: -11px;
-            left: -6px;
+            top: -9px;
+            left: -4px;
             background: #090d16;
-            border: 1.5px solid #f59e0b;
+            border: 1px solid #f59e0b;
             color: #f59e0b;
             font-size: 8px;
-            width: 17px;
-            height: 17px;
+            font-weight: 900;
+            padding: 1px 4.5px;
             border-radius: 9999px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.9), 0 0 8px rgba(245, 158, 11, 0.4);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 0 6px rgba(245, 158, 11, 0.35);
             z-index: 30;
             pointer-events: none;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
         }
 
         .overlay {
@@ -116,7 +115,7 @@
                 <span>✨</span> פנוי
             </div>
             <div class="flex items-center gap-1 text-[9px] font-bold text-amber-400/90 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-                <span>🔒</span> תפוס
+                <span>משובץ</span>
             </div>
         </div>
     </header>
@@ -182,7 +181,6 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // הגדרת מיקומי השולחנות עם שטח מגע מדויק מעל כל שולחן
         const TABLES_DEF = [
             // מתחם עליון (שמאל לימין)
             { id: "250", top: "12%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250" },
@@ -273,9 +271,9 @@
                 spot.style.width = tbl.w;
                 spot.style.height = tbl.h;
 
-                // מנעול תלוי בפינה השמאלית העליונה מחוץ לטקסט
+                // תגית "משובץ" חיצונית בפינה
                 if (isOccupied) {
-                    spot.innerHTML = `<span class="lock-badge-corner" title="תפוס ע״י ${occupiedRes.name}">🔒</span>`;
+                    spot.innerHTML = `<span class="assigned-badge" title="משובץ ע״י ${occupiedRes.name}">משובץ</span>`;
                 }
 
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
@@ -288,7 +286,7 @@
         function handleTableClick(tbl, occupiedRes) {
             if (occupiedRes) {
                 if (selectedTableIds.length > 0 || assignToId) {
-                    alert(`שולחן ${tbl.label} תפוס ע"י ${occupiedRes.name}!`);
+                    alert(`שולחן ${tbl.label} משובץ כבר ע"י ${occupiedRes.name}!`);
                     return;
                 }
                 openModal(tbl, occupiedRes);
@@ -402,7 +400,7 @@
             body.innerHTML = `
                 <div class="bg-amber-500/10 p-3.5 rounded-2xl border border-amber-500/30 space-y-1.5">
                     <div class="flex items-center justify-between">
-                        <span class="text-amber-400 font-black text-xs">🔒 שולחנות בהזמנה: ${bookedTables}</span>
+                        <span class="text-amber-400 font-black text-xs">שולחנות משובצים: ${bookedTables}</span>
                         <span class="text-slate-400 text-[10px] font-mono">${occupiedRes.time || '22:30'}</span>
                     </div>
                     <p class="font-bold text-white text-sm">👤 לקוח: ${occupiedRes.name}</p>
