@@ -32,7 +32,7 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* אזורי לחיצה שקופים */
+        /* אזור מגע שקוף לחלוטין */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -42,39 +42,44 @@
             cursor: pointer;
             z-index: 10;
             background: transparent;
-            border-radius: 0.75rem;
-            transition: all 0.2s ease;
+            border-radius: 0.6rem;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .table-spot:active {
-            transform: translate(-50%, -50%) scale(0.94);
+            transform: translate(-50%, -50%) scale(0.95);
         }
 
-        /* אפקט בחירת שולחן מרובה - הילה זהובה אלגנטית במקום מסגרת גסה */
+        /* בחירת שולחן: מסגרת זהב ניאון זוהרת ללא החשכה של פנים השולחן */
         .spot-selected {
-            background: radial-gradient(circle, rgba(245, 158, 11, 0.28) 0%, rgba(245, 158, 11, 0.08) 100%) !important;
-            border: 1px solid rgba(245, 158, 11, 0.75) !important;
-            box-shadow: 0 0 16px rgba(245, 158, 11, 0.5), inset 0 0 10px rgba(245, 158, 11, 0.2) !important;
-            backdrop-filter: blur(1px);
+            background: transparent !important;
+            outline: 2px solid #f59e0b !important;
+            outline-offset: 1px;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.75), inset 0 0 10px rgba(245, 158, 11, 0.15) !important;
+            animation: pulse-border 1.5s infinite alternate;
         }
 
-        /* מנעול זעיר מחוץ לטקסט ולמספרים בפינה העליונה */
+        @keyframes pulse-border {
+            0% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+            100% { box-shadow: 0 0 18px rgba(245, 158, 11, 0.9); }
+        }
+
+        /* מנעול תלוי חיצוני: יושב מעל הקובייה מבחוץ ואינו דורך על שום מספר */
         .lock-badge-corner {
             position: absolute;
-            top: -6px;
-            right: -6px;
-            background: rgba(15, 23, 42, 0.92);
-            backdrop-filter: blur(6px);
-            border: 1px solid rgba(245, 158, 11, 0.7);
+            top: -11px;
+            left: -6px;
+            background: #090d16;
+            border: 1.5px solid #f59e0b;
             color: #f59e0b;
-            font-size: 9px;
+            font-size: 8px;
             width: 17px;
             height: 17px;
             border-radius: 9999px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.9), 0 0 6px rgba(245, 158, 11, 0.35);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.9), 0 0 8px rgba(245, 158, 11, 0.4);
             z-index: 30;
             pointer-events: none;
         }
@@ -116,7 +121,7 @@
         </div>
     </header>
 
-    <!-- הודעת שיבוץ -->
+    <!-- הודעת שיבוץ פעיל -->
     <div id="assign-banner" class="hidden w-full max-w-lg mb-2 bg-amber-500/20 border border-amber-500/50 p-2 rounded-xl text-center">
         <p class="text-xs font-black text-amber-300">בחר שולחנות לשיבוץ: <span id="assign-client-name" class="text-white underline"></span></p>
     </div>
@@ -129,7 +134,7 @@
         </div>
     </main>
 
-    <!-- סרגל תחתון קבוע לבחירת מספר שולחנות במקביל -->
+    <!-- סרגל תחתון אלגנטי לבחירה מרובה -->
     <div id="multi-select-bar" class="hidden fixed bottom-3 inset-x-3 max-w-md mx-auto glass border border-amber-500/40 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 z-40 animate-in fade-in slide-in-from-bottom duration-200">
         <div>
             <p class="text-[10px] text-slate-400 font-bold uppercase">שולחנות שנבחרו:</p>
@@ -177,24 +182,25 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
+        // הגדרת מיקומי השולחנות עם שטח מגע מדויק מעל כל שולחן
         const TABLES_DEF = [
-            // מתחם עליון
-            { id: "250", top: "12%", left: "13.5%", w: "12%", h: "7%", cap: 8, label: "250" },
-            { id: "240", top: "12%", left: "29.5%", w: "10%", h: "7%", cap: 9, label: "240" },
-            { id: "230", top: "12%", left: "51%", w: "17%", h: "7%", cap: 12, label: "230" },
-            { id: "220", top: "12%", left: "72.5%", w: "10%", h: "7%", cap: 10, label: "220" },
-            { id: "210", top: "12%", left: "87%", w: "10%", h: "7%", cap: 9, label: "210" },
+            // מתחם עליון (שמאל לימין)
+            { id: "250", top: "12%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250" },
+            { id: "240", top: "12%", left: "29.5%", w: "10.5%", h: "7.5%", cap: 9, label: "240" },
+            { id: "230", top: "12%", left: "51%", w: "18%", h: "7.5%", cap: 12, label: "230" },
+            { id: "220", top: "12%", left: "72.5%", w: "10.5%", h: "7.5%", cap: 10, label: "220" },
+            { id: "210", top: "12%", left: "87%", w: "10.5%", h: "7.5%", cap: 9, label: "210" },
 
-            // שולחן עליון מרכזי
-            { id: "30", top: "26%", left: "49.5%", w: "11%", h: "6%", cap: 5, label: "30" },
+            // שולחן מרכזי עליון
+            { id: "30", top: "26%", left: "49.5%", w: "12%", h: "6%", cap: 5, label: "30" },
 
             // אגף שמאל
-            { id: "310", top: "29%", left: "12.5%", w: "11%", h: "6.5%", cap: 9, label: "310" },
-            { id: "320", top: "36.5%", left: "12.5%", w: "11%", h: "6.5%", cap: 9, label: "320" },
-            { id: "330", top: "50%", left: "12.5%", w: "11%", h: "6.5%", cap: 10, label: "330" },
-            { id: "340", top: "57.5%", left: "12.5%", w: "11%", h: "6.5%", cap: 10, label: "340" },
-            { id: "350", top: "71.5%", left: "12.5%", w: "11%", h: "6.5%", cap: 10, label: "350" },
-            { id: "360", top: "79%", left: "12.5%", w: "11%", h: "6.5%", cap: 10, label: "360" },
+            { id: "310", top: "29%", left: "13%", w: "11%", h: "6%", cap: 9, label: "310" },
+            { id: "320", top: "36.5%", left: "13%", w: "11%", h: "6%", cap: 9, label: "320" },
+            { id: "330", top: "50%", left: "13%", w: "11%", h: "6%", cap: 10, label: "330" },
+            { id: "340", top: "57.5%", left: "13%", w: "11%", h: "6%", cap: 10, label: "340" },
+            { id: "350", top: "71.5%", left: "13%", w: "11%", h: "6%", cap: 10, label: "350" },
+            { id: "360", top: "79%", left: "13%", w: "11%", h: "6%", cap: 10, label: "360" },
 
             // אגף ימין
             { id: "160", top: "40.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "160" },
@@ -204,14 +210,14 @@
             { id: "120", top: "76.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "120" },
             { id: "110", top: "83%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "110" },
 
-            // עמידה שמאל
-            { id: "40", top: "36%", left: "26%", w: "8%", h: "5.5%", cap: 4, label: "40" },
-            { id: "50", top: "51.5%", left: "26%", w: "8%", h: "5.5%", cap: 4, label: "50" },
-            { id: "60", top: "67%", left: "26%", w: "8%", h: "5.5%", cap: 4, label: "60" },
+            // שולחנות עמידה שמאל
+            { id: "40", top: "36%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "40" },
+            { id: "50", top: "51.5%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "50" },
+            { id: "60", top: "67%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "60" },
 
-            // עמידה ימין
-            { id: "20", top: "36%", left: "73%", w: "8%", h: "5.5%", cap: 4, label: "20" },
-            { id: "10", top: "67%", left: "73%", w: "8%", h: "5.5%", cap: 4, label: "10" }
+            // שולחנות עמידה ימין
+            { id: "20", top: "36%", left: "72.5%", w: "9%", h: "6%", cap: 4, label: "20" },
+            { id: "10", top: "67%", left: "72.5%", w: "9%", h: "6%", cap: 4, label: "10" }
         ];
 
         let reservations = [];
@@ -267,7 +273,7 @@
                 spot.style.width = tbl.w;
                 spot.style.height = tbl.h;
 
-                // המנעול ממוקם בפינה העליונה כדי לא להסתיר את המספר
+                // מנעול תלוי בפינה השמאלית העליונה מחוץ לטקסט
                 if (isOccupied) {
                     spot.innerHTML = `<span class="lock-badge-corner" title="תפוס ע״י ${occupiedRes.name}">🔒</span>`;
                 }
@@ -346,7 +352,7 @@
 
             body.innerHTML = `
                 <div class="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 text-center mb-2">
-                    <p class="text-xs font-black text-amber-400">בחרת ${selectedTableIds.length} שולחנות: <span class="text-white">${tablesStr}</span></p>
+                    <p class="text-xs font-black text-amber-400">נבחרו שולחנות: <span class="text-white font-mono">${tablesStr}</span></p>
                 </div>
                 <p class="font-bold text-slate-300 text-xs mb-1">בחר הזמנה לשיבוץ:</p>
                 <select id="select-multi-res" class="w-full bg-slate-900 border border-white/20 rounded-xl p-2.5 text-white font-bold text-xs outline-none">
@@ -358,8 +364,8 @@
             `;
 
             actions.innerHTML = `
-                <button onclick="saveMultiAssign('${tablesStr}')" class="w-full bg-amber-500 hover:bg-amber-400 text-black py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
-                    אשר שיבוץ לכל השולחנות
+                <button onclick="saveMultiAssign('${tablesStr}')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                    אשר שיבוץ
                 </button>
                 <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1.5 rounded-xl font-bold text-xs">
                     סגור
