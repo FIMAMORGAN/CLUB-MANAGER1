@@ -32,7 +32,7 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* אזור מגע שקוף לחלוטין */
+        /* אזור לחיצה שקוף 100% ללא שום שכבה או הפרעה */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -42,45 +42,33 @@
             cursor: pointer;
             z-index: 10;
             background: transparent;
-            border-radius: 0.6rem;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0.5rem;
+            transition: all 0.15s ease;
         }
 
         .table-spot:active {
             transform: translate(-50%, -50%) scale(0.95);
         }
 
-        /* בחירת שולחן מרובה: מסגרת זהב ניאון מהבהבת ללא החשכה */
+        /* בחירת שולחן: מסגרת דקה ונקייה ללא רקע */
         .spot-selected {
-            background: transparent !important;
-            outline: 2px solid #f59e0b !important;
-            outline-offset: 1px;
-            box-shadow: 0 0 14px rgba(245, 158, 11, 0.75), inset 0 0 10px rgba(245, 158, 11, 0.15) !important;
-            animation: pulse-border 1.5s infinite alternate;
+            outline: 1.5px solid #f59e0b !important;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.6) !important;
         }
 
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
-            100% { box-shadow: 0 0 18px rgba(245, 158, 11, 0.9); }
-        }
-
-        /* תגית "משובץ" חיצונית בפינה ללא הפרעה למספרי השולחנות */
-        .assigned-badge {
+        /* נקודת לד מיקרוסקופית לשולחן משובץ - לא דורכת על שום מספר או כיתוב */
+        .led-occupied {
             position: absolute;
-            top: -9px;
-            left: -4px;
-            background: #090d16;
-            border: 1px solid #f59e0b;
-            color: #f59e0b;
-            font-size: 8px;
-            font-weight: 900;
-            padding: 1px 4.5px;
+            top: 2px;
+            left: 2px;
+            width: 7px;
+            height: 7px;
             border-radius: 9999px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.9), 0 0 6px rgba(245, 158, 11, 0.35);
-            z-index: 30;
+            background: #f59e0b;
+            box-shadow: 0 0 8px #f59e0b, 0 0 3px #fff;
+            border: 1px solid rgba(0, 0, 0, 0.8);
             pointer-events: none;
-            letter-spacing: -0.2px;
-            white-space: nowrap;
+            z-index: 25;
         }
 
         .overlay {
@@ -112,9 +100,10 @@
 
         <div class="flex items-center gap-1.5">
             <div class="flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
-                <span>✨</span> פנוי
+                <span>פנוי</span>
             </div>
-            <div class="flex items-center gap-1 text-[9px] font-bold text-amber-400/90 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+            <div class="flex items-center gap-1 text-[9px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b]"></span>
                 <span>משובץ</span>
             </div>
         </div>
@@ -182,7 +171,7 @@
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
         const TABLES_DEF = [
-            // מתחם עליון (שמאל לימין)
+            // מתחם עליון
             { id: "250", top: "12%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250" },
             { id: "240", top: "12%", left: "29.5%", w: "10.5%", h: "7.5%", cap: 9, label: "240" },
             { id: "230", top: "12%", left: "51%", w: "18%", h: "7.5%", cap: 12, label: "230" },
@@ -271,9 +260,9 @@
                 spot.style.width = tbl.w;
                 spot.style.height = tbl.h;
 
-                // תגית "משובץ" חיצונית בפינה
+                // שולחן תפוס מקבל רק נקודת לד זוהרת זעירה שאינה מסתירה שום תוכן
                 if (isOccupied) {
-                    spot.innerHTML = `<span class="assigned-badge" title="משובץ ע״י ${occupiedRes.name}">משובץ</span>`;
+                    spot.innerHTML = `<span class="led-occupied" title="משובץ ע״י ${occupiedRes.name}"></span>`;
                 }
 
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
