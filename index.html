@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V140</title>
+    <title>ClubPro V142</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V140";
+        const APP_VERSION = "V142";
 
         const translations = {
             he: {
@@ -612,8 +612,16 @@
             document.body.removeChild(link);
         }
 
-        function callClientPhone(phone) {
-            if (!phone) return alert(state.lang === 'ru' ? "Нет номера телефона" : "ללקוח זה אין מספר טלפון");
+        function callClientPhone(id, phone) {
+            if (!phone || !phone.trim()) {
+                const newPhone = prompt(state.lang === 'ru' ? "Введите номер телефона для этого клиента:" : "הזן מספר טלפון עבור לקוח זה:");
+                if (!newPhone) return;
+                const clean = newPhone.replace(/\D/g, '');
+                if (clean.length < 9) return alert(state.lang === 'ru' ? "Некорректный номер" : "מספר טלפון לא תקין");
+                db.collection('reservations').doc(id).update({ phone: clean });
+                window.location.href = `tel:${clean}`;
+                return;
+            }
             const clean = phone.replace(/\D/g, '');
             window.location.href = `tel:${clean}`;
         }
@@ -758,20 +766,20 @@
                         ${!isGuest ? `<span class="text-white/20">•</span><span class="font-bold text-slate-400">₪${res.minOrder || 0}</span>` : ''}
                     </div>
 
-                    <!-- סרגל אייקונים: טלפון + וואטסאפ + מפה + עריכה + מחיקה -->
-                    <div class="flex items-center gap-1 shrink-0">
-                        ${hasPhone ? `
-                            <button onclick="callClientPhone('${res.phone}')" class="text-cyan-400 hover:text-cyan-300 p-0.5 hover:bg-cyan-500/15 rounded transition-colors" title="${t('callClient')}">
-                                <i data-lucide="phone" size="13"></i>
-                            </button>
-                        ` : ''}
-                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-emerald-400 hover:text-emerald-300 p-0.5 hover:bg-emerald-500/15 rounded transition-colors" title="וואטסאפ">
-                            <i data-lucide="message-circle" size="13"></i>
+                    <!-- סרגל אייקונים: טלפון מותאם (תכלת לתקין / אדום כשאין) + וואטסאפ + מפה + עריכה + מחיקה -->
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="callClientPhone('${res.id}', '${res.phone || ''}')" 
+                                class="${hasPhone ? 'text-cyan-400 hover:text-cyan-300 p-0.5 hover:bg-cyan-500/15' : 'text-rose-500 hover:text-rose-400 bg-rose-500/15 border border-rose-500/30 px-1 py-0.5 animate-pulse'} rounded transition-colors" 
+                                title="${hasPhone ? t('callClient') : 'חסר מספר טלפון - לחץ להזנה'}">
+                            <i data-lucide="${hasPhone ? 'phone' : 'phone-off'}" size="11"></i>
                         </button>
-                        ${!isGuest ? `<button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-0.5 hover:bg-purple-500/15 rounded" title="שינוע"><i data-lucide="move-horizontal" size="13"></i></button>` : ''}
-                        ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-0.5 hover:bg-blue-500/15 rounded" title="מפה"><i data-lucide="map-pin" size="13"></i></button>` : ''}
-                        <button onclick="editReservation('${res.id}')" class="text-amber-400 p-0.5 hover:bg-amber-500/15 rounded" title="עריכה"><i data-lucide="edit-2" size="13"></i></button>
-                        <button onclick="if(confirm('${t('deleteConfirm')}')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-rose-400 p-0.5 hover:bg-rose-500/15 rounded" title="מחיקה"><i data-lucide="trash-2" size="13"></i></button>
+                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-emerald-400 hover:text-emerald-300 p-0.5 hover:bg-emerald-500/15 rounded transition-colors" title="וואטסאפ">
+                            <i data-lucide="message-circle" size="12"></i>
+                        </button>
+                        ${!isGuest ? `<button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-0.5 hover:bg-purple-500/15 rounded" title="שינוע"><i data-lucide="move-horizontal" size="12"></i></button>` : ''}
+                        ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-0.5 hover:bg-blue-500/15 rounded" title="מפה"><i data-lucide="map-pin" size="12"></i></button>` : ''}
+                        <button onclick="editReservation('${res.id}')" class="text-amber-400 p-0.5 hover:bg-amber-500/15 rounded" title="עריכה"><i data-lucide="edit-2" size="12"></i></button>
+                        <button onclick="if(confirm('${t('deleteConfirm')}')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-rose-400 p-0.5 hover:bg-rose-500/15 rounded" title="מחיקה"><i data-lucide="trash-2" size="12"></i></button>
                     </div>
                 </div>
 
