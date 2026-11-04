@@ -32,7 +32,7 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* אזורי לחיצה שקופים לחלוטין */
+        /* אזורי לחיצה שקופים */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -42,41 +42,41 @@
             cursor: pointer;
             z-index: 10;
             background: transparent;
-            border: none;
-            outline: none;
-            transition: transform 0.15s ease;
+            border-radius: 0.75rem;
+            transition: all 0.2s ease;
         }
 
         .table-spot:active {
-            transform: translate(-50%, -50%) scale(0.92);
+            transform: translate(-50%, -50%) scale(0.94);
         }
 
-        /* שולחן שנבחר במצב בחירה מרובה */
+        /* אפקט בחירת שולחן מרובה - הילה זהובה אלגנטית במקום מסגרת גסה */
         .spot-selected {
-            border: 2px solid #f59e0b !important;
-            background: rgba(245, 158, 11, 0.25) !important;
-            border-radius: 0.5rem;
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.6) !important;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.28) 0%, rgba(245, 158, 11, 0.08) 100%) !important;
+            border: 1px solid rgba(245, 158, 11, 0.75) !important;
+            box-shadow: 0 0 16px rgba(245, 158, 11, 0.5), inset 0 0 10px rgba(245, 158, 11, 0.2) !important;
+            backdrop-filter: blur(1px);
         }
 
-        /* מנעול זעיר מחוץ למרכז הטקסט - ממוקם בפינה הצידית */
+        /* מנעול זעיר מחוץ לטקסט ולמספרים בפינה העליונה */
         .lock-badge-corner {
             position: absolute;
-            top: 2px;
-            right: 2px;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(245, 158, 11, 0.5);
+            top: -6px;
+            right: -6px;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(245, 158, 11, 0.7);
             color: #f59e0b;
-            font-size: 8px;
-            width: 16px;
-            height: 16px;
+            font-size: 9px;
+            width: 17px;
+            height: 17px;
             border-radius: 9999px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
-            z-index: 20;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.9), 0 0 6px rgba(245, 158, 11, 0.35);
+            z-index: 30;
+            pointer-events: none;
         }
 
         .overlay {
@@ -116,12 +116,12 @@
         </div>
     </header>
 
-    <!-- הודעת שיבוץ פעיל -->
+    <!-- הודעת שיבוץ -->
     <div id="assign-banner" class="hidden w-full max-w-lg mb-2 bg-amber-500/20 border border-amber-500/50 p-2 rounded-xl text-center">
-        <p class="text-xs font-black text-amber-300">בחר שולחן (אחד או יותר) עבור: <span id="assign-client-name" class="text-white underline"></span></p>
+        <p class="text-xs font-black text-amber-300">בחר שולחנות לשיבוץ: <span id="assign-client-name" class="text-white underline"></span></p>
     </div>
 
-    <!-- מפה נקייה -->
+    <!-- מפה -->
     <main class="w-full flex-1 flex items-center justify-center">
         <div class="map-wrapper" id="map-container">
             <img src="fashion-map.png" alt="Fashion-Bar Map" class="map-bg">
@@ -129,17 +129,17 @@
         </div>
     </main>
 
-    <!-- סרגל בחירה מרובה קבוע בתחתית (מופיע כאשר מסומנים שולחנות) -->
-    <div id="multi-select-bar" class="hidden fixed bottom-3 inset-x-3 max-w-md mx-auto glass border border-amber-500/50 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 z-40 animate-in fade-in slide-in-from-bottom duration-200">
+    <!-- סרגל תחתון קבוע לבחירת מספר שולחנות במקביל -->
+    <div id="multi-select-bar" class="hidden fixed bottom-3 inset-x-3 max-w-md mx-auto glass border border-amber-500/40 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 z-40 animate-in fade-in slide-in-from-bottom duration-200">
         <div>
             <p class="text-[10px] text-slate-400 font-bold uppercase">שולחנות שנבחרו:</p>
             <p id="selected-tables-text" class="text-sm font-black text-amber-400 font-mono"></p>
         </div>
         <div class="flex gap-1.5">
-            <button onclick="clearMultiSelection()" class="px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-slate-300 rounded-xl text-xs font-bold">
+            <button onclick="clearMultiSelection()" class="px-3 py-1.5 bg-white/10 hover:bg-white/15 text-slate-300 rounded-xl text-xs font-bold transition-colors">
                 ביטול
             </button>
-            <button onclick="confirmMultiSelection()" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl text-xs font-black shadow-lg">
+            <button onclick="confirmMultiSelection()" class="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black rounded-xl text-xs font-black shadow-lg transition-all">
                 שבץ הזמנה
             </button>
         </div>
@@ -216,7 +216,7 @@
 
         let reservations = [];
         let assignTargetRes = null;
-        let selectedTableIds = []; // שומר את רשימת השולחנות שנבחרו בו זמנית
+        let selectedTableIds = [];
 
         function goBack() {
             window.location.href = `index.html`;
@@ -267,9 +267,9 @@
                 spot.style.width = tbl.w;
                 spot.style.height = tbl.h;
 
-                // מנעול בפינה הצידית - לא מפריע לטקסט ולמספרים באמצע
+                // המנעול ממוקם בפינה העליונה כדי לא להסתיר את המספר
                 if (isOccupied) {
-                    spot.innerHTML = `<span class="lock-badge-corner" title="תפוס על ידי ${occupiedRes.name}">🔒</span>`;
+                    spot.innerHTML = `<span class="lock-badge-corner" title="תפוס ע״י ${occupiedRes.name}">🔒</span>`;
                 }
 
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
@@ -280,9 +280,7 @@
         }
 
         function handleTableClick(tbl, occupiedRes) {
-            // אם השולחן כבר תפוס
             if (occupiedRes) {
-                // אם אנחנו במצב בחירה מרובה אי אפשר לבחור שולחן תפוס
                 if (selectedTableIds.length > 0 || assignToId) {
                     alert(`שולחן ${tbl.label} תפוס ע"י ${occupiedRes.name}!`);
                     return;
@@ -291,7 +289,6 @@
                 return;
             }
 
-            // אם הגענו משיבוץ הזמנה ישירה או שאנחנו בבחירה מרובה של שולחנות
             toggleSelectTable(String(tbl.id));
         }
 
@@ -325,7 +322,6 @@
             if (selectedTableIds.length === 0) return;
             const tablesStr = selectedTableIds.join(', ');
 
-            // מקרה א': שיבוץ להזמנה שנבחרה כבר מהדשבורד
             if (assignToId && assignTargetRes) {
                 if (confirm(`לשבץ את ${assignTargetRes.name} לשולחנות: ${tablesStr}?`)) {
                     await db.collection('reservations').doc(assignToId).update({
@@ -337,7 +333,6 @@
                 return;
             }
 
-            // מקרה ב': בחירת שולחנות ישירה מהמפה ופתיחת חלון לבחירת איזה לקוח לשבץ
             openMultiAssignModal(tablesStr);
         }
 
