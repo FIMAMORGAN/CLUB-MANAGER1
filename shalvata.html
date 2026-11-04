@@ -32,53 +32,53 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* תגיות שולחן עדינות וקומפקטיות */
+        /* אזורי לחיצה שקופים לחלוטין עם מסגרת עדינה */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 9999px;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
             z-index: 10;
         }
 
         .table-spot:active {
-            transform: translate(-50%, -50%) scale(0.9);
+            transform: translate(-50%, -50%) scale(0.92);
         }
 
-        /* שולחן פנוי - נקודה זעירה ועדינה בלבד בלי לחסום את הטקסט בתמונה */
+        /* שולחן פנוי: שקוף לגמרי, רק מסגרת ירוקה עדינה בלי שום צבע שמסתיר */
         .spot-free {
-            background: rgba(16, 185, 129, 0.25);
-            border: 1.5px solid #10b981;
-            padding: 2px 7px;
-            font-size: 9px;
-            font-weight: 800;
-            color: #a7f3d0;
-            box-shadow: 0 0 6px rgba(16, 185, 129, 0.35);
-            backdrop-filter: blur(2px);
+            background: transparent;
+            border: 1.5px solid rgba(16, 185, 129, 0.7);
+            border-radius: 0.5rem;
+            box-shadow: inset 0 0 6px rgba(16, 185, 129, 0.15), 0 0 8px rgba(16, 185, 129, 0.2);
         }
 
         .spot-free:hover {
-            background: rgba(16, 185, 129, 0.6);
-            color: #fff;
+            border-color: #10b981;
+            box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.3), 0 0 12px rgba(16, 185, 129, 0.4);
         }
 
-        /* שולחן תפוס - תגית אדומה יוקרתית עם שם הלקוח */
+        /* שולחן תפוס: מסגרת אדומה שקופה + אייקון מנעול זעיר במרכז (לא מסתיר את המספרים) */
         .spot-occupied {
-            background: rgba(220, 38, 38, 0.9);
-            border: 1.5px solid #f87171;
-            padding: 3px 8px;
-            font-size: 10px;
-            font-weight: 900;
-            color: #ffffff;
-            box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
-            max-width: 90%;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1.5px solid rgba(239, 68, 68, 0.9);
+            border-radius: 0.5rem;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        }
+
+        .lock-badge {
+            background: #ef4444;
+            color: #fff;
+            font-size: 9px;
+            padding: 1px 4px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.6);
         }
 
         .overlay {
@@ -96,8 +96,7 @@
 </head>
 <body class="min-h-screen p-2 sm:p-3 flex flex-col items-center">
 
-    <!-- סרגל עליון -->
-    <header class="w-full max-w-lg mb-2.5 flex justify-between items-center glass p-2.5 rounded-2xl">
+    <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2.5 rounded-2xl">
         <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
             <i data-lucide="arrow-right" size="14"></i>
             <span>חזור</span>
@@ -110,20 +109,18 @@
 
         <div class="flex items-center gap-1.5">
             <div class="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> פנוי
+                <span class="w-1.5 h-1.5 rounded-full border border-emerald-400"></span> פנוי
             </div>
             <div class="flex items-center gap-1 text-[9px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
-                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> תפוס
+                <span>🔒</span> תפוס
             </div>
         </div>
     </header>
 
-    <!-- הודעת מצב שיבוץ הזמנה -->
-    <div id="assign-banner" class="hidden w-full max-w-lg mb-2.5 bg-amber-500/20 border border-amber-500/50 p-2 rounded-xl text-center">
+    <div id="assign-banner" class="hidden w-full max-w-lg mb-2 bg-amber-500/20 border border-amber-500/50 p-2 rounded-xl text-center">
         <p class="text-xs font-black text-amber-300">בחר שולחן פנוי עבור: <span id="assign-client-name" class="text-white underline"></span></p>
     </div>
 
-    <!-- מפת המועדון -->
     <main class="w-full flex-1 flex items-center justify-center">
         <div class="map-wrapper" id="map-container">
             <img src="fashion-map.png" alt="Fashion-Bar Map" class="map-bg">
@@ -131,7 +128,6 @@
         </div>
     </main>
 
-    <!-- מודאל פעולות שולחן -->
     <div id="table-modal" class="overlay hidden">
         <div class="glass p-5 rounded-3xl w-full max-w-xs text-center space-y-4 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-white/10 pb-2">
@@ -163,42 +159,42 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // הגדרת מיקומי שולחנות בלבד (ללא בר 1 ובר 2)
+        // מיקומים וממדים מותאמים במדויק מעל כל שולחן
         const TABLES_DEF = [
-            // מתחם עליון
-            { id: "250", top: "11.5%", left: "13%", cap: 8, label: "250" },
-            { id: "240", top: "11.5%", left: "30.5%", cap: 9, label: "240" },
-            { id: "230", top: "11.5%", left: "51%", cap: 12, label: "230" },
-            { id: "220", top: "11.5%", left: "73%", cap: 10, label: "220" },
-            { id: "210", top: "11.5%", left: "87%", cap: 9, label: "210" },
+            // מתחם עליון (שמאל לימין)
+            { id: "250", top: "12%", left: "13.5%", w: "12%", h: "7%", cap: 8, label: "250" },
+            { id: "240", top: "12%", left: "29.5%", w: "10%", h: "7%", cap: 9, label: "240" },
+            { id: "230", top: "12%", left: "51%", w: "17%", h: "7%", cap: 12, label: "230" },
+            { id: "220", top: "12%", left: "72.5%", w: "10%", h: "7%", cap: 10, label: "220" },
+            { id: "210", top: "12%", left: "87%", w: "10%", h: "7%", cap: 9, label: "210" },
 
-            // שולחן מרכזי עליון
-            { id: "30", top: "26%", left: "49.5%", cap: 5, label: "30" },
+            // שולחן עליון מרכזי
+            { id: "30", top: "26%", left: "49.5%", w: "11%", h: "6%", cap: 5, label: "30" },
 
             // אגף שמאל
-            { id: "310", top: "29%", left: "12%", cap: 9, label: "310" },
-            { id: "320", top: "36.5%", left: "12%", cap: 9, label: "320" },
-            { id: "330", top: "50%", left: "12%", cap: 10, label: "330" },
-            { id: "340", top: "57.5%", left: "12%", cap: 10, label: "340" },
-            { id: "350", top: "71.5%", left: "12%", cap: 10, label: "350" },
-            { id: "360", top: "79%", left: "12%", cap: 10, label: "360" },
+            { id: "310", top: "29%", left: "12.5%", w: "11%", h: "6.5%", cap: 9, label: "310" },
+            { id: "320", top: "36.5%", left: "12.5%", w: "11%", h: "6.5%", cap: 9, label: "320" },
+            { id: "330", top: "50%", left: "12.5%", w: "11%", h: "6.5%", cap: 10, label: "330" },
+            { id: "340", top: "57.5%", left: "12.5%", w: "11%", h: "6.5%", cap: 10, label: "340" },
+            { id: "350", top: "71.5%", left: "12.5%", w: "11%", h: "6.5%", cap: 10, label: "350" },
+            { id: "360", top: "79%", left: "12.5%", w: "11%", h: "6.5%", cap: 10, label: "360" },
 
             // אגף ימין
-            { id: "160", top: "40.5%", left: "87%", cap: 7, label: "160" },
-            { id: "150", top: "47%", left: "87%", cap: 7, label: "150" },
-            { id: "140", top: "59%", left: "87%", cap: 10, label: "140" },
-            { id: "130", top: "65.5%", left: "87%", cap: 10, label: "130" },
-            { id: "120", top: "76.5%", left: "87%", cap: 7, label: "120" },
-            { id: "110", top: "83%", left: "87%", cap: 7, label: "110" },
+            { id: "160", top: "40.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "160" },
+            { id: "150", top: "47%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "150" },
+            { id: "140", top: "59%", left: "86.5%", w: "11%", h: "5.5%", cap: 10, label: "140" },
+            { id: "130", top: "65.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 10, label: "130" },
+            { id: "120", top: "76.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "120" },
+            { id: "110", top: "83%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "110" },
 
-            // שולחנות עמידה שמאל
-            { id: "40", top: "36%", left: "26%", cap: 4, label: "40" },
-            { id: "50", top: "51.5%", left: "26%", cap: 4, label: "50" },
-            { id: "60", top: "67%", left: "26%", cap: 4, label: "60" },
+            // עמידה שמאל
+            { id: "40", top: "36%", left: "26%", w: "8%", h: "5.5%", cap: 4, label: "40" },
+            { id: "50", top: "51.5%", left: "26%", w: "8%", h: "5.5%", cap: 4, label: "50" },
+            { id: "60", top: "67%", left: "26%", w: "8%", h: "5.5%", cap: 4, label: "60" },
 
-            // שולחנות עמידה ימין
-            { id: "20", top: "36%", left: "73%", cap: 4, label: "20" },
-            { id: "10", top: "67%", left: "73%", cap: 4, label: "10" }
+            // עמידה ימין
+            { id: "20", top: "36%", left: "73%", w: "8%", h: "5.5%", cap: 4, label: "20" },
+            { id: "10", top: "67%", left: "73%", w: "8%", h: "5.5%", cap: 4, label: "10" }
         ];
 
         let reservations = [];
@@ -241,10 +237,13 @@
                 spot.className = `table-spot ${isOccupied ? 'spot-occupied' : 'spot-free'}`;
                 spot.style.top = tbl.top;
                 spot.style.left = tbl.left;
+                spot.style.width = tbl.w;
+                spot.style.height = tbl.h;
 
-                spot.innerHTML = isOccupied 
-                    ? `<span>🔒 ${occupiedRes.name}</span>`
-                    : `<span>+</span>`;
+                // שולחן תפוס מציג רק מנעול קומפקטי; שולחן פנוי נשאר שקוף לחלוטין ללא שום טקסט או כיסוי
+                if (isOccupied) {
+                    spot.innerHTML = `<span class="lock-badge">🔒</span>`;
+                }
 
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
                 container.appendChild(spot);
@@ -281,18 +280,21 @@
 
             if (occupiedRes) {
                 body.innerHTML = `
-                    <div class="bg-rose-500/10 p-3 rounded-2xl border border-rose-500/20 space-y-1.5">
+                    <div class="bg-rose-500/10 p-3.5 rounded-2xl border border-rose-500/30 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-rose-400 font-black text-xs">🔒 שולחן תפוס</span>
+                            <span class="text-slate-400 text-[10px] font-mono">${occupiedRes.time || '22:30'}</span>
+                        </div>
                         <p class="font-bold text-white text-sm">👤 לקוח: ${occupiedRes.name}</p>
-                        <p class="text-slate-300">👥 כמות: ${occupiedRes.pax} איש</p>
-                        <p class="text-slate-300">🕒 שעה: ${occupiedRes.time || '22:30'}</p>
+                        <p class="text-slate-300 font-bold">👥 כמות: ${occupiedRes.pax} איש</p>
                         <p class="text-amber-400 font-black">💰 מינימום: ₪${occupiedRes.minOrder || 0}</p>
                         ${occupiedRes.phone ? `<p class="text-slate-400 font-mono">📞 ${occupiedRes.phone}</p>` : ''}
-                        ${occupiedRes.notes ? `<p class="text-slate-400 italic">💬 ${occupiedRes.notes}</p>` : ''}
+                        ${occupiedRes.notes ? `<p class="text-slate-300 italic bg-white/5 p-2 rounded-xl border border-white/10 mt-1">💬 ${occupiedRes.notes}</p>` : ''}
                     </div>
                 `;
 
                 actions.innerHTML = `
-                    <button onclick="unassignTable('${occupiedRes.id}', '${tbl.label}')" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                    <button onclick="unassignTable('${occupiedRes.id}', '${tbl.label}')" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
                         שחרר שולחן
                     </button>
                     <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1.5 rounded-xl font-bold text-xs">
@@ -303,7 +305,7 @@
                 body.innerHTML = `
                     <div class="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 text-center">
                         <p class="font-bold text-emerald-400 text-sm">השולחן פנוי</p>
-                        <p class="text-slate-400 text-[10px] mt-1">עד ${tbl.cap} מוזמנים</p>
+                        <p class="text-slate-400 text-[10px] mt-1">מתאים לעד ${tbl.cap} מוזמנים</p>
                     </div>
                 `;
 
@@ -318,7 +320,7 @@
                     `;
 
                     actions.innerHTML = `
-                        <button onclick="assignSelectedRes('${tbl.id}', '${tbl.label}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                        <button onclick="assignSelectedRes('${tbl.id}', '${tbl.label}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
                             שבץ לשולחן
                         </button>
                     `;
