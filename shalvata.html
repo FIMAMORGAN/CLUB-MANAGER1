@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fashion-Bar | מפת שולחנות</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; user-select: none; }
+        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        .map-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .map-bg {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 1.5rem;
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* נקודות לחיצות על השולחנות */
+        .table-spot {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 900;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .table-spot:active {
+            transform: translate(-50%, -50%) scale(0.92);
+        }
+
+        /* פנוי */
+        .spot-free {
+            background: rgba(16, 185, 129, 0.3);
+            border: 2px solid #10b981;
+            color: #ecfdf5;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+
+        /* תפוס */
+        .spot-occupied {
+            background: rgba(239, 68, 68, 0.75);
+            border: 2px solid #ef4444;
+            color: #fff;
+            box-shadow: 0 0 14px rgba(239, 68, 68, 0.6);
+        }
+
+        /* מודאל */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 flex flex-col items-center">
+
+    <!-- סרגל עליון -->
+    <header class="w-full max-w-lg mb-3 flex justify-between items-center glass p-3 rounded-2xl">
+        <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+            <i data-lucide="arrow-right" size="14"></i>
+            <span>חזור לדשבורד</span>
+        </button>
+
+        <div class="text-center">
+            <h1 class="text-sm font-black text-amber-400 tracking-wider">FASHION-BAR</h1>
+            <p id="date-display" class="text-[10px] text-slate-400 font-mono font-bold"></p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span> פנוי
+            </div>
+            <div class="flex items-center gap-1 text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-500/20">
+                <span class="w-2 h-2 rounded-full bg-rose-400"></span> תפוס
+            </div>
+        </div>
+    </header>
+
+    <!-- הודעת מצב שיבוץ -->
+    <div id="assign-banner" class="hidden w-full max-w-lg mb-3 bg-amber-500/20 border border-amber-500/50 p-2.5 rounded-xl text-center">
+        <p class="text-xs font-black text-amber-300">בחר שולחן פנוי עבור: <span id="assign-client-name" class="text-white underline"></span></p>
+    </div>
+
+    <!-- מפת המועדון -->
+    <main class="w-full flex-1 flex items-center justify-center">
+        <div class="map-wrapper" id="map-container">
+            <img src="fashion-map.png" alt="Fashion-Bar Map" class="map-bg">
+            <div id="spots-layer"></div>
+        </div>
+    </main>
+
+    <!-- מודאל פעולות שולחן -->
+    <div id="table-modal" class="overlay hidden">
+        <div class="glass p-5 rounded-3xl w-full max-w-xs text-center space-y-4 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+                <span class="text-amber-400 font-black text-base" id="modal-table-title">שולחן</span>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" size="18"></i></button>
+            </div>
+
+            <div id="modal-body" class="text-right space-y-2 text-xs"></div>
+
+            <div id="modal-actions" class="pt-2 flex flex-col gap-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            apiKey: "AIzaSyD2y4clTGDYnZmmO8Gyg0bXqsyafF-a_GI",
+            authDomain: "clubpro-system.firebaseapp.com",
+            projectId: "clubpro-system",
+            storageBucket: "clubpro-system.firebasestorage.app",
+            messagingSenderId: "825897406218",
+            appId: "1:825897406218:web:a660e48a120361247934f3"
+        };
+        firebase.initializeApp(config);
+        const db = firebase.firestore();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedDate = urlParams.get('date') || localStorage.getItem('last_date') || new Date().toLocaleDateString('sv-SE');
+        const assignToId = urlParams.get('assignTo') || null;
+
+        document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
+
+        // הגדרת מיקומי השולחנות לפי התרשים באחוזים מדויקים
+        const TABLES_DEF = [
+            // מתחם עליון (שמאל לימין)
+            { id: "250", top: "11.5%", left: "13%", w: "16%", h: "8%", cap: 8, label: "250" },
+            { id: "240", top: "11.5%", left: "30.5%", w: "13%", h: "8%", cap: 9, label: "240" },
+            { id: "230", top: "11.5%", left: "51%", w: "22%", h: "8%", cap: 12, label: "230" },
+            { id: "220", top: "11.5%", left: "73%", w: "13%", h: "8%", cap: 10, label: "220" },
+            { id: "210", top: "11.5%", left: "87%", w: "13%", h: "8%", cap: 9, label: "210" },
+
+            // שולחן מרכזי עליון
+            { id: "30", top: "26%", left: "49.5%", w: "14%", h: "5.5%", cap: 5, label: "30" },
+
+            // אגף שמאל
+            { id: "310", top: "29%", left: "12%", w: "13%", h: "6.5%", cap: 9, label: "310" },
+            { id: "320", top: "36.5%", left: "12%", w: "13%", h: "6.5%", cap: 9, label: "320" },
+            { id: "330", top: "50%", left: "12%", w: "13%", h: "6.5%", cap: 10, label: "330" },
+            { id: "340", top: "57.5%", left: "12%", w: "13%", h: "6.5%", cap: 10, label: "340" },
+            { id: "350", top: "71.5%", left: "12%", w: "13%", h: "6.5%", cap: 10, label: "350" },
+            { id: "360", top: "79%", left: "12%", w: "13%", h: "6.5%", cap: 10, label: "360" },
+
+            // אגף ימין
+            { id: "160", top: "40.5%", left: "87%", w: "13%", h: "5.5%", cap: 7, label: "160" },
+            { id: "150", top: "47%", left: "87%", w: "13%", h: "5.5%", cap: 7, label: "150" },
+            { id: "140", top: "59%", left: "87%", w: "13%", h: "5.5%", cap: 10, label: "140" },
+            { id: "130", top: "65.5%", left: "87%", w: "13%", h: "5.5%", cap: 10, label: "130" },
+            { id: "120", top: "76.5%", left: "87%", w: "13%", h: "5.5%", cap: 7, label: "120" },
+            { id: "110", top: "83%", left: "87%", w: "13%", h: "5.5%", cap: 7, label: "110" },
+
+            // עמודת שולחנות עמידה שמאל
+            { id: "40", top: "36%", left: "26%", w: "10%", h: "6%", cap: 4, label: "40" },
+            { id: "50", top: "51.5%", left: "26%", w: "10%", h: "6%", cap: 4, label: "50" },
+            { id: "60", top: "67%", left: "26%", w: "10%", h: "6%", cap: 4, label: "60" },
+
+            // עמודת שולחנות עמידה ימין
+            { id: "20", top: "36%", left: "73%", w: "10%", h: "6%", cap: 4, label: "20" },
+            { id: "10", top: "67%", left: "73%", w: "10%", h: "6%", cap: 4, label: "10" },
+
+            // בר 1 ובר 2
+            { id: "B1", top: "40%", left: "49.5%", w: "26%", h: "9%", cap: 24, label: "בר 1" },
+            { id: "B2", top: "61%", left: "49.5%", w: "26%", h: "9%", cap: 24, label: "בר 2" }
+        ];
+
+        let reservations = [];
+        let assignTargetRes = null;
+
+        function goBack() {
+            window.location.href = `index.html`;
+        }
+
+        function initData() {
+            db.collection('reservations')
+                .where('venueId', '==', 'shalvata')
+                .where('eventDate', '==', selectedDate)
+                .onSnapshot(snap => {
+                    reservations = snap.docs
+                        .map(d => ({ id: d.id, ...d.data() }))
+                        .filter(r => r.status === 'active');
+
+                    if (assignToId) {
+                        assignTargetRes = reservations.find(r => r.id === assignToId);
+                        if (assignTargetRes) {
+                            document.getElementById('assign-banner').classList.remove('hidden');
+                            document.getElementById('assign-client-name').innerText = `${assignTargetRes.name} (${assignTargetRes.pax} איש)`;
+                        }
+                    }
+
+                    renderSpots();
+                });
+        }
+
+        function renderSpots() {
+            const container = document.getElementById('spots-layer');
+            container.innerHTML = '';
+
+            TABLES_DEF.forEach(tbl => {
+                const occupiedRes = reservations.find(r => String(r.tableNumber) === String(tbl.id));
+                const isOccupied = !!occupiedRes;
+
+                const spot = document.createElement('div');
+                spot.className = `table-spot ${isOccupied ? 'spot-occupied' : 'spot-free'}`;
+                spot.style.top = tbl.top;
+                spot.style.left = tbl.left;
+                spot.style.width = tbl.w;
+                spot.style.height = tbl.h;
+
+                spot.innerHTML = `
+                    <span class="text-[11px] leading-none">${tbl.label}</span>
+                    <span class="text-[8px] font-normal leading-none mt-0.5 truncate max-w-full px-0.5">
+                        ${isOccupied ? occupiedRes.name : `${tbl.cap} מק'`}
+                    </span>
+                `;
+
+                spot.onclick = () => handleTableClick(tbl, occupiedRes);
+                container.appendChild(spot);
+            });
+        }
+
+        async function handleTableClick(tbl, occupiedRes) {
+            // אם אנחנו במצב שיבוץ הזמנה
+            if (assignToId && assignTargetRes) {
+                if (occupiedRes) {
+                    alert(`שולחן ${tbl.label} כבר תפוס על ידי ${occupiedRes.name}! יש לבחור שולחן פנוי או לשחרר אותו קודם.`);
+                    return;
+                }
+
+                if (confirm(`לשבץ את ${assignTargetRes.name} (${assignTargetRes.pax} מוזמנים) לשולחן ${tbl.label}?`)) {
+                    await db.collection('reservations').doc(assignToId).update({
+                        tableNumber: tbl.id,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    alert(`ההזמנה שובצה בהצלחה לשולחן ${tbl.label}!`);
+                    window.location.href = 'index.html';
+                }
+                return;
+            }
+
+            // פתיחת מודאל רגיל לצפייה / שחרור / שיבוץ
+            openModal(tbl, occupiedRes);
+        }
+
+        function openModal(tbl, occupiedRes) {
+            const modal = document.getElementById('table-modal');
+            const title = document.getElementById('modal-table-title');
+            const body = document.getElementById('modal-body');
+            const actions = document.getElementById('modal-actions');
+
+            title.innerText = `שולחן ${tbl.label} (תכולה: ${tbl.cap} איש)`;
+
+            if (occupiedRes) {
+                body.innerHTML = `
+                    <div class="bg-rose-500/10 p-3 rounded-2xl border border-rose-500/20 space-y-1.5">
+                        <p class="font-bold text-white text-sm">👤 לקוח: ${occupiedRes.name}</p>
+                        <p class="text-slate-300">👥 כמות: ${occupiedRes.pax} איש</p>
+                        <p class="text-slate-300">🕒 שעה: ${occupiedRes.time || '22:30'}</p>
+                        <p class="text-amber-400 font-black">💰 מינימום: ₪${occupiedRes.minOrder || 0}</p>
+                        ${occupiedRes.phone ? `<p class="text-slate-400 font-mono">📞 ${occupiedRes.phone}</p>` : ''}
+                        ${occupiedRes.notes ? `<p class="text-slate-400 italic">💬 ${occupiedRes.notes}</p>` : ''}
+                    </div>
+                `;
+
+                actions.innerHTML = `
+                    <button onclick="unassignTable('${occupiedRes.id}', '${tbl.label}')" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                        שחרר שולחן
+                    </button>
+                    <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-2 rounded-xl font-bold text-xs">
+                        סגור
+                    </button>
+                `;
+            } else {
+                body.innerHTML = `
+                    <div class="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 text-center">
+                        <p class="font-bold text-emerald-400 text-sm">השולחן פנוי להזמנה</p>
+                        <p class="text-slate-400 text-[11px] mt-1">מתאים לעד ${tbl.cap} מוזמנים</p>
+                    </div>
+                `;
+
+                // רשימת הזמנות שטרם שובצו לשולחן
+                const unassignedList = reservations.filter(r => !r.tableNumber);
+
+                if (unassignedList.length > 0) {
+                    body.innerHTML += `
+                        <p class="font-bold text-slate-300 text-xs mt-3 mb-1">שבץ הזמנה ממתינה:</p>
+                        <select id="select-res-to-assign" class="w-full bg-slate-900 border border-white/20 rounded-xl p-2.5 text-white font-bold text-xs outline-none">
+                            ${unassignedList.map(r => `<option value="${r.id}">${r.name} (${r.pax} איש) - ${r.time||'22:30'}</option>`).join('')}
+                        </select>
+                    `;
+
+                    actions.innerHTML = `
+                        <button onclick="assignSelectedRes('${tbl.id}', '${tbl.label}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                            שבץ לשולחן זה
+                        </button>
+                    `;
+                } else {
+                    body.innerHTML += `<p class="text-center text-slate-500 text-xs mt-2 font-bold">אין הזמנות שממתינות לשיבוץ שולחן</p>`;
+                    actions.innerHTML = ``;
+                }
+
+                actions.innerHTML += `
+                    <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-2 rounded-xl font-bold text-xs">
+                        סגור
+                    </button>
+                `;
+            }
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            document.getElementById('table-modal').classList.add('hidden');
+        }
+
+        async function unassignTable(resId, tableLabel) {
+            if (confirm(`האם לשחרר את שולחן ${tableLabel}?`)) {
+                await db.collection('reservations').doc(resId).update({
+                    tableNumber: firebase.firestore.FieldValue.delete()
+                });
+                closeModal();
+            }
+        }
+
+        async function assignSelectedRes(tableId, tableLabel) {
+            const selectEl = document.getElementById('select-res-to-assign');
+            if (!selectEl) return;
+            const resId = selectEl.value;
+            await db.collection('reservations').doc(resId).update({
+                tableNumber: tableId,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            closeModal();
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('table-modal');
+            if (event.target === modal) closeModal();
+        };
+
+        initData();
+        lucide.createIcons();
+    </script>
+</body>
+</html>
