@@ -12,7 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #020617; color: #f8fafc; margin: 0; user-select: none; }
         .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.1); }
         
@@ -32,7 +32,7 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* אזור מגע שקוף לחלוטין מעל השולחן */
+        /* שטח לחיצה אינטראקטיבי שקוף */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -50,36 +50,35 @@
             transform: translate(-50%, -50%) scale(0.95);
         }
 
-        /* מסגרת הילה בבחירה מרובה */
+        /* הילה זהובה עדינה בבחירה מרובה */
         .spot-selected {
             outline: 1.5px solid #f59e0b !important;
             box-shadow: 0 0 12px rgba(245, 158, 11, 0.6) !important;
         }
 
-        /* תגית שם לקוח עדינה וצפה מחוץ לשולחן */
-        .outside-client-badge {
+        /* עיצוב שם לקוח נקי, שקוף, ללא קופסאות שחורות אטומות */
+        .client-label {
             position: absolute;
-            background: rgba(9, 13, 22, 0.92);
-            border: 1px solid rgba(245, 158, 11, 0.7);
-            color: #fbbf24;
-            font-size: 8px;
+            color: #38bdf8; /* תכלת ניאון קרח עדין */
+            font-size: 7.5px;
             font-weight: 800;
-            padding: 1px 4px;
-            border-radius: 4px;
             white-space: nowrap;
-            max-width: 58px;
+            max-width: 55px;
             overflow: hidden;
             text-overflow: ellipsis;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 0 6px rgba(245, 158, 11, 0.25);
+            text-shadow: 0 1px 3px #000, 0 0 5px rgba(0, 0, 0, 0.9);
             pointer-events: none;
             z-index: 30;
             letter-spacing: -0.2px;
+            background: transparent;
         }
 
-        /* מיקום התגית לפי כיוון היציאה מהשולחן אל השטח השחור */
-        .pos-right  { top: 50%; right: -62px; transform: translateY(-50%); } /* שולחנות שמאל נפתחים ימינה למעבר */
-        .pos-left   { top: 50%; left: -62px;  transform: translateY(-50%); } /* שולחנות ימין נפתחים שמאלה למעבר */
-        .pos-bottom { bottom: -16px; left: 50%; transform: translateX(-50%); } /* שולחנות עליונים נפתחים למטה */
+        /* כיווני מיקום חכמים לפי השטח הפנוי סביב השולחן */
+        .pos-under   { top: 100%; left: 50%; transform: translate(-50%, 2px); }
+        .pos-bottom  { bottom: -13px; left: 50%; transform: translateX(-50%); }
+        .pos-left    { top: 50%; left: -50px; transform: translateY(-50%); }
+        .pos-right   { top: 50%; right: -50px; transform: translateY(-50%); }
+        .pos-sofa-in { bottom: 2px; left: 50%; transform: translateX(-50%); font-size: 7px; color: #7dd3fc; }
 
         .overlay {
             position: fixed;
@@ -112,8 +111,8 @@
             <div class="flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
                 <span>פנוי</span>
             </div>
-            <div class="flex items-center gap-1 text-[9px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-                <span>שם לקוח בצד</span>
+            <div class="flex items-center gap-1 text-[9px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-lg border border-sky-500/20">
+                <span>משובץ</span>
             </div>
         </div>
     </header>
@@ -179,19 +178,21 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // הגדרת מיקומי השולחנות והכיוון של תגית השם (pos)
+        // הגדרה יצירתית של מיקומי השמות:
+        // שולחנות עמידה (10, 20, 40, 50, 60) מקבלים pos: "pos-under" (בדיוק מתחת לרגל השולחן, אפס גלישה לבר!)
+        // ספות ימין מקבלות pos-sofa-in או pos-left במרחק מותאם
         const TABLES_DEF = [
-            // מתחם עליון (השם צף מתחת לספה במעבר)
+            // מתחם עליון
             { id: "250", top: "12%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250", pos: "pos-bottom" },
             { id: "240", top: "12%", left: "29.5%", w: "10.5%", h: "7.5%", cap: 9, label: "240", pos: "pos-bottom" },
             { id: "230", top: "12%", left: "51%", w: "18%", h: "7.5%", cap: 12, label: "230", pos: "pos-bottom" },
             { id: "220", top: "12%", left: "72.5%", w: "10.5%", h: "7.5%", cap: 10, label: "220", pos: "pos-bottom" },
             { id: "210", top: "12%", left: "87%", w: "10.5%", h: "7.5%", cap: 9, label: "210", pos: "pos-bottom" },
 
-            // שולחן מרכזי עליון
+            // שולחן עליון מרכזי
             { id: "30", top: "26%", left: "49.5%", w: "12%", h: "6%", cap: 5, label: "30", pos: "pos-bottom" },
 
-            // אגף שמאל (השם צף מימין לספה במעבר המרכזי)
+            // ספות שמאל (במעבר המרכזי צמוד לספה)
             { id: "310", top: "29%", left: "13%", w: "11%", h: "6%", cap: 9, label: "310", pos: "pos-right" },
             { id: "320", top: "36.5%", left: "13%", w: "11%", h: "6%", cap: 9, label: "320", pos: "pos-right" },
             { id: "330", top: "50%", left: "13%", w: "11%", h: "6%", cap: 10, label: "330", pos: "pos-right" },
@@ -199,20 +200,20 @@
             { id: "350", top: "71.5%", left: "13%", w: "11%", h: "6%", cap: 10, label: "350", pos: "pos-right" },
             { id: "360", top: "79%", left: "13%", w: "11%", h: "6%", cap: 10, label: "360", pos: "pos-right" },
 
-            // אגף ימין (השם צף משמאל לספה במעבר המרכזי)
-            { id: "160", top: "40.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "160", pos: "pos-left" },
-            { id: "150", top: "47%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "150", pos: "pos-left" },
-            { id: "140", top: "59%", left: "86.5%", w: "11%", h: "5.5%", cap: 10, label: "140", pos: "pos-left" },
-            { id: "130", top: "65.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 10, label: "130", pos: "pos-left" },
-            { id: "120", top: "76.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "120", pos: "pos-left" },
-            { id: "110", top: "83%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "110", pos: "pos-left" },
+            // ספות ימין (משולב בעדינות על פס הבסיס של הספה או במעבר השמאלי ללא מריחה)
+            { id: "160", top: "40.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "160", pos: "pos-sofa-in" },
+            { id: "150", top: "47%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "150", pos: "pos-sofa-in" },
+            { id: "140", top: "59%", left: "86.5%", w: "11%", h: "5.5%", cap: 10, label: "140", pos: "pos-sofa-in" },
+            { id: "130", top: "65.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 10, label: "130", pos: "pos-sofa-in" },
+            { id: "120", top: "76.5%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "120", pos: "pos-sofa-in" },
+            { id: "110", top: "83%", left: "86.5%", w: "11%", h: "5.5%", cap: 7, label: "110", pos: "pos-sofa-in" },
 
-            // שולחנות עמידה שמאל וימין
-            { id: "40", top: "36%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "40", pos: "pos-right" },
-            { id: "50", top: "51.5%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "50", pos: "pos-right" },
-            { id: "60", top: "67%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "60", pos: "pos-right" },
-            { id: "20", top: "36%", left: "72.5%", w: "9%", h: "6%", cap: 4, label: "20", pos: "pos-left" },
-            { id: "10", top: "67%", left: "72.5%", w: "9%", h: "6%", cap: 4, label: "10", pos: "pos-left" }
+            // שולחנות עמידה - השם נכנס ישירות מתחת לשולחן באזור השחור החופשי, 0 דריכה על הבר!
+            { id: "40", top: "36%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "40", pos: "pos-under" },
+            { id: "50", top: "51.5%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "50", pos: "pos-under" },
+            { id: "60", top: "67%", left: "26.5%", w: "9%", h: "6%", cap: 4, label: "60", pos: "pos-under" },
+            { id: "20", top: "36%", left: "72.5%", w: "9%", h: "6%", cap: 4, label: "20", pos: "pos-under" },
+            { id: "10", top: "67%", left: "72.5%", w: "9%", h: "6%", cap: 4, label: "10", pos: "pos-under" }
         ];
 
         let reservations = [];
@@ -268,9 +269,9 @@
                 spot.style.width = tbl.w;
                 spot.style.height = tbl.h;
 
-                // אם השולחן תפוס: שם הלקוח מוצג מחוץ לשולחן בצד
+                // שם הלקוח מוצג ישירות כטקסט קריסטל נקי ללא תיבות שחורות
                 if (isOccupied) {
-                    spot.innerHTML = `<span class="outside-client-badge ${tbl.pos}">${occupiedRes.name}</span>`;
+                    spot.innerHTML = `<span class="client-label ${tbl.pos}">${occupiedRes.name}</span>`;
                 }
 
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
