@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V139</title>
+    <title>ClubPro V140</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V139";
+        const APP_VERSION = "V140";
 
         const translations = {
             he: {
@@ -107,7 +107,8 @@
                 loginButton: "כניסה",
                 deleteConfirm: "למחוק הזמנה זו?",
                 deletePromoterConfirm: "למחוק יחצן זה?",
-                noteFor: "הערה עבור"
+                noteFor: "הערה עבור",
+                callClient: "חיוג ללקוח"
             },
             ru: {
                 tables: "Столы",
@@ -175,7 +176,8 @@
                 loginButton: "Войти",
                 deleteConfirm: "Удалить эту бронь?",
                 deletePromoterConfirm: "Удалить этого промоутера?",
-                noteFor: "Примечание для"
+                noteFor: "Примечание для",
+                callClient: "Позвонить"
             }
         };
 
@@ -288,7 +290,6 @@
             if (audio && audio.paused && audio.currentTime === 0) audio.load();
         }, { once: true });
 
-        // נעילה הרמטית של המועדונים עבור GUEST
         function getAccessibleVenues() {
             if (state.role === 'admin') return allVenues;
             if (state.role === 'guest') return allVenues.filter(v => v.id === 'shalvata');
@@ -342,6 +343,7 @@
         }
 
         async function exportAllPhonesHistoricalWhatsApp() {
+            if (state.role === 'guest') return;
             const venue = allVenues.find(v => v.id === state.venueId);
             state.isExportingAll = true;
             render();
@@ -421,7 +423,6 @@
             const prevDate = state.selectedDate;
             state = { ...state, ...newData }; 
             
-            // הגנת GUEST: תמיד נועל על Fashion-Bar
             if (state.role === 'guest') {
                 state.venueId = 'shalvata';
                 state.allowedVenues = ['shalvata'];
@@ -543,6 +544,7 @@
         }
 
         function exportToWhatsApp(date, list) {
+            if (state.role === 'guest') return;
             const vName = allVenues.find(v => v.id === state.venueId)?.name || "Club";
             let text = `*${vName.toUpperCase()} - ${date.split('-').reverse().join('.')}*\n\n`;
             [{id:'table', l: t('tables')},{id:'bar', l: t('bar')}].forEach(tItem => {
@@ -610,8 +612,15 @@
             document.body.removeChild(link);
         }
 
+        function callClientPhone(phone) {
+            if (!phone) return alert(state.lang === 'ru' ? "Нет номера телефона" : "ללקוח זה אין מספר טלפון");
+            const clean = phone.replace(/\D/g, '');
+            window.location.href = `tel:${clean}`;
+        }
+
         function sendWhatsAppToClient(id) {
             const res = state.reservations.find(r => r.id === id);
+            if (!res || !res.phone) return alert(state.lang === 'ru' ? "Нет номера телефона" : "אין מספר טלפון");
             const venue = allVenues.find(v => v.id === state.venueId);
             let msg = "";
 
@@ -655,6 +664,7 @@
         }
 
         async function exportArchiveDateToWhatsApp() {
+            if (state.role === 'guest') return;
             const targetDate = state.archiveExportDate;
             const snap = await db.collection('reservations')
                 .where('venueId', '==', state.venueId)
@@ -706,11 +716,12 @@
             const isArrived = !!res.arrived;
             const hasNotes = !!(res.notes && res.notes.trim());
             const isGuest = state.role === 'guest';
+            const hasPhone = !!(res.phone && res.phone.trim());
 
             return `
             <div class="px-2.5 py-1.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${isArrived ? 'bg-emerald-950/20' : ''}">
                 
-                <!-- שורה 1: כפתור הגעה + שם הלקוח + בלון הערה לחיץ + שעת הגעה -->
+                <!-- שורה 1: הגעה + שם + הערה + שעה -->
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-1.5 min-w-0 flex-1">
                         <button onclick="toggleCheckIn('${res.id}', ${isArrived}, ${res.pax})" 
@@ -739,7 +750,7 @@
                     <span class="text-sky-400 font-bold text-[10px] bg-sky-500/10 px-1.5 py-0.2 rounded border border-sky-500/20 shrink-0 font-mono">${res.time || '22:30'}</span>
                 </div>
 
-                <!-- שורה 2: פרטים מסודרים בצד ימין + כפתורי פעולה בצד שמאל -->
+                <!-- שורה 2: כמות/מחיר מימין + פעולות וסרגל טלפון/וואטסאפ משמאל -->
                 <div class="flex items-center justify-between gap-1 mt-0.5 pr-6">
                     <div class="flex items-center gap-2 text-slate-400 text-[11px] min-w-0 flex-1">
                         <span class="font-bold text-slate-300">👥 ${res.arrivedPax ? `${res.arrivedPax}/` : ''}${res.pax}</span>
@@ -747,11 +758,18 @@
                         ${!isGuest ? `<span class="text-white/20">•</span><span class="font-bold text-slate-400">₪${res.minOrder || 0}</span>` : ''}
                     </div>
 
-                    <!-- סרגל אייקונים קומפקטי (עבור GUEST: ללא שינוע מועדונים) -->
-                    <div class="flex items-center gap-0.5 shrink-0">
+                    <!-- סרגל אייקונים: טלפון + וואטסאפ + מפה + עריכה + מחיקה -->
+                    <div class="flex items-center gap-1 shrink-0">
+                        ${hasPhone ? `
+                            <button onclick="callClientPhone('${res.phone}')" class="text-cyan-400 hover:text-cyan-300 p-0.5 hover:bg-cyan-500/15 rounded transition-colors" title="${t('callClient')}">
+                                <i data-lucide="phone" size="13"></i>
+                            </button>
+                        ` : ''}
+                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-emerald-400 hover:text-emerald-300 p-0.5 hover:bg-emerald-500/15 rounded transition-colors" title="וואטסאפ">
+                            <i data-lucide="message-circle" size="13"></i>
+                        </button>
                         ${!isGuest ? `<button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-0.5 hover:bg-purple-500/15 rounded" title="שינוע"><i data-lucide="move-horizontal" size="13"></i></button>` : ''}
                         ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-0.5 hover:bg-blue-500/15 rounded" title="מפה"><i data-lucide="map-pin" size="13"></i></button>` : ''}
-                        <button onclick="sendWhatsAppToClient('${res.id}')" class="text-emerald-400 p-0.5 hover:bg-emerald-500/15 rounded" title="וואטסאפ"><i data-lucide="message-circle" size="13"></i></button>
                         <button onclick="editReservation('${res.id}')" class="text-amber-400 p-0.5 hover:bg-amber-500/15 rounded" title="עריכה"><i data-lucide="edit-2" size="13"></i></button>
                         <button onclick="if(confirm('${t('deleteConfirm')}')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-rose-400 p-0.5 hover:bg-rose-500/15 rounded" title="מחיקה"><i data-lucide="trash-2" size="13"></i></button>
                     </div>
@@ -761,7 +779,8 @@
         }
 
         function renderDashboard(allList) {
-            const viewList = (state.role === 'admin' || state.role === 'guest') ? allList : allList.filter(r => r.promoterId === state.phone);
+            const isGuest = state.role === 'guest';
+            const viewList = (state.role === 'admin' || isGuest) ? allList : allList.filter(r => r.promoterId === state.phone);
             
             const searchFilter = state.dashboardFilter.trim().toLowerCase();
             const filteredViewList = searchFilter ? viewList.filter(r => (r.name && r.name.toLowerCase().includes(searchFilter)) || (r.phone && r.phone.includes(searchFilter))) : viewList;
@@ -825,7 +844,7 @@
                         <div class="h-4 w-[1px] bg-white/10"></div>
                         <div class="text-center"><p class="text-[8px] text-emerald-400 uppercase font-bold">${t('expectedTill')}</p><p class="text-xs font-black text-emerald-400">₪${grandTotalMoney.toLocaleString()}</p></div>
                     </div>
-                ` : state.role === 'guest' ? `
+                ` : isGuest ? `
                     <div class="grid grid-cols-4 gap-1.5 mb-2.5">
                         <div class="glass-card p-2 rounded-xl text-center border-t-2 border-amber-500 shadow-sm">
                             <p class="text-[9px] text-slate-400 font-bold uppercase">${t('tables')}</p>
@@ -900,15 +919,17 @@
                     </div>
                     ${venue.map ? `<button onclick="window.location.href='${venue.map}?date=${state.selectedDate}'" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-black uppercase flex items-center justify-center gap-2 shadow-lg transition-colors"><i data-lucide="map" size="15"></i> ${t('tableMap')}</button>` : ''}
                     
-                    <div class="flex justify-between items-center gap-2">
-                        <button onclick="exportToWhatsApp('${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 uppercase shadow-md transition-colors">${t('exportWhatsApp')} <i data-lucide="share-2" size="13"></i></button>
-                        ${state.role === 'admin' ? `
-                            <button onclick="exportNightReport()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl font-black text-xs flex items-center gap-1 uppercase shadow-md transition-colors">${t('nightReport')} <i data-lucide="file-text" size="13"></i></button>
-                        ` : ''}
-                    </div>
+                    <!-- שורת ייצוא: וואטסאפ חסום לחלוטין עבור GUEST -->
+                    ${!isGuest ? `
+                        <div class="flex justify-between items-center gap-2">
+                            <button onclick="exportToWhatsApp('${state.selectedDate}', ${JSON.stringify(pendingList).replace(/"/g, '&quot;')})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 uppercase shadow-md transition-colors">${t('exportWhatsApp')} <i data-lucide="share-2" size="13"></i></button>
+                            ${state.role === 'admin' ? `
+                                <button onclick="exportNightReport()" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-xl font-black text-xs flex items-center gap-1 uppercase shadow-md transition-colors">${t('nightReport')} <i data-lucide="file-text" size="13"></i></button>
+                            ` : ''}
+                        </div>
+                    ` : ''}
                 </div>
 
-                <!-- תאריך גדול שהוא כפתור בחירת תאריך ישיר -->
                 <div class="flex justify-between items-center mb-2.5 px-1">
                     <span class="text-sm font-black text-amber-400 uppercase tracking-wider">${venue.name}</span>
                     <div class="relative">
@@ -922,10 +943,7 @@
                     </div>
                 </div>
 
-                <!-- רשימות שולחנות ובר עם בלון הודעה לחיץ -->
                 <div class="space-y-3">
-                    
-                    <!-- קוביית שולחנות -->
                     <div class="glass-card rounded-2xl overflow-hidden text-white section-table shadow-lg">
                         <div class="bg-amber-500/10 px-3 py-1.5 flex justify-between items-center border-b border-white/[0.04]">
                             <span class="text-[11px] font-black text-amber-400 uppercase flex items-center gap-1.5">
@@ -938,7 +956,6 @@
                         </div>
                     </div>
 
-                    <!-- קוביית בר -->
                     <div class="glass-card rounded-2xl overflow-hidden text-white section-bar shadow-lg">
                         <div class="bg-blue-500/10 px-3 py-1.5 flex justify-between items-center border-b border-white/[0.04]">
                             <span class="text-[11px] font-black text-blue-400 uppercase flex items-center gap-1.5">
@@ -950,7 +967,6 @@
                             ${pendingBars.length === 0 ? `<p class="p-2.5 text-center text-slate-500 font-medium text-[11px]">אין הזמנות בר ממתינות</p>` : ''}
                         </div>
                     </div>
-
                 </div>
 
                 <div class="mt-3.5 glass-card rounded-2xl overflow-hidden border border-emerald-500/20 shadow-md">
@@ -964,6 +980,7 @@
         }
 
         function renderArchiveMGMT() {
+            if (state.role === 'guest') return '';
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const venue = allVenues.find(v => v.id === state.venueId);
             const dataSource = state.archiveReservations.length ? state.archiveReservations : state.reservations;
@@ -1216,7 +1233,6 @@
                 return; 
             }
 
-            // כניסה בלעדית של GUEST נעולה רק ל-Fashion-Bar
             if (valLower === 'guest') {
                 localStorage.setItem('club_role', 'guest');
                 localStorage.setItem('club_name', 'Guest');
