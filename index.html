@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V137</title>
+    <title>ClubPro V139</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V137";
+        const APP_VERSION = "V139";
 
         const translations = {
             he: {
@@ -58,6 +58,7 @@
                 nightReport: "דוח לילה",
                 searchPlaceholder: "🔍 חיפוש מהיר בדלת לפי שם/טלפון...",
                 date: "תאריך",
+                eventDate: "תאריך אירוע",
                 home: "בית",
                 logout: "התנתק",
                 noBookings: "אין הזמנות ממתינות לתאריך זה",
@@ -125,6 +126,7 @@
                 nightReport: "Ночной отчет",
                 searchPlaceholder: "🔍 Быстрый поиск на входе...",
                 date: "Дата",
+                eventDate: "Дата мероприятия",
                 home: "Меню",
                 logout: "Выход",
                 noBookings: "Нет броней на эту дату",
@@ -224,17 +226,21 @@
         ];
 
         let searchDebounceTimer = null;
+        let dashboardSearchDebounceTimer = null;
         let unsubscribeReservations = null;
         let initialSnapshotDone = false;
         let prevResCount = 0;
 
+        const storedRole = localStorage.getItem('club_role') || null;
+        const initialVenue = storedRole === 'guest' ? 'shalvata' : (localStorage.getItem('last_venue') || null);
+
         let state = {
             lang: localStorage.getItem('club_lang') || 'he',
-            role: localStorage.getItem('club_role') || null,
+            role: storedRole,
             userName: localStorage.getItem('club_name') || '',
             phone: localStorage.getItem('club_phone') || '',
-            allowedVenues: JSON.parse(localStorage.getItem('club_venues') || '[]'),
-            venueId: localStorage.getItem('last_venue') || null,
+            allowedVenues: storedRole === 'guest' ? ['shalvata'] : JSON.parse(localStorage.getItem('club_venues') || '[]'),
+            venueId: initialVenue,
             selectedDate: localStorage.getItem('last_date') || getToday(),
             isDateConfirmed: !!localStorage.getItem('last_date'),
             reservations: [], 
@@ -246,7 +252,7 @@
             isAdding: false, 
             editingId: null,
             transferId: null,
-            activeModalNote: null, // מכיל אובייקט של הערה פעילה להצגה מלאה { name, notes }
+            activeModalNote: null,
             showArrived: false, 
             showUsersMGMT: false,
             showArchiveMGMT: false,
@@ -254,7 +260,7 @@
             archiveFilterTab: 'all',
             archiveSearchQuery: '',
             archiveExportDate: getToday(),
-            formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '', tag: 'רגיל' }
+            formData: { type: 'table', pax: '', clientName: '', clientPhone: '', manualPrice: null, time: '22:30', notes: '', tag: 'רגיל', eventDate: getToday() }
         };
 
         function t(key) {
@@ -282,8 +288,10 @@
             if (audio && audio.paused && audio.currentTime === 0) audio.load();
         }, { once: true });
 
+        // נעילה הרמטית של המועדונים עבור GUEST
         function getAccessibleVenues() {
             if (state.role === 'admin') return allVenues;
+            if (state.role === 'guest') return allVenues.filter(v => v.id === 'shalvata');
             return allVenues.filter(v => (state.allowedVenues || []).includes(v.id));
         }
 
@@ -413,6 +421,12 @@
             const prevDate = state.selectedDate;
             state = { ...state, ...newData }; 
             
+            // הגנת GUEST: תמיד נועל על Fashion-Bar
+            if (state.role === 'guest') {
+                state.venueId = 'shalvata';
+                state.allowedVenues = ['shalvata'];
+            }
+
             if (state.selectedDate) localStorage.setItem('last_date', state.selectedDate);
             if (state.venueId) localStorage.setItem('last_venue', state.venueId);
 
@@ -429,6 +443,19 @@
             }
 
             render(); 
+        }
+
+        function handleDashboardSearchInput(val) {
+            clearTimeout(dashboardSearchDebounceTimer);
+            dashboardSearchDebounceTimer = setTimeout(() => {
+                state.dashboardFilter = val;
+                render();
+                const searchEl = document.getElementById('door-search-input');
+                if (searchEl) {
+                    searchEl.focus();
+                    searchEl.selectionStart = searchEl.selectionEnd = searchEl.value.length;
+                }
+            }, 180);
         }
 
         function handleSearchInput(val) {
@@ -449,7 +476,9 @@
             state.formData.clientPhone = document.getElementById('f-phone').value;
             state.formData.pax = document.getElementById('f-pax').value;
             state.formData.time = document.getElementById('f-time').value;
-            state.formData.manualPrice = document.getElementById('f-price').value;
+            const pEl = document.getElementById('f-price');
+            if (pEl) state.formData.manualPrice = pEl.value;
+            state.formData.eventDate = document.getElementById('f-date')?.value || state.formData.eventDate || state.selectedDate;
             state.formData.notes = document.getElementById('f-notes').value;
             state.formData.tag = document.getElementById('f-tag')?.value || 'רגיל';
             state.formData.type = type;
@@ -461,7 +490,8 @@
             const pax = document.getElementById('f-pax').value;
             const phone = document.getElementById('f-phone').value;
             const time = document.getElementById('f-time').value;
-            const price = document.getElementById('f-price').value;
+            const price = document.getElementById('f-price') ? document.getElementById('f-price').value : null;
+            const dateVal = document.getElementById('f-date') ? document.getElementById('f-date').value : state.selectedDate;
             const notes = document.getElementById('f-notes').value;
             const tag = document.getElementById('f-tag')?.value || 'רגיל';
             if(!name || !pax) return alert(state.lang === 'ru' ? "Укажите имя и количество гостей" : "חובה שם וכמות מוזמנים");
@@ -474,8 +504,8 @@
                 pax: Number(pax), 
                 arrivedPax: state.editingId ? (state.reservations.find(r=>r.id===state.editingId)?.arrivedPax || 0) : 0,
                 tag: tag,
-                eventDate: state.selectedDate,
-                minOrder: Number(price || (pax * venue.minP)), 
+                eventDate: dateVal || state.selectedDate,
+                minOrder: price ? Number(price) : (pax * venue.minP), 
                 time: time || '22:30', 
                 notes: notes ? notes.trim() : "",
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -520,9 +550,9 @@
                 if (filtered.length) {
                     text += `*🏠 ${tItem.l}:*\n`;
                     filtered.forEach((r, i) => { 
-                        const tableStr = r.tableNumber ? `${t('tablePrefix')} ` + r.tableNumber : '₪' + r.minOrder;
+                        const tableStr = r.tableNumber ? `${t('tablePrefix')} ` + r.tableNumber : (state.role === 'guest' ? '' : '₪' + r.minOrder);
                         const peopleWord = state.lang === 'ru' ? 'чел' : 'איש';
-                        text += `${i+1}. *${r.name.trim()}* | ${r.pax} ${peopleWord} | ${r.time||'22:30'} | ${tableStr}${r.notes?' | '+r.notes:''}\n`; 
+                        text += `${i+1}. *${r.name.trim()}* | ${r.pax} ${peopleWord} | ${r.time||'22:30'}${tableStr ? ' | ' + tableStr : ''}${r.notes?' | '+r.notes:''}\n`; 
                     });
                     text += `\n`;
                 }
@@ -660,7 +690,6 @@
                         </button>
                     </div>
 
-                    <!-- אזור תוכן ההערה עם גלילה מלאה לכל אורך הטקסט -->
                     <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-white/10 text-slate-200 text-xs font-medium max-h-[45vh] overflow-y-auto whitespace-pre-wrap break-words leading-relaxed select-text">
                         ${state.activeModalNote.notes}
                     </div>
@@ -676,6 +705,7 @@
             const venue = allVenues.find(v => v.id === state.venueId);
             const isArrived = !!res.arrived;
             const hasNotes = !!(res.notes && res.notes.trim());
+            const isGuest = state.role === 'guest';
 
             return `
             <div class="px-2.5 py-1.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${isArrived ? 'bg-emerald-950/20' : ''}">
@@ -693,7 +723,6 @@
                         <div class="flex items-center gap-1.5 min-w-0 truncate">
                             <span class="font-bold text-white text-[13px] tracking-tight truncate">${res.name}</span>
 
-                            <!-- בלון הודעה מודרני שפותח חלון מלא לכל אורך ההערה -->
                             ${hasNotes ? `
                                 <button onclick="openNoteModal('${res.id}')" 
                                         title="לחץ לקריאת ההערה המלאה"
@@ -714,15 +743,13 @@
                 <div class="flex items-center justify-between gap-1 mt-0.5 pr-6">
                     <div class="flex items-center gap-2 text-slate-400 text-[11px] min-w-0 flex-1">
                         <span class="font-bold text-slate-300">👥 ${res.arrivedPax ? `${res.arrivedPax}/` : ''}${res.pax}</span>
-                        <span class="text-white/20">•</span>
-                        <span class="font-bold ${res.tableNumber ? 'text-amber-400' : 'text-slate-400'}">
-                            ${res.tableNumber ? `ש'${res.tableNumber}` : ''} ₪${res.minOrder || 0}
-                        </span>
+                        ${res.tableNumber ? `<span class="text-white/20">•</span><span class="font-bold text-amber-400">ש'${res.tableNumber}</span>` : ''}
+                        ${!isGuest ? `<span class="text-white/20">•</span><span class="font-bold text-slate-400">₪${res.minOrder || 0}</span>` : ''}
                     </div>
 
-                    <!-- סרגל אייקונים קומפקטי -->
+                    <!-- סרגל אייקונים קומפקטי (עבור GUEST: ללא שינוע מועדונים) -->
                     <div class="flex items-center gap-0.5 shrink-0">
-                        <button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-0.5 hover:bg-purple-500/15 rounded" title="שינוע"><i data-lucide="move-horizontal" size="13"></i></button>
+                        ${!isGuest ? `<button onclick="updateState({transferId: '${res.id}'})" class="text-purple-400 p-0.5 hover:bg-purple-500/15 rounded" title="שינוע"><i data-lucide="move-horizontal" size="13"></i></button>` : ''}
                         ${venue.map ? `<button onclick="window.location.href='${venue.map}?assignTo=${res.id}&date=${state.selectedDate}'" class="text-blue-400 p-0.5 hover:bg-blue-500/15 rounded" title="מפה"><i data-lucide="map-pin" size="13"></i></button>` : ''}
                         <button onclick="sendWhatsAppToClient('${res.id}')" class="text-emerald-400 p-0.5 hover:bg-emerald-500/15 rounded" title="וואטסאפ"><i data-lucide="message-circle" size="13"></i></button>
                         <button onclick="editReservation('${res.id}')" class="text-amber-400 p-0.5 hover:bg-amber-500/15 rounded" title="עריכה"><i data-lucide="edit-2" size="13"></i></button>
@@ -734,7 +761,7 @@
         }
 
         function renderDashboard(allList) {
-            const viewList = state.role === 'admin' ? allList : allList.filter(r => r.promoterId === state.phone);
+            const viewList = (state.role === 'admin' || state.role === 'guest') ? allList : allList.filter(r => r.promoterId === state.phone);
             
             const searchFilter = state.dashboardFilter.trim().toLowerCase();
             const filteredViewList = searchFilter ? viewList.filter(r => (r.name && r.name.toLowerCase().includes(searchFilter)) || (r.phone && r.phone.includes(searchFilter))) : viewList;
@@ -798,6 +825,25 @@
                         <div class="h-4 w-[1px] bg-white/10"></div>
                         <div class="text-center"><p class="text-[8px] text-emerald-400 uppercase font-bold">${t('expectedTill')}</p><p class="text-xs font-black text-emerald-400">₪${grandTotalMoney.toLocaleString()}</p></div>
                     </div>
+                ` : state.role === 'guest' ? `
+                    <div class="grid grid-cols-4 gap-1.5 mb-2.5">
+                        <div class="glass-card p-2 rounded-xl text-center border-t-2 border-amber-500 shadow-sm">
+                            <p class="text-[9px] text-slate-400 font-bold uppercase">${t('tables')}</p>
+                            <p class="font-black text-sm text-amber-400">${tableCount} <span class="text-[10px] text-slate-400 font-normal">(${tablePax})</span></p>
+                        </div>
+                        <div class="glass-card p-2 rounded-xl text-center border-t-2 border-blue-500 shadow-sm">
+                            <p class="text-[9px] text-slate-400 font-bold uppercase">${t('bar')}</p>
+                            <p class="font-black text-sm text-blue-400">${barCount} <span class="text-[10px] text-slate-400 font-normal">(${barPax})</span></p>
+                        </div>
+                        <div class="glass-card p-2 rounded-xl text-center text-amber-500 shadow-sm">
+                            <p class="text-[9px] font-bold">${t('guests')}</p>
+                            <p class="font-black text-sm">${totalInvitedPax}</p>
+                        </div>
+                        <div class="glass-card p-2 rounded-xl text-center text-emerald-400 shadow-sm">
+                            <p class="text-[9px] font-bold">${t('arrived')}</p>
+                            <p class="font-black text-sm">${totalArrivedPax}</p>
+                        </div>
+                    </div>
                 ` : `
                     <div class="grid grid-cols-3 gap-1.5 mb-2">
                         <div class="glass-card p-2 rounded-xl text-center">
@@ -836,7 +882,12 @@
                 ` : ''}
 
                 <div class="mb-2.5">
-                    <input type="text" placeholder="${t('searchPlaceholder')}" value="${state.dashboardFilter}" oninput="state.dashboardFilter = this.value; render();" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-2.5 text-white text-xs outline-none focus:border-amber-500 transition-colors">
+                    <input id="door-search-input" 
+                           type="text" 
+                           placeholder="${t('searchPlaceholder')}" 
+                           value="${state.dashboardFilter}" 
+                           oninput="handleDashboardSearchInput(this.value)" 
+                           class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-2.5 text-white text-xs outline-none focus:border-amber-500 transition-colors">
                 </div>
 
                 <div class="flex flex-col gap-2 mb-3">
@@ -845,7 +896,7 @@
                             <button onclick="updateState({showUsersMGMT: true})" class="flex-1 bg-slate-800/80 hover:bg-slate-700 py-2.5 rounded-xl font-black text-[10px] uppercase border border-white/10 transition-colors">${t('promoters')}</button>
                             <button onclick="updateState({showArchiveMGMT: true})" class="flex-1 bg-blue-950/80 text-blue-400 hover:bg-blue-900 py-2.5 rounded-xl font-black text-[10px] uppercase border border-blue-500/20 transition-colors">${t('bookingCenter')}</button>
                         ` : ''}
-                        <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null,time:'22:30',notes:'',tag:'רגיל'}})" class="flex-[2] btn-amber hover:opacity-90 py-2.5 rounded-xl font-black uppercase shadow-lg transition-all">${t('createBooking')}</button>
+                        <button onclick="updateState({isAdding: true, editingId: null, formData:{type:'table',pax:'',clientName:'',clientPhone:'',manualPrice:null,time:'22:30',notes:'',tag:'רגיל',eventDate:state.selectedDate}})" class="flex-[2] btn-amber hover:opacity-90 py-2.5 rounded-xl font-black uppercase shadow-lg transition-all">${t('createBooking')}</button>
                     </div>
                     ${venue.map ? `<button onclick="window.location.href='${venue.map}?date=${state.selectedDate}'" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl font-black uppercase flex items-center justify-center gap-2 shadow-lg transition-colors"><i data-lucide="map" size="15"></i> ${t('tableMap')}</button>` : ''}
                     
@@ -1024,16 +1075,31 @@
             const d = state.formData;
             const venue = allVenues.find(v => v.id === state.venueId);
             const initialPrice = d.manualPrice || (Number(d.pax || 0) * venue.minP);
-            return `<div class="glass-card p-5 rounded-[2rem] space-y-4 text-white shadow-2xl border border-white/10">
+            const currentDateVal = d.eventDate || state.selectedDate;
+            const isGuest = state.role === 'guest';
+
+            return `<div class="glass-card p-5 rounded-[2rem] space-y-3.5 text-white shadow-2xl border border-white/10">
                 <div class="flex justify-between items-center"><button onclick="updateState({isAdding: false, editingId: null})" class="text-slate-400 hover:text-white font-black uppercase text-xs">${t('back')}</button><h2 class="text-amber-500 font-black uppercase text-xs">${t('bookingDetails')}</h2></div>
-                <input id="f-name" placeholder="${t('clientName')}" value="${d.clientName || ''}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3.5 text-white font-bold outline-none focus:border-amber-500">
-                <input id="f-phone" placeholder="${t('phone')}" type="tel" value="${d.clientPhone || ''}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3.5 text-left text-white outline-none focus:border-amber-500" dir="ltr">
+                
+                <div>
+                    <label class="text-[9px] text-amber-400 uppercase font-bold mb-1 block">📅 ${t('eventDate')}</label>
+                    <input id="f-date" type="date" value="${currentDateVal}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-amber-500">
+                </div>
+
+                <input id="f-name" placeholder="${t('clientName')}" value="${d.clientName || ''}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-white font-bold outline-none focus:border-amber-500">
+                <input id="f-phone" placeholder="${t('phone')}" type="tel" value="${d.clientPhone || ''}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-left text-white outline-none focus:border-amber-500" dir="ltr">
+                
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="text-[9px] text-slate-400 uppercase font-bold">${t('hour')}</label><input id="f-time" type="time" value="${d.time || '22:30'}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-white font-bold outline-none"></div>
-                    <div><label class="text-[9px] text-slate-400 uppercase font-bold">${t('people')}</label><input id="f-pax" type="number" inputmode="numeric" placeholder="0" value="${d.pax || ''}" onblur="const p=document.getElementById('f-price'); if(!p.value) p.value = this.value * ${venue.minP}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-white text-center font-black text-lg outline-none"></div>
+                    <div><label class="text-[9px] text-slate-400 uppercase font-bold">${t('people')}</label><input id="f-pax" type="number" inputmode="numeric" placeholder="0" value="${d.pax || ''}" onblur="const p=document.getElementById('f-price'); if(p && !p.value) p.value = this.value * ${venue.minP}" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-white text-center font-black text-lg outline-none"></div>
                 </div>
+
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="text-[9px] text-amber-500 uppercase font-bold">${t('minOrder')}</label><input id="f-price" type="number" inputmode="numeric" value="${initialPrice || ''}" class="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-500 text-center font-black text-sm outline-none"></div>
+                    ${!isGuest ? `
+                        <div><label class="text-[9px] text-amber-500 uppercase font-bold">${t('minOrder')}</label><input id="f-price" type="number" inputmode="numeric" value="${initialPrice || ''}" class="w-full bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-amber-500 text-center font-black text-sm outline-none"></div>
+                    ` : `
+                        <div><label class="text-[9px] text-slate-400 uppercase font-bold">${t('tables')}</label><div class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-center text-xs text-slate-400 font-bold">${venue.name}</div></div>
+                    `}
                     <div>
                         <label class="text-[9px] text-slate-400 uppercase font-bold">${t('clientTag')}</label>
                         <select id="f-tag" class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-white font-bold text-xs outline-none">
@@ -1140,13 +1206,34 @@
 
         async function loginUser() { 
             const val = document.getElementById('l-in').value.trim(); 
-            if (val.toLowerCase() === 'res') { 
+            const valLower = val.toLowerCase();
+
+            if (valLower === 'res') { 
                 updateState({ role: 'admin', userName: 'Admin', phone: 'ADMIN', allowedVenues: ['shalvata', 'q_gallery', 'ruki_vverh'] }); 
                 localStorage.setItem('club_role', 'admin'); 
                 localStorage.setItem('club_name', 'Admin'); 
                 localStorage.setItem('club_phone', 'ADMIN'); 
                 return; 
-            } 
+            }
+
+            // כניסה בלעדית של GUEST נעולה רק ל-Fashion-Bar
+            if (valLower === 'guest') {
+                localStorage.setItem('club_role', 'guest');
+                localStorage.setItem('club_name', 'Guest');
+                localStorage.setItem('club_phone', 'GUEST');
+                localStorage.setItem('club_venues', JSON.stringify(['shalvata']));
+                localStorage.setItem('last_venue', 'shalvata');
+
+                updateState({ 
+                    role: 'guest', 
+                    userName: 'Guest', 
+                    phone: 'GUEST', 
+                    allowedVenues: ['shalvata'],
+                    venueId: 'shalvata'
+                });
+                return;
+            }
+
             if (val.length >= 10) { 
                 const userDoc = await db.collection('users').doc(val).get(); 
                 if (!userDoc.exists) {
@@ -1183,7 +1270,7 @@
                     localStorage.setItem('club_venues', JSON.stringify(userAllowed));
                 }
             } else {
-                alert(state.lang === 'ru' ? "Введите корректный номер телефона" : "יש להזין קוד תקין או מספר טלפון בן 10 ספרות");
+                alert(state.lang === 'ru' ? "Введите корректный номер телефона или код" : "יש להזין קוד תקין (res / guest) או מספר טלפון בן 10 ספרות");
             }
         }
 
@@ -1200,7 +1287,21 @@
 
         function editReservation(id) { 
             const res = state.reservations.find(r => r.id === id); 
-            updateState({ editingId: id, isAdding: true, formData: { type: res.type, pax: res.pax, clientName: res.name, clientPhone: res.phone, manualPrice: res.minOrder, time: res.time||'22:30', notes: res.notes||'', tag: res.tag||'רגיל' } }); 
+            updateState({ 
+                editingId: id, 
+                isAdding: true, 
+                formData: { 
+                    type: res.type, 
+                    pax: res.pax, 
+                    clientName: res.name, 
+                    clientPhone: res.phone, 
+                    manualPrice: res.minOrder, 
+                    time: res.time||'22:30', 
+                    notes: res.notes||'', 
+                    tag: res.tag||'רגיל',
+                    eventDate: res.eventDate || state.selectedDate
+                } 
+            }); 
         }
         
         async function addUserManually() { 
@@ -1279,9 +1380,8 @@
 
             root.innerHTML = `
                 <div class="flex flex-col h-screen overflow-hidden text-white relative">
-                    ${state.transferId ? `<div class="transfer-overlay"><div class="glass-card p-6 rounded-3xl w-full max-w-xs text-center space-y-4 border border-white/10"><h3 class="font-black text-amber-500 uppercase">${t('moveBooking')}</h3><div class="flex flex-col gap-2">${accessibleVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-3 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase text-xs">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-400 font-bold pt-2">${t('cancel')}</button></div></div>` : ''}
+                    ${state.transferId && state.role !== 'guest' ? `<div class="transfer-overlay"><div class="glass-card p-6 rounded-3xl w-full max-w-xs text-center space-y-4 border border-white/10"><h3 class="font-black text-amber-500 uppercase">${t('moveBooking')}</h3><div class="flex flex-col gap-2">${accessibleVenues.filter(v => v.id !== state.venueId).map(v => `<button onclick="moveReservation('${state.transferId}', '${v.id}')" class="bg-white/10 p-3 rounded-xl font-black border border-white/10 active:bg-amber-500 active:text-black uppercase text-xs">${v.name}</button>`).join('')}</div><button onclick="updateState({transferId: null})" class="text-slate-400 font-bold pt-2">${t('cancel')}</button></div></div>` : ''}
                     
-                    <!-- מודאל הערה מלא ונגיש -->
                     ${renderNoteModal()}
 
                     <header class="bg-slate-950/80 backdrop-blur-md px-3 py-2 border-b border-white/[0.06] flex justify-between items-center shadow-lg">
@@ -1296,7 +1396,7 @@
                             <button onclick="setLanguage(state.lang === 'he' ? 'ru' : 'he')" class="bg-slate-900 border border-white/15 text-amber-400 font-bold text-[10px] px-2 py-1 rounded-lg">
                                 ${state.lang === 'he' ? 'RU' : 'עב'}
                             </button>
-                            ${accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-400 font-black text-[10px] border border-amber-500/40 px-2 py-1 rounded-lg uppercase hover:bg-amber-500/10">${t('home')}</button>` : ''}
+                            ${state.role !== 'guest' && accessibleVenues.length > 1 ? `<button onclick="updateState({venueId: null, isDateConfirmed: false})" class="text-amber-400 font-black text-[10px] border border-amber-500/40 px-2 py-1 rounded-lg uppercase hover:bg-amber-500/10">${t('home')}</button>` : ''}
                             <button onclick="logout()" class="text-rose-400 border border-rose-500/30 px-2 py-1 rounded-lg hover:bg-rose-500/10"><i data-lucide="log-out" size="13"></i></button>
                         </div>
                     </header>
