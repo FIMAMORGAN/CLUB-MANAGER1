@@ -32,7 +32,7 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* אזורי לחיצה שקופים לחלוטין עם מסגרת עדינה */
+        /* אזורי לחיצה שקופים 100% - שומרים על המפה נקייה לחלוטין */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -40,45 +40,43 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s ease;
             z-index: 10;
+            background: transparent;
+            border: none;
+            outline: none;
+            transition: transform 0.15s ease;
         }
 
+        /* משוב לחיצה עדין בלבד */
         .table-spot:active {
-            transform: translate(-50%, -50%) scale(0.92);
+            transform: translate(-50%, -50%) scale(0.95);
         }
 
-        /* שולחן פנוי: שקוף לגמרי, רק מסגרת ירוקה עדינה בלי שום צבע שמסתיר */
+        /* שולחן פנוי: שקוף לחלוטין ללא שום קובייה או מסגרת */
         .spot-free {
             background: transparent;
-            border: 1.5px solid rgba(16, 185, 129, 0.7);
-            border-radius: 0.5rem;
-            box-shadow: inset 0 0 6px rgba(16, 185, 129, 0.15), 0 0 8px rgba(16, 185, 129, 0.2);
+            border: none;
         }
 
-        .spot-free:hover {
-            border-color: #10b981;
-            box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.3), 0 0 12px rgba(16, 185, 129, 0.4);
-        }
-
-        /* שולחן תפוס: מסגרת אדומה שקופה + אייקון מנעול זעיר במרכז (לא מסתיר את המספרים) */
+        /* שולחן תפוס: שקוף לחלוטין ללא קובייה אדומה */
         .spot-occupied {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1.5px solid rgba(239, 68, 68, 0.9);
-            border-radius: 0.5rem;
-            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+            background: transparent;
+            border: none;
         }
 
+        /* מנעול מעודן שצף במרכז השולחן התפוס */
         .lock-badge {
-            background: #ef4444;
+            background: rgba(220, 38, 38, 0.85);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             color: #fff;
-            font-size: 9px;
-            padding: 1px 4px;
+            font-size: 11px;
+            padding: 2px 5px;
             border-radius: 9999px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 10px rgba(239, 68, 68, 0.5);
         }
 
         .overlay {
@@ -96,6 +94,7 @@
 </head>
 <body class="min-h-screen p-2 sm:p-3 flex flex-col items-center">
 
+    <!-- סרגל עליון -->
     <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2.5 rounded-2xl">
         <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
             <i data-lucide="arrow-right" size="14"></i>
@@ -108,8 +107,8 @@
         </div>
 
         <div class="flex items-center gap-1.5">
-            <div class="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
-                <span class="w-1.5 h-1.5 rounded-full border border-emerald-400"></span> פנוי
+            <div class="flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
+                <span>✨</span> שולחן חופשי
             </div>
             <div class="flex items-center gap-1 text-[9px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
                 <span>🔒</span> תפוס
@@ -117,10 +116,12 @@
         </div>
     </header>
 
+    <!-- הודעת מצב שיבוץ הזמנה -->
     <div id="assign-banner" class="hidden w-full max-w-lg mb-2 bg-amber-500/20 border border-amber-500/50 p-2 rounded-xl text-center">
-        <p class="text-xs font-black text-amber-300">בחר שולחן פנוי עבור: <span id="assign-client-name" class="text-white underline"></span></p>
+        <p class="text-xs font-black text-amber-300">לחץ על השולחן המבוקש לשיבוץ: <span id="assign-client-name" class="text-white underline"></span></p>
     </div>
 
+    <!-- מפת המועדון הנקייה -->
     <main class="w-full flex-1 flex items-center justify-center">
         <div class="map-wrapper" id="map-container">
             <img src="fashion-map.png" alt="Fashion-Bar Map" class="map-bg">
@@ -128,6 +129,7 @@
         </div>
     </main>
 
+    <!-- מודאל פעולות שולחן -->
     <div id="table-modal" class="overlay hidden">
         <div class="glass p-5 rounded-3xl w-full max-w-xs text-center space-y-4 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-white/10 pb-2">
@@ -159,9 +161,8 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // מיקומים וממדים מותאמים במדויק מעל כל שולחן
         const TABLES_DEF = [
-            // מתחם עליון (שמאל לימין)
+            // מתחם עליון
             { id: "250", top: "12%", left: "13.5%", w: "12%", h: "7%", cap: 8, label: "250" },
             { id: "240", top: "12%", left: "29.5%", w: "10%", h: "7%", cap: 9, label: "240" },
             { id: "230", top: "12%", left: "51%", w: "17%", h: "7%", cap: 12, label: "230" },
@@ -240,7 +241,7 @@
                 spot.style.width = tbl.w;
                 spot.style.height = tbl.h;
 
-                // שולחן תפוס מציג רק מנעול קומפקטי; שולחן פנוי נשאר שקוף לחלוטין ללא שום טקסט או כיסוי
+                // אם תפוס - רק מנעול צף עדין. אם פנוי - 100% שקוף
                 if (isOccupied) {
                     spot.innerHTML = `<span class="lock-badge">🔒</span>`;
                 }
@@ -253,7 +254,7 @@
         async function handleTableClick(tbl, occupiedRes) {
             if (assignToId && assignTargetRes) {
                 if (occupiedRes) {
-                    alert(`שולחן ${tbl.label} תפוס על ידי ${occupiedRes.name}. יש לבחור שולחן פנוי.`);
+                    alert(`שולחן ${tbl.label} כבר תפוס על ידי ${occupiedRes.name}. יש לבחור שולחן פנוי.`);
                     return;
                 }
 
