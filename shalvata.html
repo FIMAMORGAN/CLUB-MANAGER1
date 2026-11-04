@@ -19,7 +19,7 @@
         .map-wrapper {
             position: relative;
             width: 100%;
-            max-width: 600px;
+            max-width: 580px;
             margin: 0 auto;
         }
 
@@ -27,48 +27,60 @@
             width: 100%;
             height: auto;
             display: block;
-            border-radius: 1.5rem;
-            box-shadow: 0 0 35px rgba(245, 158, 11, 0.2);
-            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 1.2rem;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* נקודות לחיצות על השולחנות */
+        /* תגיות שולחן עדינות וקומפקטיות */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 0.75rem;
+            border-radius: 9999px;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 900;
-            text-align: center;
             z-index: 10;
         }
 
         .table-spot:active {
-            transform: translate(-50%, -50%) scale(0.92);
+            transform: translate(-50%, -50%) scale(0.9);
         }
 
-        /* פנוי */
+        /* שולחן פנוי - נקודה זעירה ועדינה בלבד בלי לחסום את הטקסט בתמונה */
         .spot-free {
-            background: rgba(16, 185, 129, 0.3);
-            border: 2px solid #10b981;
-            color: #ecfdf5;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.25);
+            border: 1.5px solid #10b981;
+            padding: 2px 7px;
+            font-size: 9px;
+            font-weight: 800;
+            color: #a7f3d0;
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.35);
+            backdrop-filter: blur(2px);
         }
 
-        /* תפוס */
-        .spot-occupied {
-            background: rgba(239, 68, 68, 0.75);
-            border: 2px solid #ef4444;
+        .spot-free:hover {
+            background: rgba(16, 185, 129, 0.6);
             color: #fff;
-            box-shadow: 0 0 14px rgba(239, 68, 68, 0.6);
         }
 
-        /* מודאל */
+        /* שולחן תפוס - תגית אדומה יוקרתית עם שם הלקוח */
+        .spot-occupied {
+            background: rgba(220, 38, 38, 0.9);
+            border: 1.5px solid #f87171;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 900;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+            max-width: 90%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .overlay {
             position: fixed;
             inset: 0;
@@ -82,32 +94,32 @@
         }
     </style>
 </head>
-<body class="min-h-screen p-3 flex flex-col items-center">
+<body class="min-h-screen p-2 sm:p-3 flex flex-col items-center">
 
     <!-- סרגל עליון -->
-    <header class="w-full max-w-lg mb-3 flex justify-between items-center glass p-3 rounded-2xl">
-        <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-3 py-1.5 rounded-xl border border-white/10">
+    <header class="w-full max-w-lg mb-2.5 flex justify-between items-center glass p-2.5 rounded-2xl">
+        <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
             <i data-lucide="arrow-right" size="14"></i>
-            <span>חזור לדשבורד</span>
+            <span>חזור</span>
         </button>
 
         <div class="text-center">
-            <h1 class="text-sm font-black text-amber-400 tracking-wider">FASHION-BAR</h1>
-            <p id="date-display" class="text-[10px] text-slate-400 font-mono font-bold"></p>
+            <h1 class="text-xs font-black text-amber-400 tracking-wider">FASHION-BAR</h1>
+            <p id="date-display" class="text-[9px] text-slate-400 font-mono font-bold"></p>
         </div>
 
-        <div class="flex items-center gap-2">
-            <div class="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                <span class="w-2 h-2 rounded-full bg-emerald-400"></span> פנוי
+        <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1 text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> פנוי
             </div>
-            <div class="flex items-center gap-1 text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-500/20">
-                <span class="w-2 h-2 rounded-full bg-rose-400"></span> תפוס
+            <div class="flex items-center gap-1 text-[9px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> תפוס
             </div>
         </div>
     </header>
 
-    <!-- הודעת מצב שיבוץ -->
-    <div id="assign-banner" class="hidden w-full max-w-lg mb-3 bg-amber-500/20 border border-amber-500/50 p-2.5 rounded-xl text-center">
+    <!-- הודעת מצב שיבוץ הזמנה -->
+    <div id="assign-banner" class="hidden w-full max-w-lg mb-2.5 bg-amber-500/20 border border-amber-500/50 p-2 rounded-xl text-center">
         <p class="text-xs font-black text-amber-300">בחר שולחן פנוי עבור: <span id="assign-client-name" class="text-white underline"></span></p>
     </div>
 
@@ -123,7 +135,7 @@
     <div id="table-modal" class="overlay hidden">
         <div class="glass p-5 rounded-3xl w-full max-w-xs text-center space-y-4 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-white/10 pb-2">
-                <span class="text-amber-400 font-black text-base" id="modal-table-title">שולחן</span>
+                <span class="text-amber-400 font-black text-sm" id="modal-table-title">שולחן</span>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" size="18"></i></button>
             </div>
 
@@ -151,46 +163,42 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // הגדרת מיקומי השולחנות לפי התרשים באחוזים מדויקים
+        // הגדרת מיקומי שולחנות בלבד (ללא בר 1 ובר 2)
         const TABLES_DEF = [
-            // מתחם עליון (שמאל לימין)
-            { id: "250", top: "11.5%", left: "13%", w: "16%", h: "8%", cap: 8, label: "250" },
-            { id: "240", top: "11.5%", left: "30.5%", w: "13%", h: "8%", cap: 9, label: "240" },
-            { id: "230", top: "11.5%", left: "51%", w: "22%", h: "8%", cap: 12, label: "230" },
-            { id: "220", top: "11.5%", left: "73%", w: "13%", h: "8%", cap: 10, label: "220" },
-            { id: "210", top: "11.5%", left: "87%", w: "13%", h: "8%", cap: 9, label: "210" },
+            // מתחם עליון
+            { id: "250", top: "11.5%", left: "13%", cap: 8, label: "250" },
+            { id: "240", top: "11.5%", left: "30.5%", cap: 9, label: "240" },
+            { id: "230", top: "11.5%", left: "51%", cap: 12, label: "230" },
+            { id: "220", top: "11.5%", left: "73%", cap: 10, label: "220" },
+            { id: "210", top: "11.5%", left: "87%", cap: 9, label: "210" },
 
             // שולחן מרכזי עליון
-            { id: "30", top: "26%", left: "49.5%", w: "14%", h: "5.5%", cap: 5, label: "30" },
+            { id: "30", top: "26%", left: "49.5%", cap: 5, label: "30" },
 
             // אגף שמאל
-            { id: "310", top: "29%", left: "12%", w: "13%", h: "6.5%", cap: 9, label: "310" },
-            { id: "320", top: "36.5%", left: "12%", w: "13%", h: "6.5%", cap: 9, label: "320" },
-            { id: "330", top: "50%", left: "12%", w: "13%", h: "6.5%", cap: 10, label: "330" },
-            { id: "340", top: "57.5%", left: "12%", w: "13%", h: "6.5%", cap: 10, label: "340" },
-            { id: "350", top: "71.5%", left: "12%", w: "13%", h: "6.5%", cap: 10, label: "350" },
-            { id: "360", top: "79%", left: "12%", w: "13%", h: "6.5%", cap: 10, label: "360" },
+            { id: "310", top: "29%", left: "12%", cap: 9, label: "310" },
+            { id: "320", top: "36.5%", left: "12%", cap: 9, label: "320" },
+            { id: "330", top: "50%", left: "12%", cap: 10, label: "330" },
+            { id: "340", top: "57.5%", left: "12%", cap: 10, label: "340" },
+            { id: "350", top: "71.5%", left: "12%", cap: 10, label: "350" },
+            { id: "360", top: "79%", left: "12%", cap: 10, label: "360" },
 
             // אגף ימין
-            { id: "160", top: "40.5%", left: "87%", w: "13%", h: "5.5%", cap: 7, label: "160" },
-            { id: "150", top: "47%", left: "87%", w: "13%", h: "5.5%", cap: 7, label: "150" },
-            { id: "140", top: "59%", left: "87%", w: "13%", h: "5.5%", cap: 10, label: "140" },
-            { id: "130", top: "65.5%", left: "87%", w: "13%", h: "5.5%", cap: 10, label: "130" },
-            { id: "120", top: "76.5%", left: "87%", w: "13%", h: "5.5%", cap: 7, label: "120" },
-            { id: "110", top: "83%", left: "87%", w: "13%", h: "5.5%", cap: 7, label: "110" },
+            { id: "160", top: "40.5%", left: "87%", cap: 7, label: "160" },
+            { id: "150", top: "47%", left: "87%", cap: 7, label: "150" },
+            { id: "140", top: "59%", left: "87%", cap: 10, label: "140" },
+            { id: "130", top: "65.5%", left: "87%", cap: 10, label: "130" },
+            { id: "120", top: "76.5%", left: "87%", cap: 7, label: "120" },
+            { id: "110", top: "83%", left: "87%", cap: 7, label: "110" },
 
-            // עמודת שולחנות עמידה שמאל
-            { id: "40", top: "36%", left: "26%", w: "10%", h: "6%", cap: 4, label: "40" },
-            { id: "50", top: "51.5%", left: "26%", w: "10%", h: "6%", cap: 4, label: "50" },
-            { id: "60", top: "67%", left: "26%", w: "10%", h: "6%", cap: 4, label: "60" },
+            // שולחנות עמידה שמאל
+            { id: "40", top: "36%", left: "26%", cap: 4, label: "40" },
+            { id: "50", top: "51.5%", left: "26%", cap: 4, label: "50" },
+            { id: "60", top: "67%", left: "26%", cap: 4, label: "60" },
 
-            // עמודת שולחנות עמידה ימין
-            { id: "20", top: "36%", left: "73%", w: "10%", h: "6%", cap: 4, label: "20" },
-            { id: "10", top: "67%", left: "73%", w: "10%", h: "6%", cap: 4, label: "10" },
-
-            // בר 1 ובר 2
-            { id: "B1", top: "40%", left: "49.5%", w: "26%", h: "9%", cap: 24, label: "בר 1" },
-            { id: "B2", top: "61%", left: "49.5%", w: "26%", h: "9%", cap: 24, label: "בר 2" }
+            // שולחנות עמידה ימין
+            { id: "20", top: "36%", left: "73%", cap: 4, label: "20" },
+            { id: "10", top: "67%", left: "73%", cap: 4, label: "10" }
         ];
 
         let reservations = [];
@@ -233,15 +241,10 @@
                 spot.className = `table-spot ${isOccupied ? 'spot-occupied' : 'spot-free'}`;
                 spot.style.top = tbl.top;
                 spot.style.left = tbl.left;
-                spot.style.width = tbl.w;
-                spot.style.height = tbl.h;
 
-                spot.innerHTML = `
-                    <span class="text-[11px] leading-none">${tbl.label}</span>
-                    <span class="text-[8px] font-normal leading-none mt-0.5 truncate max-w-full px-0.5">
-                        ${isOccupied ? occupiedRes.name : `${tbl.cap} מק'`}
-                    </span>
-                `;
+                spot.innerHTML = isOccupied 
+                    ? `<span>🔒 ${occupiedRes.name}</span>`
+                    : `<span>+</span>`;
 
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
                 container.appendChild(spot);
@@ -249,25 +252,22 @@
         }
 
         async function handleTableClick(tbl, occupiedRes) {
-            // אם אנחנו במצב שיבוץ הזמנה
             if (assignToId && assignTargetRes) {
                 if (occupiedRes) {
-                    alert(`שולחן ${tbl.label} כבר תפוס על ידי ${occupiedRes.name}! יש לבחור שולחן פנוי או לשחרר אותו קודם.`);
+                    alert(`שולחן ${tbl.label} תפוס על ידי ${occupiedRes.name}. יש לבחור שולחן פנוי.`);
                     return;
                 }
 
-                if (confirm(`לשבץ את ${assignTargetRes.name} (${assignTargetRes.pax} מוזמנים) לשולחן ${tbl.label}?`)) {
+                if (confirm(`לשבץ את ${assignTargetRes.name} (${assignTargetRes.pax} איש) לשולחן ${tbl.label}?`)) {
                     await db.collection('reservations').doc(assignToId).update({
                         tableNumber: tbl.id,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    alert(`ההזמנה שובצה בהצלחה לשולחן ${tbl.label}!`);
                     window.location.href = 'index.html';
                 }
                 return;
             }
 
-            // פתיחת מודאל רגיל לצפייה / שחרור / שיבוץ
             openModal(tbl, occupiedRes);
         }
 
@@ -292,22 +292,21 @@
                 `;
 
                 actions.innerHTML = `
-                    <button onclick="unassignTable('${occupiedRes.id}', '${tbl.label}')" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                    <button onclick="unassignTable('${occupiedRes.id}', '${tbl.label}')" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
                         שחרר שולחן
                     </button>
-                    <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-2 rounded-xl font-bold text-xs">
+                    <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1.5 rounded-xl font-bold text-xs">
                         סגור
                     </button>
                 `;
             } else {
                 body.innerHTML = `
                     <div class="bg-emerald-500/10 p-3 rounded-2xl border border-emerald-500/20 text-center">
-                        <p class="font-bold text-emerald-400 text-sm">השולחן פנוי להזמנה</p>
-                        <p class="text-slate-400 text-[11px] mt-1">מתאים לעד ${tbl.cap} מוזמנים</p>
+                        <p class="font-bold text-emerald-400 text-sm">השולחן פנוי</p>
+                        <p class="text-slate-400 text-[10px] mt-1">עד ${tbl.cap} מוזמנים</p>
                     </div>
                 `;
 
-                // רשימת הזמנות שטרם שובצו לשולחן
                 const unassignedList = reservations.filter(r => !r.tableNumber);
 
                 if (unassignedList.length > 0) {
@@ -319,17 +318,17 @@
                     `;
 
                     actions.innerHTML = `
-                        <button onclick="assignSelectedRes('${tbl.id}', '${tbl.label}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
-                            שבץ לשולחן זה
+                        <button onclick="assignSelectedRes('${tbl.id}', '${tbl.label}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                            שבץ לשולחן
                         </button>
                     `;
                 } else {
-                    body.innerHTML += `<p class="text-center text-slate-500 text-xs mt-2 font-bold">אין הזמנות שממתינות לשיבוץ שולחן</p>`;
+                    body.innerHTML += `<p class="text-center text-slate-500 text-xs mt-2 font-bold">אין הזמנות שממתינות לשיבוץ</p>`;
                     actions.innerHTML = ``;
                 }
 
                 actions.innerHTML += `
-                    <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-2 rounded-xl font-bold text-xs">
+                    <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1.5 rounded-xl font-bold text-xs">
                         סגור
                     </button>
                 `;
@@ -344,7 +343,7 @@
         }
 
         async function unassignTable(resId, tableLabel) {
-            if (confirm(`האם לשחרר את שולחן ${tableLabel}?`)) {
+            if (confirm(`לשחרר את שולחן ${tableLabel}?`)) {
                 await db.collection('reservations').doc(resId).update({
                     tableNumber: firebase.firestore.FieldValue.delete()
                 });
