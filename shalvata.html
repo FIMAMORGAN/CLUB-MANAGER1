@@ -51,18 +51,18 @@
             transform: translate(-50%, -50%) scale(0.95);
         }
 
-        /* שולחן פנוי: שקוף לחלוטין ללא שום שכבה */
+        /* שולחן פנוי */
         .spot-free {
             background: transparent;
             border: none;
         }
 
-        /* שולחן משובץ: ירוק עדין, נעים, שקוף ויוקרתי שאינו מעמיס */
+        /* שולחן משובץ: ירוק עדין, שקוף ויוקרתי */
         .spot-occupied {
-            background: rgba(16, 185, 129, 0.2) !important;
-            border: 1px solid rgba(52, 211, 153, 0.65) !important;
-            box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.15), 0 0 10px rgba(16, 185, 129, 0.3) !important;
-            backdrop-filter: blur(1px);
+            background: rgba(16, 185, 129, 0.12) !important;
+            border: 1px solid rgba(52, 211, 153, 0.45) !important;
+            box-shadow: inset 0 0 8px rgba(16, 185, 129, 0.1), 0 0 8px rgba(16, 185, 129, 0.2) !important;
+            backdrop-filter: blur(0.5px);
         }
 
         /* בחירת שולחן מרובה */
@@ -71,20 +71,28 @@
             box-shadow: 0 0 14px rgba(245, 158, 11, 0.7) !important;
         }
 
-        /* שם לקוח מסודר במרכז השולחן בצורה קריאה ועדינה */
+        /* שם לקוח בעיצוב זהב בהיר/לבן יוקרתי ומדויק */
         .client-name-text {
-            color: #ecfdf5;
-            font-size: 8.5px;
+            position: absolute;
+            color: #fef3c7; /* זהב ענבר בהיר ויוקרתי */
+            font-size: 8px;
             font-weight: 900;
             text-align: center;
             white-space: nowrap;
-            max-width: 90%;
+            max-width: 68px;
             overflow: hidden;
             text-overflow: ellipsis;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+            text-shadow: 0 1px 3px #000, 0 0 4px rgba(0, 0, 0, 0.95);
             pointer-events: none;
             letter-spacing: -0.2px;
         }
+
+        /* מיקומים מדויקים בהתאם להוראות ולחצים שסימנת: */
+        .pos-sofa-bottom { bottom: 2px; left: 50%; transform: translateX(-50%); } /* בתחתית הספה (250, 240, 320, 340, 360, 150, 130) */
+        .pos-sofa-top    { top: 2px; left: 50%; transform: translateX(-50%); }    /* בחלק העליון של הספה (210, 310, 330, 350, 160, 140) */
+        .pos-under-out   { top: 100%; left: 50%; transform: translate(-50%, 4px); } /* בשטח השחור מתחת לשולחן (230, 220, 30, 40, 50, 60) */
+        .pos-above-out   { bottom: 100%; left: 50%; transform: translate(-50%, -4px); } /* בשטח השחור מעל לשולחן (20) */
+        .pos-left-out    { top: 50%; right: 100%; transform: translate(-4px, -50%); } /* בשטח השחור משמאל לשולחן (10, 120, 110) */
 
         .overlay {
             position: fixed;
@@ -185,40 +193,40 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // מיקומים מדויקים ומיושרים לפי קווי התרשים המקורי
+        // הגדרה מדויקת של נקודות מגע ומיקומי השמות (ע״פ החצים והפסים)
         const TABLES_DEF = [
-            // מתחם עליון (שמאל לימין)
-            { id: "250", top: "11.5%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250" },
-            { id: "240", top: "11.5%", left: "29.5%", w: "10.5%", h: "7.5%", cap: 9, label: "240" },
-            { id: "230", top: "11.5%", left: "51%", w: "18%", h: "7.5%", cap: 12, label: "230" },
-            { id: "220", top: "11.5%", left: "72.5%", w: "10.5%", h: "7.5%", cap: 10, label: "220" },
-            { id: "210", top: "11.5%", left: "87%", w: "10.5%", h: "7.5%", cap: 9, label: "210" },
+            // מתחם עליון
+            { id: "250", top: "11.5%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250", pos: "pos-sofa-bottom" },
+            { id: "240", top: "11.5%", left: "29.5%", w: "10.5%", h: "7.5%", cap: 9, label: "240", pos: "pos-sofa-bottom" },
+            { id: "230", top: "11.5%", left: "51%", w: "18%", h: "7.5%", cap: 12, label: "230", pos: "pos-under-out" },
+            { id: "220", top: "11.5%", left: "72.5%", w: "10.5%", h: "7.5%", cap: 10, label: "220", pos: "pos-under-out" },
+            { id: "210", top: "11.5%", left: "87%", w: "10.5%", h: "7.5%", cap: 9, label: "210", pos: "pos-sofa-top" },
 
             // שולחן מרכזי עליון
-            { id: "30", top: "26.5%", left: "49.5%", w: "12%", h: "6%", cap: 5, label: "30" },
+            { id: "30", top: "26.5%", left: "49.5%", w: "12%", h: "6%", cap: 5, label: "30", pos: "pos-under-out" },
 
             // ספות שמאל
-            { id: "310", top: "29.5%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 9, label: "310" },
-            { id: "320", top: "36.8%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 9, label: "320" },
-            { id: "330", top: "50%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "330" },
-            { id: "340", top: "57.3%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "340" },
-            { id: "350", top: "71.5%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "350" },
-            { id: "360", top: "78.8%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "360" },
+            { id: "310", top: "29.5%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 9, label: "310", pos: "pos-sofa-top" },
+            { id: "320", top: "36.8%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 9, label: "320", pos: "pos-sofa-bottom" },
+            { id: "330", top: "50%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "330", pos: "pos-sofa-top" },
+            { id: "340", top: "57.3%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "340", pos: "pos-sofa-bottom" },
+            { id: "350", top: "71.5%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "350", pos: "pos-sofa-top" },
+            { id: "360", top: "78.8%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "360", pos: "pos-sofa-bottom" },
 
             // ספות ימין
-            { id: "160", top: "40.5%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "160" },
-            { id: "150", top: "47%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "150" },
-            { id: "140", top: "59%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 10, label: "140" },
-            { id: "130", top: "65.5%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 10, label: "130" },
-            { id: "120", top: "76.5%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "120" },
-            { id: "110", top: "83%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "110" },
+            { id: "160", top: "40.5%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "160", pos: "pos-sofa-top" },
+            { id: "150", top: "47%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "150", pos: "pos-sofa-bottom" },
+            { id: "140", top: "59%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 10, label: "140", pos: "pos-sofa-top" },
+            { id: "130", top: "65.5%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 10, label: "130", pos: "pos-sofa-bottom" },
+            { id: "120", top: "76.5%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "120", pos: "pos-left-out" },
+            { id: "110", top: "83%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "110", pos: "pos-left-out" },
 
             // שולחנות עמידה מרכז
-            { id: "40", top: "36%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "40" },
-            { id: "50", top: "51.5%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "50" },
-            { id: "60", top: "67%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "60" },
-            { id: "20", top: "36%", left: "72.5%", w: "8.5%", h: "6%", cap: 4, label: "20" },
-            { id: "10", top: "67%", left: "72.5%", w: "8.5%", h: "6%", cap: 4, label: "10" }
+            { id: "40", top: "36%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "40", pos: "pos-under-out" },
+            { id: "50", top: "51.5%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "50", pos: "pos-under-out" },
+            { id: "60", top: "67%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "60", pos: "pos-under-out" },
+            { id: "20", top: "36%", left: "72.5%", w: "8.5%", h: "6%", cap: 4, label: "20", pos: "pos-above-out" },
+            { id: "10", top: "67%", left: "72.5%", w: "8.5%", h: "6%", cap: 4, label: "10", pos: "pos-left-out" }
         ];
 
         let reservations = [];
@@ -274,9 +282,9 @@
                 spot.style.width = tbl.w;
                 spot.style.height = tbl.h;
 
-                // שולחן משובץ מציג ירוק שקוף עדין ואת שם הלקוח בצורה ישרה ומסודרת במרכז
+                // הטמעת שם הלקוח במיקום המאולתר הספציפי שיועד לו
                 if (isOccupied) {
-                    spot.innerHTML = `<span class="client-name-text">${occupiedRes.name}</span>`;
+                    spot.innerHTML = `<span class="client-name-text ${tbl.pos}">${occupiedRes.name}</span>`;
                 }
 
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
