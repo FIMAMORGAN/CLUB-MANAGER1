@@ -32,7 +32,7 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* אזורי לחיצה שקופים 100% - שומרים על המפה נקייה לחלוטין */
+        /* אזורי לחיצה שקופים 100% מעל השולחנות */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -47,36 +47,31 @@
             transition: transform 0.15s ease;
         }
 
-        /* משוב לחיצה עדין בלבד */
         .table-spot:active {
-            transform: translate(-50%, -50%) scale(0.95);
+            transform: translate(-50%, -50%) scale(0.92);
         }
 
-        /* שולחן פנוי: שקוף לחלוטין ללא שום קובייה או מסגרת */
         .spot-free {
             background: transparent;
-            border: none;
         }
 
-        /* שולחן תפוס: שקוף לחלוטין ללא קובייה אדומה */
         .spot-occupied {
             background: transparent;
-            border: none;
         }
 
-        /* מנעול מעודן שצף במרכז השולחן התפוס */
+        /* תגית תפוס סולידית, שקופה ואלגנטית ללא אדום צועק */
         .lock-badge {
-            background: rgba(220, 38, 38, 0.85);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
-            font-size: 11px;
-            padding: 2px 5px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            color: #f59e0b;
+            font-size: 10px;
+            padding: 1.5px 4.5px;
             border-radius: 9999px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 10px rgba(239, 68, 68, 0.5);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
         }
 
         .overlay {
@@ -108,20 +103,20 @@
 
         <div class="flex items-center gap-1.5">
             <div class="flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
-                <span>✨</span> שולחן חופשי
+                <span>✨</span> פנוי
             </div>
-            <div class="flex items-center gap-1 text-[9px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-lg border border-rose-500/20">
+            <div class="flex items-center gap-1 text-[9px] font-bold text-amber-400/90 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
                 <span>🔒</span> תפוס
             </div>
         </div>
     </header>
 
-    <!-- הודעת מצב שיבוץ הזמנה -->
+    <!-- הודעת שיבוץ -->
     <div id="assign-banner" class="hidden w-full max-w-lg mb-2 bg-amber-500/20 border border-amber-500/50 p-2 rounded-xl text-center">
-        <p class="text-xs font-black text-amber-300">לחץ על השולחן המבוקש לשיבוץ: <span id="assign-client-name" class="text-white underline"></span></p>
+        <p class="text-xs font-black text-amber-300">בחר שולחן עבור: <span id="assign-client-name" class="text-white underline"></span></p>
     </div>
 
-    <!-- מפת המועדון הנקייה -->
+    <!-- מפה -->
     <main class="w-full flex-1 flex items-center justify-center">
         <div class="map-wrapper" id="map-container">
             <img src="fashion-map.png" alt="Fashion-Bar Map" class="map-bg">
@@ -205,6 +200,15 @@
             window.location.href = `index.html`;
         }
 
+        // פונקציית עזר לבדיקה האם שולחן מסוים תפוס (תומך במספר בודד, פסיקים או מערך)
+        function getReservationForTable(tblId) {
+            return reservations.find(r => {
+                if (!r.tableNumber) return false;
+                const tables = String(r.tableNumber).split(',').map(s => s.trim());
+                return tables.includes(String(tblId));
+            });
+        }
+
         function initData() {
             db.collection('reservations')
                 .where('venueId', '==', 'shalvata')
@@ -231,7 +235,7 @@
             container.innerHTML = '';
 
             TABLES_DEF.forEach(tbl => {
-                const occupiedRes = reservations.find(r => String(r.tableNumber) === String(tbl.id));
+                const occupiedRes = getReservationForTable(tbl.id);
                 const isOccupied = !!occupiedRes;
 
                 const spot = document.createElement('div');
@@ -241,7 +245,6 @@
                 spot.style.width = tbl.w;
                 spot.style.height = tbl.h;
 
-                // אם תפוס - רק מנעול צף עדין. אם פנוי - 100% שקוף
                 if (isOccupied) {
                     spot.innerHTML = `<span class="lock-badge">🔒</span>`;
                 }
@@ -254,15 +257,22 @@
         async function handleTableClick(tbl, occupiedRes) {
             if (assignToId && assignTargetRes) {
                 if (occupiedRes) {
-                    alert(`שולחן ${tbl.label} כבר תפוס על ידי ${occupiedRes.name}. יש לבחור שולחן פנוי.`);
+                    alert(`שולחן ${tbl.label} כבר תפוס על ידי ${occupiedRes.name}.`);
                     return;
                 }
 
-                if (confirm(`לשבץ את ${assignTargetRes.name} (${assignTargetRes.pax} איש) לשולחן ${tbl.label}?`)) {
-                    await db.collection('reservations').doc(assignToId).update({
-                        tableNumber: tbl.id,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                const currentTables = assignTargetRes.tableNumber ? String(assignTargetRes.tableNumber).split(',').map(s => s.trim()).filter(Boolean) : [];
+                currentTables.push(String(tbl.id));
+                const newTableString = currentTables.join(', ');
+
+                const wantMore = confirm(`שולחן ${tbl.label} שובץ ל-${assignTargetRes.name}!\n\nהאם ברצונך לשריין שולחן נוסף לאותה הזמנה?`);
+
+                await db.collection('reservations').doc(assignToId).update({
+                    tableNumber: newTableString,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                if (!wantMore) {
                     window.location.href = 'index.html';
                 }
                 return;
@@ -280,10 +290,11 @@
             title.innerText = `שולחן ${tbl.label} (תכולה: ${tbl.cap} איש)`;
 
             if (occupiedRes) {
+                const bookedTables = String(occupiedRes.tableNumber).split(',').map(s => s.trim()).join(', ');
                 body.innerHTML = `
-                    <div class="bg-rose-500/10 p-3.5 rounded-2xl border border-rose-500/30 space-y-1.5">
+                    <div class="bg-amber-500/10 p-3.5 rounded-2xl border border-amber-500/30 space-y-1.5">
                         <div class="flex items-center justify-between">
-                            <span class="text-rose-400 font-black text-xs">🔒 שולחן תפוס</span>
+                            <span class="text-amber-400 font-black text-xs">🔒 שולחן משוריין (${bookedTables})</span>
                             <span class="text-slate-400 text-[10px] font-mono">${occupiedRes.time || '22:30'}</span>
                         </div>
                         <p class="font-bold text-white text-sm">👤 לקוח: ${occupiedRes.name}</p>
@@ -295,8 +306,8 @@
                 `;
 
                 actions.innerHTML = `
-                    <button onclick="unassignTable('${occupiedRes.id}', '${tbl.label}')" class="w-full bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
-                        שחרר שולחן
+                    <button onclick="unassignSingleTable('${occupiedRes.id}', '${tbl.id}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                        שחרר שולחן זה (${tbl.label})
                     </button>
                     <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1.5 rounded-xl font-bold text-xs">
                         סגור
@@ -310,27 +321,21 @@
                     </div>
                 `;
 
-                const unassignedList = reservations.filter(r => !r.tableNumber);
+                // מציג גם הזמנות ללא שולחן וגם הזמנות קיימות שאולי רוצות שולחן שני
+                body.innerHTML += `
+                    <p class="font-bold text-slate-300 text-xs mt-3 mb-1">שבץ הזמנה לשולחן ${tbl.label}:</p>
+                    <select id="select-res-to-assign" class="w-full bg-slate-900 border border-white/20 rounded-xl p-2.5 text-white font-bold text-xs outline-none">
+                        ${reservations.map(r => {
+                            const current = r.tableNumber ? ` (משוריין: ש' ${r.tableNumber})` : ' (ממתין לשיבוץ)';
+                            return `<option value="${r.id}">${r.name} (${r.pax} איש)${current}</option>`;
+                        }).join('')}
+                    </select>
+                `;
 
-                if (unassignedList.length > 0) {
-                    body.innerHTML += `
-                        <p class="font-bold text-slate-300 text-xs mt-3 mb-1">שבץ הזמנה ממתינה:</p>
-                        <select id="select-res-to-assign" class="w-full bg-slate-900 border border-white/20 rounded-xl p-2.5 text-white font-bold text-xs outline-none">
-                            ${unassignedList.map(r => `<option value="${r.id}">${r.name} (${r.pax} איש) - ${r.time||'22:30'}</option>`).join('')}
-                        </select>
-                    `;
-
-                    actions.innerHTML = `
-                        <button onclick="assignSelectedRes('${tbl.id}', '${tbl.label}')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
-                            שבץ לשולחן
-                        </button>
-                    `;
-                } else {
-                    body.innerHTML += `<p class="text-center text-slate-500 text-xs mt-2 font-bold">אין הזמנות שממתינות לשיבוץ</p>`;
-                    actions.innerHTML = ``;
-                }
-
-                actions.innerHTML += `
+                actions.innerHTML = `
+                    <button onclick="assignSelectedRes('${tbl.id}', '${tbl.label}')" class="w-full bg-amber-500 hover:bg-amber-400 text-black py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                        שבץ שולחן זה להזמנה
+                    </button>
                     <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1.5 rounded-xl font-bold text-xs">
                         סגור
                     </button>
@@ -345,23 +350,46 @@
             document.getElementById('table-modal').classList.add('hidden');
         }
 
-        async function unassignTable(resId, tableLabel) {
+        // שחרור של שולחן ספציפי (מאפשר שחרור שולחן בודד מתוך 2 משוריינים)
+        async function unassignSingleTable(resId, tableId, tableLabel) {
+            const res = reservations.find(r => r.id === resId);
+            if (!res) return;
+
             if (confirm(`לשחרר את שולחן ${tableLabel}?`)) {
-                await db.collection('reservations').doc(resId).update({
-                    tableNumber: firebase.firestore.FieldValue.delete()
-                });
+                let currentTables = String(res.tableNumber).split(',').map(s => s.trim());
+                currentTables = currentTables.filter(id => id !== String(tableId));
+
+                if (currentTables.length > 0) {
+                    await db.collection('reservations').doc(resId).update({
+                        tableNumber: currentTables.join(', ')
+                    });
+                } else {
+                    await db.collection('reservations').doc(resId).update({
+                        tableNumber: firebase.firestore.FieldValue.delete()
+                    });
+                }
                 closeModal();
             }
         }
 
+        // שיבוץ שולחן להזמנה (תומך גם בשולחן ראשון וגם בהוספת שולחן שני)
         async function assignSelectedRes(tableId, tableLabel) {
             const selectEl = document.getElementById('select-res-to-assign');
             if (!selectEl) return;
             const resId = selectEl.value;
+            const res = reservations.find(r => r.id === resId);
+            if (!res) return;
+
+            let currentTables = res.tableNumber ? String(res.tableNumber).split(',').map(s => s.trim()).filter(Boolean) : [];
+            if (!currentTables.includes(String(tableId))) {
+                currentTables.push(String(tableId));
+            }
+
             await db.collection('reservations').doc(resId).update({
-                tableNumber: tableId,
+                tableNumber: currentTables.join(', '),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+
             closeModal();
         }
 
