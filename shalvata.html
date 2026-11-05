@@ -32,7 +32,7 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* אזור לחיצה שקוף לגמרי */
+        /* אזור לחיצה שקוף */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -50,22 +50,19 @@
             transform: translate(-50%, -50%) scale(0.95);
         }
 
-        /* שולחן שנבחר במצב בחירה מרובה */
+        /* שולחן שנבחר במצב מרובה */
         .spot-selected {
             outline: 2px solid #f59e0b !important;
             box-shadow: 0 0 12px rgba(245, 158, 11, 0.6) !important;
         }
 
-        /* שכבת טקסט נפרדת לשמות לקוחות - מיקום קבוע מדויק בלבן קריא */
+        /* שם לקוח (מילה ראשונה בלבד) בקואורדינטה מדויקת */
         .client-label-fixed {
             position: absolute;
             color: #ffffff;
-            font-size: 8.5px;
+            font-size: 9px;
             font-weight: 800;
             white-space: nowrap;
-            max-width: 65px;
-            overflow: hidden;
-            text-overflow: ellipsis;
             text-shadow: 0 1px 3px #000, 0 0 5px #000;
             pointer-events: none;
             z-index: 25;
@@ -89,7 +86,7 @@
 </head>
 <body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-24">
 
-    <!-- סרגל עליון -->
+    <!-- סרגל עליון כולל כפתור איפוס כל השיבוצים -->
     <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2.5 rounded-2xl">
         <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
             <i data-lucide="arrow-right" size="14"></i>
@@ -102,12 +99,10 @@
         </div>
 
         <div class="flex items-center gap-1.5">
-            <div class="flex items-center gap-1 text-[9px] font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
-                <span>פנוי</span>
-            </div>
-            <div class="flex items-center gap-1 text-[9px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-                <span>משובץ</span>
-            </div>
+            <button onclick="resetAllAssignments()" class="flex items-center gap-1 text-[9px] font-bold text-rose-300 hover:text-white bg-rose-500/20 hover:bg-rose-500/30 px-2 py-1 rounded-lg border border-rose-500/30 transition-colors shadow-sm" title="מחק את כל השיבוצים של תאריך זה">
+                <i data-lucide="rotate-ccw" size="11"></i>
+                <span>אפס שיבוצים</span>
+            </button>
         </div>
     </header>
 
@@ -125,7 +120,7 @@
         </div>
     </main>
 
-    <!-- סרגל תחתון לבחירה מרובה של שולחנות -->
+    <!-- סרגל תחתון לבחירה מרובה -->
     <div id="multi-select-bar" class="hidden fixed bottom-3 inset-x-3 max-w-md mx-auto glass border border-amber-500/40 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 z-40 animate-in fade-in slide-in-from-bottom duration-200">
         <div>
             <p class="text-[10px] text-slate-400 font-bold uppercase">שולחנות שנבחרו:</p>
@@ -173,7 +168,7 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // הגדרת קואורדינטות קבועות לכל שולחן (מיקום לחיצה + מיקום מדויק של הטקסט לפי הפס האדום)
+        // קואורדינטות קבועות לכל שולחן
         const TABLES_DEF = [
             // מתחם עליון
             { id: "250", top: "11.5%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250", labelX: "13.5%", labelY: "18.2%" },
@@ -215,6 +210,14 @@
 
         function goBack() {
             window.location.href = `index.html`;
+        }
+
+        // פונקציית עזר: לקיחת מילה ראשונה בלבד משם הלקוח
+        function getFirstNameOnly(fullName) {
+            if (!fullName) return '';
+            const cleaned = fullName.trim();
+            const firstWord = cleaned.split(/\s+/)[0];
+            return firstWord;
         }
 
         function getReservationForTable(tblId) {
@@ -267,13 +270,14 @@
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
                 spotsContainer.appendChild(spot);
 
-                // 2. שכבת טקסט נפרדת עם מיקום X, Y מדויק מראש (רק אם השולחן משובץ)
+                // 2. שכבת טקסט: מציגה מילה ראשונה בלבד במיקום הקבוע שהוגדר
                 if (isOccupied) {
                     const label = document.createElement('span');
                     label.className = 'client-label-fixed';
                     label.style.left = tbl.labelX;
                     label.style.top = tbl.labelY;
-                    label.innerText = occupiedRes.name;
+                    label.innerText = getFirstNameOnly(occupiedRes.name);
+                    label.title = `${occupiedRes.name} (${tbl.label})`;
                     labelsContainer.appendChild(label);
                 }
             });
@@ -338,6 +342,7 @@
             openMultiAssignModal(tablesStr);
         }
 
+        // מודאל שיבוץ שולחנות: אנשים שכבר שובצו מופיעים בצבע לבן עדין
         function openMultiAssignModal(tablesStr) {
             const modal = document.getElementById('table-modal');
             const title = document.getElementById('modal-table-title');
@@ -353,10 +358,15 @@
                 <p class="font-bold text-slate-300 text-xs mb-1">בחר הזמנה לשיבוץ:</p>
                 <select id="select-multi-res" class="w-full bg-slate-900 border border-white/20 rounded-xl p-2.5 text-white font-bold text-xs outline-none">
                     ${reservations.map(r => {
-                        const current = r.tableNumber ? ` (כרגע: ש' ${r.tableNumber})` : ' (ממתין לשיבוץ)';
-                        return `<option value="${r.id}">${r.name} (${r.pax} איש)${current}</option>`;
+                        const isAssigned = !!r.tableNumber;
+                        const label = isAssigned 
+                            ? `⚪ ${r.name} (${r.pax} איש) - [משובץ: ש' ${r.tableNumber}]` 
+                            : `🟡 ${r.name} (${r.pax} איש) - ממתין לשיבוץ`;
+                        const styleClass = isAssigned ? 'color: rgba(255, 255, 255, 0.45); font-weight: normal;' : 'color: #fbbf24; font-weight: bold;';
+                        return `<option value="${r.id}" style="${styleClass}">${label}</option>`;
                     }).join('')}
                 </select>
+                <p class="text-[10px] text-slate-400 pt-1 text-center">🟡 = ממתינים | ⚪ = כבר משובצים (לבן עדין)</p>
             `;
 
             actions.innerHTML = `
@@ -444,6 +454,37 @@
                     });
                 }
                 closeModal();
+            }
+        }
+
+        // כפתור מחיקת כל השיבוצים לכל ההזמנות של התאריך הנבחר
+        async function resetAllAssignments() {
+            const assignedCount = reservations.filter(r => r.tableNumber).length;
+            if (assignedCount === 0) {
+                alert("אין שום שולחנות משובצים כרגע בתאריך זה.");
+                return;
+            }
+
+            const step1 = confirm(`האם אתה בטוח שברצונך לאפס ולמחוק את השיבוצים של כל ${assignedCount} ההזמנות לתאריך ${selectedDate}?`);
+            if (!step1) return;
+
+            const step2 = confirm("אזהרה: פעולה זו תנקה את כל מפת השולחנות לערב זה. להמשיך?");
+            if (!step2) return;
+
+            try {
+                const batch = db.batch();
+                reservations.forEach(r => {
+                    if (r.tableNumber) {
+                        const ref = db.collection('reservations').doc(r.id);
+                        batch.update(ref, { tableNumber: firebase.firestore.FieldValue.delete() });
+                    }
+                });
+                await batch.commit();
+                alert("כל השיבוצים אופסו בהצלחה!");
+                clearMultiSelection();
+            } catch (err) {
+                console.error("שגיאה באיפוס שיבוצים:", err);
+                alert("אירעה שגיאה בעת איפוס השיבוצים.");
             }
         }
 
