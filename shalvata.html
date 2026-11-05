@@ -138,15 +138,15 @@
 
     <!-- מודאל פעולות שולחן -->
     <div id="table-modal" class="overlay hidden">
-        <div class="glass p-5 rounded-3xl w-full max-w-xs text-center space-y-4 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
+        <div class="glass p-4 rounded-3xl w-full max-w-xs text-center space-y-3.5 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-white/10 pb-2">
-                <span class="text-amber-400 font-black text-sm" id="modal-table-title">שולחן</span>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" size="18"></i></button>
+                <span class="text-amber-400 font-black text-xs" id="modal-table-title">שולחן</span>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" size="16"></i></button>
             </div>
 
             <div id="modal-body" class="text-right space-y-2 text-xs"></div>
 
-            <div id="modal-actions" class="pt-2 flex flex-col gap-2"></div>
+            <div id="modal-actions" class="pt-1 flex flex-col gap-1.5"></div>
         </div>
     </div>
 
@@ -212,12 +212,11 @@
             window.location.href = `index.html`;
         }
 
-        // פונקציית עזר: לקיחת מילה ראשונה בלבד משם הלקוח
+        // לקיחת מילה ראשונה בלבד
         function getFirstNameOnly(fullName) {
             if (!fullName) return '';
             const cleaned = fullName.trim();
-            const firstWord = cleaned.split(/\s+/)[0];
-            return firstWord;
+            return cleaned.split(/\s+/)[0];
         }
 
         function getReservationForTable(tblId) {
@@ -342,7 +341,7 @@
             openMultiAssignModal(tablesStr);
         }
 
-        // מודאל שיבוץ שולחנות: אנשים שכבר שובצו מופיעים בצבע לבן עדין
+        // מודאל שיבוץ שולחנות קומפקטי עם בידול צבעים ברור
         function openMultiAssignModal(tablesStr) {
             const modal = document.getElementById('table-modal');
             const title = document.getElementById('modal-table-title');
@@ -352,28 +351,31 @@
             title.innerText = `שיבוץ שולחנות: ${tablesStr}`;
 
             body.innerHTML = `
-                <div class="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 text-center mb-2">
-                    <p class="text-xs font-black text-amber-400">נבחרו שולחנות: <span class="text-white font-mono">${tablesStr}</span></p>
+                <div class="bg-amber-500/10 py-1 px-2 rounded-xl border border-amber-500/30 text-center mb-1">
+                    <p class="text-[11px] font-black text-amber-400">שולחנות: <span class="text-white font-mono">${tablesStr}</span></p>
                 </div>
-                <p class="font-bold text-slate-300 text-xs mb-1">בחר הזמנה לשיבוץ:</p>
-                <select id="select-multi-res" class="w-full bg-slate-900 border border-white/20 rounded-xl p-2.5 text-white font-bold text-xs outline-none">
+                <label class="font-bold text-slate-300 text-[10px] mb-0.5 block text-right">בחר הזמנה לשיבוץ:</label>
+                <select id="select-multi-res" class="w-full bg-slate-900 border border-white/20 rounded-lg py-1.5 px-2 text-white font-bold text-xs outline-none focus:border-amber-400">
                     ${reservations.map(r => {
                         const isAssigned = !!r.tableNumber;
                         const label = isAssigned 
-                            ? `⚪ ${r.name} (${r.pax} איש) - [משובץ: ש' ${r.tableNumber}]` 
-                            : `🟡 ${r.name} (${r.pax} איש) - ממתין לשיבוץ`;
-                        const styleClass = isAssigned ? 'color: rgba(255, 255, 255, 0.45); font-weight: normal;' : 'color: #fbbf24; font-weight: bold;';
-                        return `<option value="${r.id}" style="${styleClass}">${label}</option>`;
+                            ? `● ${r.name} (${r.pax} איש) [ש' ${r.tableNumber}]` 
+                            : `○ ${r.name} (${r.pax} איש)`;
+                        const styleColor = isAssigned ? 'color: #34d399;' : 'color: #fbbf24;';
+                        return `<option value="${r.id}" style="${styleColor} background-color: #0f172a;">${label}</option>`;
                     }).join('')}
                 </select>
-                <p class="text-[10px] text-slate-400 pt-1 text-center">🟡 = ממתינים | ⚪ = כבר משובצים (לבן עדין)</p>
+                <div class="flex items-center justify-center gap-3 pt-1 text-[9px] text-slate-400">
+                    <span class="flex items-center gap-1 text-emerald-400">● משובץ</span>
+                    <span class="flex items-center gap-1 text-amber-400">○ לא משובץ</span>
+                </div>
             `;
 
             actions.innerHTML = `
-                <button onclick="saveMultiAssign('${tablesStr}')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                <button onclick="saveMultiAssign('${tablesStr}')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-2 rounded-xl font-black text-xs uppercase shadow-md transition-colors">
                     אשר שיבוץ
                 </button>
-                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1.5 rounded-xl font-bold text-xs">
+                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-[11px]">
                     סגור
                 </button>
             `;
@@ -406,24 +408,24 @@
 
             const bookedTables = String(occupiedRes.tableNumber).split(',').map(s => s.trim()).join(', ');
             body.innerHTML = `
-                <div class="bg-amber-500/10 p-3.5 rounded-2xl border border-amber-500/30 space-y-1.5">
+                <div class="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 space-y-1">
                     <div class="flex items-center justify-between">
                         <span class="text-amber-400 font-black text-xs">שולחנות משובצים: ${bookedTables}</span>
                         <span class="text-slate-400 text-[10px] font-mono">${occupiedRes.time || '22:30'}</span>
                     </div>
-                    <p class="font-bold text-white text-sm">👤 לקוח: ${occupiedRes.name}</p>
-                    <p class="text-slate-300 font-bold">👥 כמות: ${occupiedRes.pax} איש</p>
-                    <p class="text-amber-400 font-black">💰 מינימום: ₪${occupiedRes.minOrder || 0}</p>
-                    ${occupiedRes.phone ? `<p class="text-slate-400 font-mono">📞 ${occupiedRes.phone}</p>` : ''}
-                    ${occupiedRes.notes ? `<p class="text-slate-300 italic bg-white/5 p-2 rounded-xl border border-white/10 mt-1">💬 ${occupiedRes.notes}</p>` : ''}
+                    <p class="font-bold text-white text-xs">👤 לקוח: ${occupiedRes.name}</p>
+                    <p class="text-slate-300 font-bold text-xs">👥 כמות: ${occupiedRes.pax} איש</p>
+                    <p class="text-amber-400 font-black text-xs">💰 מינימום: ₪${occupiedRes.minOrder || 0}</p>
+                    ${occupiedRes.phone ? `<p class="text-slate-400 font-mono text-xs">📞 ${occupiedRes.phone}</p>` : ''}
+                    ${occupiedRes.notes ? `<p class="text-slate-300 italic bg-white/5 p-1.5 rounded-xl border border-white/10 mt-1 text-[11px]">💬 ${occupiedRes.notes}</p>` : ''}
                 </div>
             `;
 
             actions.innerHTML = `
-                <button onclick="unassignSingleTable('${occupiedRes.id}', '${tbl.id}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-2.5 rounded-xl font-black text-xs uppercase shadow-lg transition-colors">
+                <button onclick="unassignSingleTable('${occupiedRes.id}', '${tbl.id}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-2 rounded-xl font-black text-xs uppercase shadow-md transition-colors">
                     שחרר שולחן זה (${tbl.label})
                 </button>
-                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1.5 rounded-xl font-bold text-xs">
+                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-xs">
                     סגור
                 </button>
             `;
