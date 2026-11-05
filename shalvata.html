@@ -32,7 +32,7 @@
             border: 1px solid rgba(245, 158, 11, 0.25);
         }
 
-        /* אזור לחיצה שקוף */
+        /* שטח לחיצה שקוף */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -81,6 +81,16 @@
             align-items: center;
             justify-content: center;
             padding: 1rem;
+        }
+
+        /* סגנון מוקטן ומדויק לתיבת הבחירה */
+        #select-multi-res {
+            font-size: 10px !important;
+            line-height: 1.2;
+        }
+        #select-multi-res option {
+            font-size: 10px !important;
+            padding: 3px 6px;
         }
     </style>
 </head>
@@ -138,13 +148,13 @@
 
     <!-- מודאל פעולות שולחן -->
     <div id="table-modal" class="overlay hidden">
-        <div class="glass p-4 rounded-3xl w-full max-w-xs text-center space-y-3.5 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center border-b border-white/10 pb-2">
+        <div class="glass p-3.5 rounded-3xl w-full max-w-xs text-center space-y-3 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b border-white/10 pb-1.5">
                 <span class="text-amber-400 font-black text-xs" id="modal-table-title">שולחן</span>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" size="16"></i></button>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" size="15"></i></button>
             </div>
 
-            <div id="modal-body" class="text-right space-y-2 text-xs"></div>
+            <div id="modal-body" class="text-right space-y-1.5 text-xs"></div>
 
             <div id="modal-actions" class="pt-1 flex flex-col gap-1.5"></div>
         </div>
@@ -168,19 +178,15 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // קואורדינטות קבועות לכל שולחן
         const TABLES_DEF = [
-            // מתחם עליון
             { id: "250", top: "11.5%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250", labelX: "13.5%", labelY: "18.2%" },
             { id: "240", top: "11.5%", left: "29.5%", w: "10.5%", h: "7.5%", cap: 9, label: "240", labelX: "29.5%", labelY: "18.2%" },
             { id: "230", top: "11.5%", left: "51%", w: "18%", h: "7.5%", cap: 12, label: "230", labelX: "51%", labelY: "19.8%" },
             { id: "220", top: "11.5%", left: "72.5%", w: "10.5%", h: "7.5%", cap: 10, label: "220", labelX: "72.5%", labelY: "19.8%" },
             { id: "210", top: "11.5%", left: "87%", w: "10.5%", h: "7.5%", cap: 9, label: "210", labelX: "87%", labelY: "6.8%" },
 
-            // שולחן מרכזי עליון
             { id: "30", top: "26.5%", left: "49.5%", w: "12%", h: "6%", cap: 5, label: "30", labelX: "49.5%", labelY: "33.2%" },
 
-            // אגף שמאל
             { id: "310", top: "29.5%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 9, label: "310", labelX: "13.5%", labelY: "25.2%" },
             { id: "320", top: "36.8%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 9, label: "320", labelX: "13.5%", labelY: "43.2%" },
             { id: "330", top: "50%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "330", labelX: "13.5%", labelY: "45.8%" },
@@ -188,7 +194,6 @@
             { id: "350", top: "71.5%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "350", labelX: "13.5%", labelY: "66.8%" },
             { id: "360", top: "78.8%", left: "13.5%", w: "11.5%", h: "6.2%", cap: 10, label: "360", labelX: "13.5%", labelY: "84.8%" },
 
-            // אגף ימין
             { id: "160", top: "40.5%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "160", labelX: "86.5%", labelY: "36.2%" },
             { id: "150", top: "47%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "150", labelX: "86.5%", labelY: "53.2%" },
             { id: "140", top: "59%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 10, label: "140", labelX: "86.5%", labelY: "54.8%" },
@@ -196,7 +201,6 @@
             { id: "120", top: "76.5%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "120", labelX: "68.5%", labelY: "77.5%" },
             { id: "110", top: "83%", left: "86.5%", w: "11.5%", h: "5.8%", cap: 7, label: "110", labelX: "68.5%", labelY: "85.2%" },
 
-            // שולחנות עמידה
             { id: "40", top: "36%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "40", labelX: "26.5%", labelY: "43.5%" },
             { id: "50", top: "51.5%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "50", labelX: "26.5%", labelY: "59.0%" },
             { id: "60", top: "67%", left: "26.5%", w: "8.5%", h: "6%", cap: 4, label: "60", labelX: "26.5%", labelY: "74.5%" },
@@ -212,7 +216,6 @@
             window.location.href = `index.html`;
         }
 
-        // לקיחת מילה ראשונה בלבד
         function getFirstNameOnly(fullName) {
             if (!fullName) return '';
             const cleaned = fullName.trim();
@@ -259,7 +262,6 @@
                 const isOccupied = !!occupiedRes;
                 const isSelected = selectedTableIds.includes(String(tbl.id));
 
-                // 1. שטח לחיצה שקוף
                 const spot = document.createElement('div');
                 spot.className = `table-spot ${isSelected ? 'spot-selected' : ''}`;
                 spot.style.top = tbl.top;
@@ -269,7 +271,6 @@
                 spot.onclick = () => handleTableClick(tbl, occupiedRes);
                 spotsContainer.appendChild(spot);
 
-                // 2. שכבת טקסט: מציגה מילה ראשונה בלבד במיקום הקבוע שהוגדר
                 if (isOccupied) {
                     const label = document.createElement('span');
                     label.className = 'client-label-fixed';
@@ -341,7 +342,7 @@
             openMultiAssignModal(tablesStr);
         }
 
-        // מודאל שיבוץ שולחנות קומפקטי עם בידול צבעים ברור
+        // מודאל שיבוץ שולחנות: כתב קטן יותר, עיגול ירוק גדול וברור
         function openMultiAssignModal(tablesStr) {
             const modal = document.getElementById('table-modal');
             const title = document.getElementById('modal-table-title');
@@ -352,30 +353,30 @@
 
             body.innerHTML = `
                 <div class="bg-amber-500/10 py-1 px-2 rounded-xl border border-amber-500/30 text-center mb-1">
-                    <p class="text-[11px] font-black text-amber-400">שולחנות: <span class="text-white font-mono">${tablesStr}</span></p>
+                    <p class="text-[10px] font-black text-amber-400">שולחנות: <span class="text-white font-mono">${tablesStr}</span></p>
                 </div>
-                <label class="font-bold text-slate-300 text-[10px] mb-0.5 block text-right">בחר הזמנה לשיבוץ:</label>
-                <select id="select-multi-res" class="w-full bg-slate-900 border border-white/20 rounded-lg py-1.5 px-2 text-white font-bold text-xs outline-none focus:border-amber-400">
+                <label class="font-bold text-slate-300 text-[9px] mb-0.5 block text-right">בחר הזמנה לשיבוץ:</label>
+                <select id="select-multi-res" class="w-full bg-slate-900 border border-white/20 rounded-lg py-1 px-1.5 text-white font-bold outline-none focus:border-amber-400">
                     ${reservations.map(r => {
                         const isAssigned = !!r.tableNumber;
                         const label = isAssigned 
-                            ? `● ${r.name} (${r.pax} איש) [ש' ${r.tableNumber}]` 
-                            : `○ ${r.name} (${r.pax} איש)`;
+                            ? `🟢 ${r.name} (${r.pax}) [ש' ${r.tableNumber}]` 
+                            : `🟡 ${r.name} (${r.pax})`;
                         const styleColor = isAssigned ? 'color: #34d399;' : 'color: #fbbf24;';
-                        return `<option value="${r.id}" style="${styleColor} background-color: #0f172a;">${label}</option>`;
+                        return `<option value="${r.id}" style="${styleColor} background-color: #0b1120;">${label}</option>`;
                     }).join('')}
                 </select>
-                <div class="flex items-center justify-center gap-3 pt-1 text-[9px] text-slate-400">
-                    <span class="flex items-center gap-1 text-emerald-400">● משובץ</span>
-                    <span class="flex items-center gap-1 text-amber-400">○ לא משובץ</span>
+                <div class="flex items-center justify-center gap-3 pt-1 text-[8.5px] text-slate-400">
+                    <span class="flex items-center gap-1 text-emerald-400 font-bold">🟢 משובץ</span>
+                    <span class="flex items-center gap-1 text-amber-400 font-bold">🟡 לא משובץ</span>
                 </div>
             `;
 
             actions.innerHTML = `
-                <button onclick="saveMultiAssign('${tablesStr}')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-2 rounded-xl font-black text-xs uppercase shadow-md transition-colors">
+                <button onclick="saveMultiAssign('${tablesStr}')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-1.5 rounded-xl font-black text-[11px] uppercase shadow-md transition-colors">
                     אשר שיבוץ
                 </button>
-                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-[11px]">
+                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-[10px]">
                     סגור
                 </button>
             `;
@@ -408,24 +409,24 @@
 
             const bookedTables = String(occupiedRes.tableNumber).split(',').map(s => s.trim()).join(', ');
             body.innerHTML = `
-                <div class="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 space-y-1">
+                <div class="bg-amber-500/10 p-2.5 rounded-2xl border border-amber-500/30 space-y-1 text-right">
                     <div class="flex items-center justify-between">
-                        <span class="text-amber-400 font-black text-xs">שולחנות משובצים: ${bookedTables}</span>
+                        <span class="text-amber-400 font-black text-xs">שולחנות: ${bookedTables}</span>
                         <span class="text-slate-400 text-[10px] font-mono">${occupiedRes.time || '22:30'}</span>
                     </div>
                     <p class="font-bold text-white text-xs">👤 לקוח: ${occupiedRes.name}</p>
                     <p class="text-slate-300 font-bold text-xs">👥 כמות: ${occupiedRes.pax} איש</p>
                     <p class="text-amber-400 font-black text-xs">💰 מינימום: ₪${occupiedRes.minOrder || 0}</p>
                     ${occupiedRes.phone ? `<p class="text-slate-400 font-mono text-xs">📞 ${occupiedRes.phone}</p>` : ''}
-                    ${occupiedRes.notes ? `<p class="text-slate-300 italic bg-white/5 p-1.5 rounded-xl border border-white/10 mt-1 text-[11px]">💬 ${occupiedRes.notes}</p>` : ''}
+                    ${occupiedRes.notes ? `<p class="text-slate-300 italic bg-white/5 p-1 rounded-xl border border-white/10 mt-0.5 text-[10px]">💬 ${occupiedRes.notes}</p>` : ''}
                 </div>
             `;
 
             actions.innerHTML = `
-                <button onclick="unassignSingleTable('${occupiedRes.id}', '${tbl.id}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-2 rounded-xl font-black text-xs uppercase shadow-md transition-colors">
+                <button onclick="unassignSingleTable('${occupiedRes.id}', '${tbl.id}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-1.5 rounded-xl font-black text-xs uppercase shadow-md transition-colors">
                     שחרר שולחן זה (${tbl.label})
                 </button>
-                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-xs">
+                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-[10px]">
                     סגור
                 </button>
             `;
@@ -459,7 +460,6 @@
             }
         }
 
-        // כפתור מחיקת כל השיבוצים לכל ההזמנות של התאריך הנבחר
         async function resetAllAssignments() {
             const assignedCount = reservations.filter(r => r.tableNumber).length;
             if (assignedCount === 0) {
