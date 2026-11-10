@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V143</title>
+    <title>ClubPro V144 - Fashion-Bar</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V143";
+        const APP_VERSION = "V144";
 
         const translations = {
             he: {
@@ -92,7 +92,7 @@
                 exportByDate: "ייצוא הזמנות לפי תאריך נבחר:",
                 excel: "אקסל",
                 all: "הכל",
-                dormant: "💤 רדומים",
+                dormant: "💤 רדומים (מהישן לחדש)",
                 contactClient: "פנה ללקוח",
                 promoterManagement: "ניהול והרשאות יחצנים",
                 addPromoter: "הוספת יחצן ידנית:",
@@ -113,7 +113,9 @@
                 depositNeeded: "צריך פיקדון",
                 noDeposit: "ללא פיקדון",
                 bookedBy: "הוזמן על ידי",
-                sendClubInvite: "שלח הזמנה לשישי"
+                sendClubInvite: "שלח הזמנה לשישי",
+                onlyWithPhoneNotice: "מוצגים רק לקוחות עם טלפון",
+                vladaPanel: "פאנל שיווק - ולדה"
             },
             ru: {
                 tables: "Столы",
@@ -165,8 +167,8 @@
                 exportAllPhones: "Экспорт всех номеров в WhatsApp (вся история)",
                 exportByDate: "Экспорт по дате:",
                 excel: "Excel",
-                all: "Все",
-                dormant: "💤 Неактивные",
+                all: "Все клиенты",
+                dormant: "💤 Неактивные (от самых давних)",
                 contactClient: "Написать",
                 promoterManagement: "Управление промоутерами",
                 addPromoter: "Добавить промоутера:",
@@ -187,7 +189,9 @@
                 depositNeeded: "Нужен депозит",
                 noDeposit: "Без депозита",
                 bookedBy: "Кем забронировано",
-                sendClubInvite: "Отправить приглашение"
+                sendClubInvite: "Пригласить на пятницу",
+                onlyWithPhoneNotice: "Показаны только гости с номерами",
+                vladaPanel: "Панель рассылки - Влада"
             }
         };
 
@@ -346,13 +350,14 @@
                 });
         }
 
+        // טעינת היסטוריה מלאה של כל הזמנות פשיין/שלוותא מתחילת הפעילות
         async function loadArchiveData() {
             state.isArchiveLoading = true;
             render();
             try {
                 const snap = await db.collection('reservations')
                     .where('venueId', '==', state.venueId)
-                    .limit(400)
+                    .limit(2500)
                     .get();
                 state.archiveReservations = snap.docs
                     .map(d => ({ id: d.id, ...d.data() }))
@@ -364,7 +369,6 @@
             render();
         }
 
-        // שליחת הודעת המועדון הייעודית של ולדה (רוסית + עברית יחד)
         function sendVladaClubInvite(clientPhone) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
@@ -715,9 +719,9 @@ www.fashionbar.co.il
                 .get();
             const list = snap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
-                .filter(r => r.status === 'active');
+                .filter(r => r.status === 'active' && r.phone && r.phone.replace(/\D/g, '').length >= 9);
 
-            if (list.length === 0) return alert(state.lang === 'ru' ? `Нет броней на дату ${targetDate.split('-').reverse().join('.')}` : `אין הזמנות בתאריך ${targetDate.split('-').reverse().join('.')}`);
+            if (list.length === 0) return alert(state.lang === 'ru' ? `Нет броней с номерами на дату ${targetDate.split('-').reverse().join('.')}` : `אין הזמנות עם טלפון בתאריך ${targetDate.split('-').reverse().join('.')}`);
             exportToWhatsApp(targetDate, list);
         }
 
@@ -1022,25 +1026,26 @@ www.fashionbar.co.il
             `;
         }
 
-        // מסך מרכז ההזמנות - מותאם באופן מלא גם עבור ולדה
+        // מסך מרכז ההזמנות - תמיכה מלאה בהגדרות המדויקות עבור VLADA
         function renderArchiveMGMT() {
             if (state.role === 'guest') return '';
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const venue = allVenues.find(v => v.id === state.venueId);
-            const dataSource = state.archiveReservations.length ? state.archiveReservations : state.reservations;
             const isVlada = state.role === 'vlada';
+
+            // סינון יסודי: מציג אך ורק לקוחות שיש להם מספר טלפון תקין
+            const rawDataSource = state.archiveReservations.length ? state.archiveReservations : state.reservations;
+            const dataSource = rawDataSource.filter(r => r.phone && r.phone.replace(/\D/g, '').length >= 9);
 
             const bookingFreqMap = {};
             dataSource.forEach(r => {
-                if (r.phone) {
-                    const cleanP = r.phone.replace(/\D/g, '');
-                    bookingFreqMap[cleanP] = (bookingFreqMap[cleanP] || 0) + 1;
-                }
+                const cleanP = r.phone.replace(/\D/g, '');
+                bookingFreqMap[cleanP] = (bookingFreqMap[cleanP] || 0) + 1;
             });
 
-            const filtered = dataSource.filter(r => {
+            let filtered = dataSource.filter(r => {
                 if (state.archiveFilterTab === 'vip') {
-                    const count = r.phone ? (bookingFreqMap[r.phone.replace(/\D/g, '')] || 0) : 0;
+                    const count = bookingFreqMap[r.phone.replace(/\D/g, '')] || 0;
                     if (count < 5 && r.tag !== 'VIP') return false;
                 } else if (state.archiveFilterTab === 'dormant') {
                     if (!r.eventDate) return false;
@@ -1054,19 +1059,38 @@ www.fashionbar.co.il
                 const tagMatch = r.tag && r.tag.toLowerCase().includes(query);
                 const dateMatch = r.eventDate && r.eventDate.includes(query);
                 return nameMatch || phoneMatch || tagMatch || dateMatch;
-            }).sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
+            });
+
+            // מיון: בלשונית "רדומים" המיון הוא מהתאריך הכי ישן שבוצע בו הזמנה ועד החדש.
+            // ביתר המקרים: מהתאריך הכי אחרון (הכי חדש) לתאריכים הישנים מתחילת הפעילות.
+            if (state.archiveFilterTab === 'dormant') {
+                filtered.sort((a, b) => (a.eventDate || '').localeCompare(b.eventDate || ''));
+            } else {
+                filtered.sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
+            }
 
             return `
                 <div class="space-y-4 p-1 text-white">
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center gap-2">
                         ${!isVlada ? `
                             <button onclick="updateState({showArchiveMGMT: false, archiveSearchQuery: ''})" class="text-xs font-black text-slate-400 flex items-center gap-1 hover:text-white"><i data-lucide="arrow-right" size="14"></i> ${t('back')}</button>
                         ` : `
-                            <div class="flex items-center gap-1.5 text-xs font-black text-amber-400">
-                                <span>👤 ולדה - מועדון לקוחות</span>
+                            <div class="flex items-center gap-2">
+                                <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-xl font-black text-xs">
+                                    ${t('vladaPanel')}
+                                </span>
                             </div>
                         `}
-                        <h2 class="font-black text-amber-500 text-xs uppercase">${t('bookingCenter')} - ${venue.name}</h2>
+
+                        <div class="flex items-center gap-1.5">
+                            <!-- כפתור החלפת שפה לרוסית ישירות במסך ולדה -->
+                            <button onclick="setLanguage(state.lang === 'he' ? 'ru' : 'he')" class="bg-slate-900 border border-white/15 text-amber-400 font-bold text-[10px] px-2.5 py-1 rounded-lg">
+                                ${state.lang === 'he' ? '🇷🇺 RU' : '🇮🇱 עב'}
+                            </button>
+                            ${isVlada ? `
+                                <button onclick="logout()" class="text-rose-400 border border-rose-500/30 px-2 py-1 rounded-lg hover:bg-rose-500/10"><i data-lucide="log-out" size="13"></i></button>
+                            ` : ''}
+                        </div>
                     </div>
 
                     <div class="glass-card p-3 rounded-2xl space-y-2 border border-emerald-500/30 shadow-md">
@@ -1091,23 +1115,27 @@ www.fashionbar.co.il
                     </div>
                     
                     <div class="flex gap-1 bg-slate-900/60 p-1 rounded-xl">
-                        <button onclick="updateState({archiveFilterTab: 'all'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='all'?'bg-amber-500 text-black':'text-slate-400'}">${t('all')} (${dataSource.length})</button>
-                        <button onclick="updateState({archiveFilterTab: 'vip'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='vip'?'bg-amber-500 text-black':'text-slate-400'}">${t('tagVip')}</button>
-                        <button onclick="updateState({archiveFilterTab: 'dormant'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='dormant'?'bg-amber-500 text-black':'text-slate-400'}">${t('dormant')}</button>
+                        <button onclick="updateState({archiveFilterTab: 'all'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='all'?'bg-amber-500 text-black shadow-md':'text-slate-400'}">${t('all')} (${dataSource.length})</button>
+                        <button onclick="updateState({archiveFilterTab: 'vip'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='vip'?'bg-amber-500 text-black shadow-md':'text-slate-400'}">${t('tagVip')}</button>
+                        <button onclick="updateState({archiveFilterTab: 'dormant'})" class="flex-1 py-1.5 rounded-lg text-[10px] font-black ${state.archiveFilterTab==='dormant'?'bg-amber-500 text-black shadow-md':'text-slate-400'}">${t('dormant')}</button>
                     </div>
 
                     <div class="glass-card p-3 rounded-2xl border border-white/10">
-                        <input id="archive-search" type="text" placeholder="${state.lang === 'ru' ? 'Поиск по имени, дате или телефону...' : 'חיפוש לפי שם, תאריך או טלפון...'}" value="${state.archiveSearchQuery}" 
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] text-emerald-400 font-bold uppercase">📱 ${t('onlyWithPhoneNotice')}</span>
+                            <span class="text-[9px] text-slate-400 font-mono">${filtered.length} תוצאות</span>
+                        </div>
+                        <input id="archive-search" type="text" placeholder="${state.lang === 'ru' ? 'Поиск по имени, дате (ГГГГ-ММ-ДД) или телефону...' : 'חיפוש לפי שם, תאריך (YYYY-MM-DD) או טלפון...'}" value="${state.archiveSearchQuery}" 
                                oninput="handleSearchInput(this.value)" 
                                class="w-full bg-slate-900/50 border border-white/10 rounded-xl p-3 text-white text-xs outline-none focus:border-amber-500">
                     </div>
 
                     ${state.isArchiveLoading ? `<p class="text-center text-amber-500 font-bold py-6">${state.lang === 'ru' ? 'Загрузка базы данных...' : 'טוען היסטוריית הזמנות...'}</p>` : ''}
 
-                    <div class="glass-card rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[55vh] overflow-y-auto border border-white/10">
-                        ${filtered.slice(0, 100).map(r => {
+                    <div class="glass-card rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[58vh] overflow-y-auto border border-white/10">
+                        ${filtered.map(r => {
                             const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
-                            const visitsCount = r.phone ? (bookingFreqMap[r.phone.replace(/\D/g, '')] || 1) : 1;
+                            const visitsCount = bookingFreqMap[r.phone.replace(/\D/g, '')] || 1;
                             const isVip = visitsCount >= 5 || r.tag === 'VIP';
                             const orderLabel = state.lang === 'ru' ? 'Бронь' : 'הזמנה';
                             const timesWord = state.lang === 'ru' ? 'раз' : 'פעמים';
@@ -1123,14 +1151,13 @@ www.fashionbar.co.il
                                                 </span>
                                                 ${r.tag && r.tag !== 'רגיל' ? `<span class="text-[8px] bg-slate-800 text-slate-300 border border-white/10 px-1.5 py-0.2 rounded font-bold">${r.tag}</span>` : ''}
                                             </div>
-                                            <p class="text-[11px] text-slate-400 font-medium mt-0.5">${r.phone || 'ללא מספר'}</p>
+                                            <p class="text-[11px] text-slate-400 font-medium mt-0.5 font-mono">${r.phone}</p>
                                             ${r.bookedBy ? `<p class="text-[9px] text-slate-500">הוזמן ע"י: <span class="text-slate-300 font-bold">${r.bookedBy}</span></p>` : ''}
                                         </div>
                                         <div class="text-left flex flex-col items-end gap-1 shrink-0">
                                             <span class="bg-amber-500/10 text-amber-500 text-[10px] px-2 py-0.5 rounded-md font-black uppercase">${venue.name}</span>
-                                            <p class="text-[10px] text-slate-400 font-bold font-mono">${formattedDate}</p>
+                                            <p class="text-[10px] text-slate-300 font-bold font-mono">📅 ${formattedDate}</p>
                                             
-                                            <!-- כפתור שליחה ישיר לווצאפ עם הנוסח המדויק של ולדה -->
                                             <button onclick="sendVladaClubInvite('${r.phone}')" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1.5 shadow-lg active:scale-95 transition-all mt-1">
                                                 <i data-lucide="message-circle" size="13"></i>
                                                 <span>${t('sendClubInvite')}</span>
@@ -1335,7 +1362,6 @@ www.fashionbar.co.il
                 return;
             }
 
-            // קוד כניסה חדש: vlada / VLADA
             if (valLower === 'vlada') {
                 localStorage.setItem('club_role', 'vlada');
                 localStorage.setItem('club_name', 'Vlada');
