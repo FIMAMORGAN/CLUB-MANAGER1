@@ -34,6 +34,7 @@
             pointer-events: none;
         }
 
+        /* שטח השולחן הפנימי */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -43,32 +44,18 @@
             cursor: pointer;
             z-index: 10;
             background: transparent;
-            border-radius: 0.5rem;
-            transition: all 0.15s ease;
+            border-radius: 0.35rem;
+            transition: background-color 0.2s ease;
         }
 
-        .arrived-badge-pill {
-            position: absolute;
-            width: 76%;
-            height: 78%;
-            border-radius: 9999px;
-            background: radial-gradient(circle, rgba(244, 63, 94, 0.32) 0%, rgba(225, 29, 72, 0.18) 100%);
-            border: 1.2px solid rgba(251, 113, 133, 0.8);
-            box-shadow: 0 0 8px rgba(244, 63, 94, 0.45), inset 0 0 4px rgba(244, 63, 94, 0.3);
-            pointer-events: none;
-            z-index: 12;
-            animation: pulse-glow 2.5s infinite alternate ease-in-out;
-        }
-
-        @keyframes pulse-glow {
-            from { box-shadow: 0 0 6px rgba(244, 63, 94, 0.35); }
-            to { box-shadow: 0 0 12px rgba(244, 63, 94, 0.6); }
+        /* מילוי רקע אדום עדין ונקי על השטח השחור הפנימי */
+        .spot-arrived-bg {
+            background-color: rgba(225, 29, 72, 0.28) !important;
+            box-shadow: inset 0 0 6px rgba(244, 63, 94, 0.25);
         }
 
         .spot-drag-hover {
-            outline: 2px solid #38bdf8 !important;
-            background: rgba(56, 189, 248, 0.2) !important;
-            border-radius: 9999px;
+            background-color: rgba(56, 189, 248, 0.25) !important;
         }
 
         .custom-dynamic-table {
@@ -82,9 +69,14 @@
             justify-content: center;
             background: radial-gradient(circle, rgba(30, 27, 20, 0.95) 0%, rgba(10, 10, 12, 0.98) 100%);
             border: 1.5px solid #d97706;
-            border-radius: 0.6rem;
+            border-radius: 0.5rem;
             box-shadow: 0 0 10px rgba(217, 119, 6, 0.35);
             touch-action: none;
+        }
+
+        .custom-dynamic-table.spot-arrived-bg {
+            background: radial-gradient(circle, rgba(225, 29, 72, 0.35) 0%, rgba(159, 18, 57, 0.3) 100%) !important;
+            border-color: rgba(244, 63, 94, 0.7) !important;
         }
 
         .custom-dynamic-table.is-dragging {
@@ -123,7 +115,6 @@
             z-index: 50;
         }
 
-        /* רצועת גלילה חופשית ללא תקיעות */
         #guest-drag-strip {
             overflow-x: auto;
             scroll-behavior: smooth;
@@ -187,7 +178,7 @@
     <div class="w-full max-w-lg mb-2 flex justify-center items-center gap-3 text-[9.5px] font-bold">
         <span class="flex items-center gap-1 text-slate-400"><span class="w-2 h-2 rounded-full border border-white/30"></span> פנוי</span>
         <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-500"></span> משובץ</span>
-        <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e]"></span> הגיע למועדון</span>
+        <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-sm bg-rose-500/40 border border-rose-400"></span> רקע אדום = הגיע</span>
     </div>
 
     <!-- מפה -->
@@ -200,7 +191,7 @@
         </div>
     </main>
 
-    <!-- מגירת מוזמנים מוגבהת בכ-1 ס"מ (bottom-3) עם גלילה חופשית -->
+    <!-- מגירת מוזמנים מוגבהת עם גלילה חופשית -->
     <div class="fixed bottom-3 inset-x-2 glass border border-amber-500/30 p-2.5 z-40 max-w-lg mx-auto rounded-3xl shadow-2xl">
         <div class="flex justify-between items-center px-1 mb-1.5 gap-2">
             <span class="text-[10px] font-black text-amber-400 uppercase tracking-wide flex items-center gap-1 shrink-0">
@@ -250,34 +241,35 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
+        // קואורדינטות השטח השחור הפנימי של כל שולחן
         const BASE_TABLES_DEF = [
-            { id: "250", top: "11.2%", left: "13.5%", w: "8.2%", h: "5.4%", cap: 8, label: "250", labelX: "13.5%", labelY: "18.2%" },
-            { id: "240", top: "11.2%", left: "29.5%", w: "8.2%", h: "5.4%", cap: 9, label: "240", labelX: "29.5%", labelY: "18.2%" },
-            { id: "230", top: "11.2%", left: "51.0%", w: "12.5%", h: "5.4%", cap: 12, label: "230", labelX: "51%", labelY: "19.8%" },
-            { id: "220", top: "11.2%", left: "72.5%", w: "8.2%", h: "5.4%", cap: 10, label: "220", labelX: "72.5%", labelY: "19.8%" },
-            { id: "210", top: "11.2%", left: "87.0%", w: "8.2%", h: "5.4%", cap: 9, label: "210", labelX: "87%", labelY: "6.8%" },
+            { id: "250", top: "11.2%", left: "13.5%", w: "8.0%", h: "5.2%", cap: 8, label: "250", labelX: "13.5%", labelY: "18.2%" },
+            { id: "240", top: "11.2%", left: "29.5%", w: "8.0%", h: "5.2%", cap: 9, label: "240", labelX: "29.5%", labelY: "18.2%" },
+            { id: "230", top: "11.2%", left: "51.0%", w: "12.0%", h: "5.2%", cap: 12, label: "230", labelX: "51%", labelY: "19.8%" },
+            { id: "220", top: "11.2%", left: "72.5%", w: "8.0%", h: "5.2%", cap: 10, label: "220", labelX: "72.5%", labelY: "19.8%" },
+            { id: "210", top: "11.2%", left: "87.0%", w: "8.0%", h: "5.2%", cap: 9, label: "210", labelX: "87%", labelY: "6.8%" },
 
-            { id: "30", top: "26.5%", left: "49.5%", w: "9.5%", h: "5.0%", cap: 5, label: "30", labelX: "49.5%", labelY: "33.2%" },
+            { id: "30", top: "26.5%", left: "49.5%", w: "9.2%", h: "4.8%", cap: 5, label: "30", labelX: "49.5%", labelY: "33.2%" },
 
-            { id: "310", top: "29.5%", left: "13.5%", w: "8.5%", h: "4.8%", cap: 9, label: "310", labelX: "13.5%", labelY: "25.2%" },
-            { id: "320", top: "36.8%", left: "13.5%", w: "8.5%", h: "4.8%", cap: 9, label: "320", labelX: "13.5%", labelY: "43.2%" },
-            { id: "330", top: "50.0%", left: "13.5%", w: "8.5%", h: "4.8%", cap: 10, label: "330", labelX: "13.5%", labelY: "45.8%" },
-            { id: "340", top: "57.3%", left: "13.5%", w: "8.5%", h: "4.8%", cap: 10, label: "340", labelX: "13.5%", labelY: "63.8%" },
-            { id: "350", top: "71.5%", left: "13.5%", w: "8.5%", h: "4.8%", cap: 10, label: "350", labelX: "13.5%", labelY: "66.8%" },
-            { id: "360", top: "78.8%", left: "13.5%", w: "8.5%", h: "4.8%", cap: 10, label: "360", labelX: "13.5%", labelY: "84.8%" },
+            { id: "310", top: "29.5%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 9, label: "310", labelX: "13.5%", labelY: "25.2%" },
+            { id: "320", top: "36.8%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 9, label: "320", labelX: "13.5%", labelY: "43.2%" },
+            { id: "330", top: "50.0%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "330", labelX: "13.5%", labelY: "45.8%" },
+            { id: "340", top: "57.3%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "340", labelX: "13.5%", labelY: "63.8%" },
+            { id: "350", top: "71.5%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "350", labelX: "13.5%", labelY: "66.8%" },
+            { id: "360", top: "78.8%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "360", labelX: "13.5%", labelY: "84.8%" },
 
-            { id: "160", top: "40.5%", left: "86.5%", w: "8.5%", h: "4.6%", cap: 7, label: "160", labelX: "86.5%", labelY: "36.2%" },
-            { id: "150", top: "47.0%", left: "86.5%", w: "8.5%", h: "4.6%", cap: 7, label: "150", labelX: "86.5%", labelY: "53.2%" },
-            { id: "140", top: "59.0%", left: "86.5%", w: "8.5%", h: "4.6%", cap: 10, label: "140", labelX: "86.5%", labelY: "54.8%" },
-            { id: "130", top: "65.5%", left: "86.5%", w: "8.5%", h: "4.6%", cap: 10, label: "130", labelX: "86.5%", labelY: "71.8%" },
-            { id: "120", top: "76.5%", left: "86.5%", w: "8.5%", h: "4.6%", cap: 7, label: "120", labelX: "68.5%", labelY: "77.5%" },
-            { id: "110", top: "83.0%", left: "86.5%", w: "8.5%", h: "4.6%", cap: 7, label: "110", labelX: "68.5%", labelY: "85.2%" },
+            { id: "160", top: "40.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "160", labelX: "86.5%", labelY: "36.2%" },
+            { id: "150", top: "47.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "150", labelX: "86.5%", labelY: "53.2%" },
+            { id: "140", top: "59.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 10, label: "140", labelX: "86.5%", labelY: "54.8%" },
+            { id: "130", top: "65.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 10, label: "130", labelX: "86.5%", labelY: "71.8%" },
+            { id: "120", top: "76.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "120", labelX: "68.5%", labelY: "77.5%" },
+            { id: "110", top: "83.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "110", labelX: "68.5%", labelY: "85.2%" },
 
-            { id: "40", top: "36.0%", left: "26.5%", w: "7.0%", h: "5.0%", cap: 4, label: "40", labelX: "26.5%", labelY: "43.5%" },
-            { id: "50", top: "51.5%", left: "26.5%", w: "7.0%", h: "5.0%", cap: 4, label: "50", labelX: "26.5%", labelY: "59.0%" },
-            { id: "60", top: "67.0%", left: "26.5%", w: "7.0%", h: "5.0%", cap: 4, label: "60", labelX: "26.5%", labelY: "74.5%" },
-            { id: "20", top: "36.0%", left: "72.5%", w: "7.0%", h: "5.0%", cap: 4, label: "20", labelX: "72.5%", labelY: "29.5%" },
-            { id: "10", top: "67.0%", left: "72.5%", w: "7.0%", h: "5.0%", cap: 4, label: "10", labelX: "63.5%", labelY: "67.0%" }
+            { id: "40", top: "36.0%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "40", labelX: "26.5%", labelY: "43.5%" },
+            { id: "50", top: "51.5%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "50", labelX: "26.5%", labelY: "59.0%" },
+            { id: "60", top: "67.0%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "60", labelX: "26.5%", labelY: "74.5%" },
+            { id: "20", top: "36.0%", left: "72.5%", w: "6.8%", h: "4.8%", cap: 4, label: "20", labelX: "72.5%", labelY: "29.5%" },
+            { id: "10", top: "67.0%", left: "72.5%", w: "6.8%", h: "4.8%", cap: 4, label: "10", labelX: "63.5%", labelY: "67.0%" }
         ];
 
         let reservations = [];
@@ -368,7 +360,7 @@
 
                 if (tbl.isCustom) {
                     const dynamicEl = document.createElement('div');
-                    dynamicEl.className = 'custom-dynamic-table';
+                    dynamicEl.className = `custom-dynamic-table ${hasArrived ? 'spot-arrived-bg' : ''}`;
                     dynamicEl.style.top = tbl.top;
                     dynamicEl.style.left = tbl.left;
                     dynamicEl.style.width = tbl.w;
@@ -376,7 +368,6 @@
                     dynamicEl.dataset.tableId = tbl.id;
 
                     dynamicEl.innerHTML = `
-                        ${hasArrived ? '<div class="arrived-badge-pill"></div>' : ''}
                         <span class="text-[10px] font-black text-amber-400 font-mono leading-none z-10">${tbl.label}</span>
                         <span class="text-[7px] font-bold text-slate-400 leading-none mt-0.5 z-10">איש ${tbl.cap}</span>
                     `;
@@ -385,17 +376,12 @@
                     dynamicContainer.appendChild(dynamicEl);
                 } else {
                     const spot = document.createElement('div');
-                    spot.className = 'table-spot';
+                    spot.className = `table-spot ${hasArrived ? 'spot-arrived-bg' : ''}`;
                     spot.style.top = tbl.top;
                     spot.style.left = tbl.left;
                     spot.style.width = tbl.w;
                     spot.style.height = tbl.h;
                     spot.dataset.tableId = tbl.id;
-
-                    if (hasArrived) {
-                        spot.innerHTML = '<div class="arrived-badge-pill"></div>';
-                    }
-
                     spot.onclick = () => openModal(tbl, occupiedRes);
                     spotsContainer.appendChild(spot);
                 }
@@ -509,7 +495,6 @@
             bindDragAndDropGuests();
         }
 
-        // מנגנון חכם: מאפשר גלילה חופשית שמאלה/ימינה, ומפעיל גרירה רק אם מרימים את האצבע למעלה לכיוון המפה
         function bindDragAndDropGuests() {
             const items = document.querySelectorAll('.draggable-guest-badge');
             items.forEach(item => {
@@ -527,7 +512,6 @@
                         const deltaX = ev.clientX - startX;
                         const deltaY = ev.clientY - startY;
 
-                        // אם המשתמש מושך כלפי מעלה לכיוון המפה - נכנסים למצב גרירה לשיבוץ
                         if (!isDraggingToTable && deltaY < -12 && Math.abs(deltaY) > Math.abs(deltaX)) {
                             isDraggingToTable = true;
                             item.setPointerCapture(e.pointerId);
@@ -556,7 +540,7 @@
                         }
                     };
 
-                    const onPointerUp = async (ev) => {
+                    const onUp = async (ev) => {
                         window.removeEventListener('pointermove', onPointerMove);
                         window.removeEventListener('pointerup', onPointerUp);
                         window.removeEventListener('pointercancel', onPointerUp);
