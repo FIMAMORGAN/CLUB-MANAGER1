@@ -47,7 +47,6 @@
             transition: all 0.15s ease;
         }
 
-        /* שולחן שהגיע בפועל - אדום עדין */
         .spot-arrived {
             background: rgba(244, 63, 94, 0.22) !important;
             border: 1.5px solid rgba(251, 113, 133, 0.7) !important;
@@ -88,18 +87,33 @@
             z-index: 40;
         }
 
-        .client-label-fixed {
+        /* תגית שם לקוח ניתנת לגרירה חופשית ימינה/שמאלה/למעלה/למטה */
+        .client-label-draggable {
             position: absolute;
             color: #ffffff;
             font-size: 8.5px;
             font-weight: 900;
             white-space: nowrap;
             text-shadow: 0 1px 3px #000, 0 0 5px #000;
-            pointer-events: none;
-            z-index: 25;
+            z-index: 35;
             transform: translate(-50%, -50%);
             direction: rtl;
             text-align: center;
+            cursor: grab;
+            touch-action: none;
+            padding: 2px 4px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+        }
+
+        .client-label-draggable:active, .client-label-draggable.is-moving {
+            cursor: grabbing;
+            background: rgba(245, 158, 11, 0.4);
+            border-color: #f59e0b;
+            transform: translate(-50%, -50%) scale(1.15);
+            z-index: 50;
         }
 
         .draggable-guest-badge {
@@ -121,15 +135,6 @@
             align-items: center;
             justify-content: center;
             padding: 1rem;
-        }
-
-        #select-multi-res {
-            font-size: 10px !important;
-            line-height: 1.2;
-        }
-        #select-multi-res option {
-            font-size: 10px !important;
-            padding: 3px 6px;
         }
     </style>
 </head>
@@ -180,7 +185,7 @@
     <div class="fixed bottom-0 inset-x-0 glass border-t border-amber-500/30 p-2 z-40 max-w-lg mx-auto rounded-t-3xl shadow-2xl">
         <div class="flex justify-between items-center px-1 mb-1.5">
             <span class="text-[10px] font-black text-amber-400 uppercase tracking-wide flex items-center gap-1">
-                <i data-lucide="layout-grid" size="12"></i> שולחנות ממתינים לשיבוץ (בלי בר):
+                <i data-lucide="layout-grid" size="12"></i> שולחנות ממתינים (גרור לשולחן):
             </span>
             <span id="unassigned-counter" class="text-[9px] text-slate-400 font-mono font-bold">0 ממתינים</span>
         </div>
@@ -260,7 +265,6 @@
             return fullName.trim().split(/\s+/)[0];
         }
 
-        // סינון רשימת ההזמנות - שולחנות בלבד ללא בר
         function getTableOnlyReservations() {
             return reservations.filter(r => r.type !== 'bar');
         }
@@ -368,19 +372,81 @@
                     spotsContainer.appendChild(spot);
                 }
 
+                // שכבת שם לקוח - ניתנת לגרירה חופשית ומדויקת
                 if (isOccupied) {
-                    const label = document.createElement('span');
-                    label.className = 'client-label-fixed';
-                    label.style.left = tbl.labelX;
-                    label.style.top = tbl.labelY;
+                    const label = document.createElement('div');
+                    label.className = 'client-label-draggable';
+                    
+                    // שימוש במיקום מותאם אישית שנשמר, או במיקום ברירת מחדל
+                    const posX = occupiedRes.labelCustomX !== undefined ? `${occupiedRes.labelCustomX}%` : tbl.labelX;
+                    const posY = occupiedRes.labelCustomY !== undefined ? `${occupiedRes.labelCustomY}%` : tbl.labelY;
+                    
+                    label.style.left = posX;
+                    label.style.top = posY;
                     label.innerText = getFirstNameOnly(occupiedRes.name);
-                    label.title = `${occupiedRes.name} (${tbl.label})`;
+                    label.title = `גרור כדי להזיז את ${occupiedRes.name}`;
+
+                    makeLabelDraggable(label, occupiedRes.id, parseFloat(posX), parseFloat(posY));
                     labelsContainer.appendChild(label);
                 }
             });
         }
 
-        // הצגת מוזמנים פנויים במגירה - שולחנות בלבד (ללא בר)
+        // גרירה חופשית של שם הלקוח לכל כיוון במפה ושמירה ב-Firebase
+        function makeLabelDraggable(elmnt, resId, initLeft, initTop) {
+            let startX = 0, startY = 0;
+            let currentLeft = initLeft, currentTop = initTop;
+            let isMoved = false;
+            const mapWrapper = document.getElementById('map-container');
+
+            elmnt.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                isMoved = false;
+                elmnt.setPointerCapture(e.pointerId);
+                elmnt.classList.add('is-moving');
+
+                startX = e.clientX;
+                startY = e.clientY;
+
+                const onMove = (ev) => {
+                    const deltaX = ev.clientX - startX;
+                    const deltaY = ev.clientY - startY;
+
+                    if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) isMoved = true;
+
+                    const rect = mapWrapper.getBoundingClientRect();
+                    const newLeft = Math.max(3, Math.min(97, currentLeft + (deltaX / rect.width) * 100));
+                    const newTop = Math.max(3, Math.min(97, currentTop + (deltaY / rect.height) * 100));
+
+                    elmnt.style.left = `${newLeft.toFixed(1)}%`;
+                    elmnt.style.top = `${newTop.toFixed(1)}%`;
+                };
+
+                const onUp = async (ev) => {
+                    elmnt.releasePointerCapture(ev.pointerId);
+                    elmnt.classList.remove('is-moving');
+                    elmnt.removeEventListener('pointermove', onMove);
+                    elmnt.removeEventListener('pointerup', onUp);
+                    elmnt.removeEventListener('pointercancel', onUp);
+
+                    if (isMoved) {
+                        const finalX = parseFloat(elmnt.style.left);
+                        const finalY = parseFloat(elmnt.style.top);
+
+                        // שמירת המיקום החדש עבור שם הלקוח הזה ב-Firestore
+                        await db.collection('reservations').doc(resId).update({
+                            labelCustomX: Math.round(finalX * 10) / 10,
+                            labelCustomY: Math.round(finalY * 10) / 10
+                        });
+                    }
+                };
+
+                elmnt.addEventListener('pointermove', onMove);
+                elmnt.addEventListener('pointerup', onUp);
+                elmnt.addEventListener('pointercancel', onUp);
+            });
+        }
+
         function renderGuestDragStrip() {
             const strip = document.getElementById('guest-drag-strip');
             const unassignedTableGuests = getTableOnlyReservations().filter(r => !r.tableNumber);
@@ -585,10 +651,9 @@
                     </button>
                 `;
             } else {
-                // רשימת בחירה לשיבוץ - אך ורק שולחנות (בלי בר)
                 const tableGuests = getTableOnlyReservations();
                 body.innerHTML = `
-                    <p class="text-[10px] text-slate-400 mb-1 text-right font-bold">בחר הזמנה לשיבוץ בשולחן זה (שולחנות בלבד):</p>
+                    <p class="text-[10px] text-slate-400 mb-1 text-right font-bold">בחר הזמנה לשיבוץ בשולחן זה:</p>
                     <select id="select-single-res" class="w-full bg-slate-900 border border-white/20 rounded-lg py-1 px-1.5 text-white font-bold outline-none focus:border-amber-400 mb-2">
                         ${tableGuests.map(r => {
                             const isAssigned = !!r.tableNumber;
@@ -642,7 +707,9 @@
             const res = getReservationForTable(tableId);
             if (res) {
                 await db.collection('reservations').doc(res.id).update({
-                    tableNumber: firebase.firestore.FieldValue.delete()
+                    tableNumber: firebase.firestore.FieldValue.delete(),
+                    labelCustomX: firebase.firestore.FieldValue.delete(),
+                    labelCustomY: firebase.firestore.FieldValue.delete()
                 });
             }
 
@@ -652,7 +719,9 @@
         async function unassignSingleTable(resId, tableLabel) {
             if (confirm(`לשחרר את שולחן ${tableLabel}?`)) {
                 await db.collection('reservations').doc(resId).update({
-                    tableNumber: firebase.firestore.FieldValue.delete()
+                    tableNumber: firebase.firestore.FieldValue.delete(),
+                    labelCustomX: firebase.firestore.FieldValue.delete(),
+                    labelCustomY: firebase.firestore.FieldValue.delete()
                 });
                 closeModal();
             }
@@ -666,7 +735,9 @@
             const batch = db.batch();
             assigned.forEach(r => {
                 batch.update(db.collection('reservations').doc(r.id), {
-                    tableNumber: firebase.firestore.FieldValue.delete()
+                    tableNumber: firebase.firestore.FieldValue.delete(),
+                    labelCustomX: firebase.firestore.FieldValue.delete(),
+                    labelCustomY: firebase.firestore.FieldValue.delete()
                 });
             });
             await batch.commit();
