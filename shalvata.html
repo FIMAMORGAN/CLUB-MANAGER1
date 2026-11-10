@@ -47,7 +47,6 @@
             transition: all 0.15s ease;
         }
 
-        /* עיגול / קפסולה הדוקה שעוטפת בדיוק את מספר השולחן וכמות האנשים בלי לחרוג החוצה */
         .arrived-badge-pill {
             position: absolute;
             width: 76%;
@@ -66,7 +65,6 @@
             to { box-shadow: 0 0 12px rgba(244, 63, 94, 0.6); }
         }
 
-        /* יעד גרירה מעליו מרחפים */
         .spot-drag-hover {
             outline: 2px solid #38bdf8 !important;
             background: rgba(56, 189, 248, 0.2) !important;
@@ -97,7 +95,6 @@
             z-index: 40;
         }
 
-        /* תגית שם לקוח נגררת חופשית */
         .client-label-draggable {
             position: absolute;
             color: #ffffff;
@@ -126,31 +123,25 @@
             z-index: 50;
         }
 
-        /* סרגל גלילה מעוצב ונקי */
+        /* רצועת גלילה חופשית ללא תקיעות */
         #guest-drag-strip {
             overflow-x: auto;
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
-            touch-action: pan-x;
+            touch-action: pan-x !important;
+            overscroll-behavior-x: contain;
         }
         #guest-drag-strip::-webkit-scrollbar {
-            height: 4px;
+            height: 3px;
         }
         #guest-drag-strip::-webkit-scrollbar-thumb {
-            background: rgba(245, 158, 11, 0.5);
+            background: rgba(245, 158, 11, 0.4);
             border-radius: 9999px;
-        }
-        #guest-drag-strip::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
         }
 
         .draggable-guest-badge {
-            cursor: grab;
             user-select: none;
-            touch-action: none;
-        }
-        .draggable-guest-badge:active {
-            cursor: grabbing;
+            touch-action: pan-x !important;
         }
 
         .overlay {
@@ -166,7 +157,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-36">
+<body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-40">
 
     <!-- סרגל עליון -->
     <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2 rounded-2xl gap-1.5">
@@ -209,8 +200,8 @@
         </div>
     </main>
 
-    <!-- סרגל דפדוף מוזמנים עם כפתורי גלילה וחיפוש -->
-    <div class="fixed bottom-0 inset-x-0 glass border-t border-amber-500/30 p-2 z-40 max-w-lg mx-auto rounded-t-3xl shadow-2xl">
+    <!-- מגירת מוזמנים מוגבהת בכ-1 ס"מ (bottom-3) עם גלילה חופשית -->
+    <div class="fixed bottom-3 inset-x-2 glass border border-amber-500/30 p-2.5 z-40 max-w-lg mx-auto rounded-3xl shadow-2xl">
         <div class="flex justify-between items-center px-1 mb-1.5 gap-2">
             <span class="text-[10px] font-black text-amber-400 uppercase tracking-wide flex items-center gap-1 shrink-0">
                 <i data-lucide="layout-grid" size="12"></i> ממתינים (<span id="unassigned-counter">0</span>):
@@ -226,7 +217,7 @@
                 </button>
             </div>
         </div>
-        <div id="guest-drag-strip" class="flex gap-1.5 pb-2 px-1"></div>
+        <div id="guest-drag-strip" class="flex gap-2 pb-1 px-1"></div>
     </div>
 
     <!-- מודאל פעולות שולחן -->
@@ -259,7 +250,6 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        // הגדרה הדוקה ומדויקת לכל שטח שולחן (מיקוד על אזור המספר והכמות)
         const BASE_TABLES_DEF = [
             { id: "250", top: "11.2%", left: "13.5%", w: "8.2%", h: "5.4%", cap: 8, label: "250", labelX: "13.5%", labelY: "18.2%" },
             { id: "240", top: "11.2%", left: "29.5%", w: "8.2%", h: "5.4%", cap: 9, label: "240", labelX: "29.5%", labelY: "18.2%" },
@@ -402,7 +392,6 @@
                     spot.style.height = tbl.h;
                     spot.dataset.tableId = tbl.id;
 
-                    // סימון אדום עדין ומדויק - קפסולה הדוקה בלבד
                     if (hasArrived) {
                         spot.innerHTML = '<div class="arrived-badge-pill"></div>';
                     }
@@ -520,25 +509,29 @@
             bindDragAndDropGuests();
         }
 
+        // מנגנון חכם: מאפשר גלילה חופשית שמאלה/ימינה, ומפעיל גרירה רק אם מרימים את האצבע למעלה לכיוון המפה
         function bindDragAndDropGuests() {
             const items = document.querySelectorAll('.draggable-guest-badge');
             items.forEach(item => {
                 let ghost = null;
                 let resId = item.dataset.resid;
                 let startX = 0, startY = 0;
-                let isDraggingMode = false;
+                let isDraggingToTable = false;
 
-                item.addEventListener('pointerdown', (e) => {
+                const onPointerDown = (e) => {
                     startX = e.clientX;
                     startY = e.clientY;
-                    isDraggingMode = false;
+                    isDraggingToTable = false;
 
-                    item.setPointerCapture(e.pointerId);
+                    const onPointerMove = (ev) => {
+                        const deltaX = ev.clientX - startX;
+                        const deltaY = ev.clientY - startY;
 
-                    const onMove = (ev) => {
-                        const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
-                        if (!isDraggingMode && dist > 7) {
-                            isDraggingMode = true;
+                        // אם המשתמש מושך כלפי מעלה לכיוון המפה - נכנסים למצב גרירה לשיבוץ
+                        if (!isDraggingToTable && deltaY < -12 && Math.abs(deltaY) > Math.abs(deltaX)) {
+                            isDraggingToTable = true;
+                            item.setPointerCapture(e.pointerId);
+
                             ghost = item.cloneNode(true);
                             ghost.style.position = 'fixed';
                             ghost.style.zIndex = '9999';
@@ -550,7 +543,7 @@
                             document.body.appendChild(ghost);
                         }
 
-                        if (ghost) {
+                        if (isDraggingToTable && ghost) {
                             ghost.style.left = `${ev.clientX}px`;
                             ghost.style.top = `${ev.clientY}px`;
 
@@ -563,17 +556,16 @@
                         }
                     };
 
-                    const onUp = async (ev) => {
-                        item.releasePointerCapture(ev.pointerId);
-                        item.removeEventListener('pointermove', onMove);
-                        item.removeEventListener('pointerup', onUp);
-                        item.removeEventListener('pointercancel', onUp);
+                    const onPointerUp = async (ev) => {
+                        window.removeEventListener('pointermove', onPointerMove);
+                        window.removeEventListener('pointerup', onPointerUp);
+                        window.removeEventListener('pointercancel', onPointerUp);
 
-                        if (ghost) { ghost.remove(); ghost = null; }
+                        if (isDraggingToTable) {
+                            try { item.releasePointerCapture(e.pointerId); } catch(err){}
+                            if (ghost) { ghost.remove(); ghost = null; }
+                            document.querySelectorAll('.table-spot, .custom-dynamic-table').forEach(s => s.classList.remove('spot-drag-hover'));
 
-                        document.querySelectorAll('.table-spot, .custom-dynamic-table').forEach(s => s.classList.remove('spot-drag-hover'));
-
-                        if (isDraggingMode) {
                             const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
                             const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
 
@@ -593,10 +585,12 @@
                         }
                     };
 
-                    item.addEventListener('pointermove', onMove);
-                    item.addEventListener('pointerup', onUp);
-                    item.addEventListener('pointercancel', onUp);
-                });
+                    window.addEventListener('pointermove', onPointerMove, { passive: true });
+                    window.addEventListener('pointerup', onPointerUp);
+                    window.addEventListener('pointercancel', onPointerUp);
+                };
+
+                item.addEventListener('pointerdown', onPointerDown);
             });
         }
 
