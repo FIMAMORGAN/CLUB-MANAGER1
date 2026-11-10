@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V144 - Fashion-Bar</title>
+    <title>ClubPro V145 - Fashion-Bar</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V144";
+        const APP_VERSION = "V145";
 
         const translations = {
             he: {
@@ -113,7 +113,8 @@
                 depositNeeded: "צריך פיקדון",
                 noDeposit: "ללא פיקדון",
                 bookedBy: "הוזמן על ידי",
-                sendClubInvite: "שלח הזמנה לשישי",
+                sendClubInvite: "הזמנה לשישי",
+                sendFeedback: "איך היה?",
                 onlyWithPhoneNotice: "מוצגים רק לקוחות עם טלפון",
                 vladaPanel: "פאנל שיווק - ולדה"
             },
@@ -190,6 +191,7 @@
                 noDeposit: "Без депозита",
                 bookedBy: "Кем забронировано",
                 sendClubInvite: "Пригласить на пятницу",
+                sendFeedback: "Как прошло?",
                 onlyWithPhoneNotice: "Показаны только гости с номерами",
                 vladaPanel: "Панель рассылки - Влада"
             }
@@ -350,7 +352,6 @@
                 });
         }
 
-        // טעינת היסטוריה מלאה של כל הזמנות פשיין/שלוותא מתחילת הפעילות
         async function loadArchiveData() {
             state.isArchiveLoading = true;
             render();
@@ -384,6 +385,24 @@ www.fashionbar.co.il
 מוזמנים להצטרף למועדון הלקוחות שלנו ולצבור הטבות:
 www.fashionbar.co.il
 לשריין לכם שולחן או מקומות על הבר? 😉`;
+
+            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
+        // הודעת משוב ייעודית: "איך היה?"
+        function sendVladaFeedbackMessage(clientPhone) {
+            if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
+            const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
+
+            const message = `Спасибо, что провели эту пятницу с нами в FASHION BAR! 🥂
+Будем рады узнать, как вам вечер 😊
+Что понравилось и что мы могли бы улучшить?
+Поделитесь впечатлениями, ваше мнение важно для нас ❤️
+
+תודה שהייתם איתנו ביום שישי ב-FASHION BAR! 🥂
+נשמח לשמוע איך הייתה החוויה שלכם 😊
+מה אהבתם ומה לדעתכם אפשר לשפר?
+שתפו אותנו, הדעה שלכם חשובה לנו ❤️`;
 
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
@@ -1026,14 +1045,12 @@ www.fashionbar.co.il
             `;
         }
 
-        // מסך מרכז ההזמנות - תמיכה מלאה בהגדרות המדויקות עבור VLADA
         function renderArchiveMGMT() {
             if (state.role === 'guest') return '';
             const query = state.archiveSearchQuery.trim().toLowerCase();
             const venue = allVenues.find(v => v.id === state.venueId);
             const isVlada = state.role === 'vlada';
 
-            // סינון יסודי: מציג אך ורק לקוחות שיש להם מספר טלפון תקין
             const rawDataSource = state.archiveReservations.length ? state.archiveReservations : state.reservations;
             const dataSource = rawDataSource.filter(r => r.phone && r.phone.replace(/\D/g, '').length >= 9);
 
@@ -1061,8 +1078,6 @@ www.fashionbar.co.il
                 return nameMatch || phoneMatch || tagMatch || dateMatch;
             });
 
-            // מיון: בלשונית "רדומים" המיון הוא מהתאריך הכי ישן שבוצע בו הזמנה ועד החדש.
-            // ביתר המקרים: מהתאריך הכי אחרון (הכי חדש) לתאריכים הישנים מתחילת הפעילות.
             if (state.archiveFilterTab === 'dormant') {
                 filtered.sort((a, b) => (a.eventDate || '').localeCompare(b.eventDate || ''));
             } else {
@@ -1083,7 +1098,6 @@ www.fashionbar.co.il
                         `}
 
                         <div class="flex items-center gap-1.5">
-                            <!-- כפתור החלפת שפה לרוסית ישירות במסך ולדה -->
                             <button onclick="setLanguage(state.lang === 'he' ? 'ru' : 'he')" class="bg-slate-900 border border-white/15 text-amber-400 font-bold text-[10px] px-2.5 py-1 rounded-lg">
                                 ${state.lang === 'he' ? '🇷🇺 RU' : '🇮🇱 עב'}
                             </button>
@@ -1154,14 +1168,23 @@ www.fashionbar.co.il
                                             <p class="text-[11px] text-slate-400 font-medium mt-0.5 font-mono">${r.phone}</p>
                                             ${r.bookedBy ? `<p class="text-[9px] text-slate-500">הוזמן ע"י: <span class="text-slate-300 font-bold">${r.bookedBy}</span></p>` : ''}
                                         </div>
-                                        <div class="text-left flex flex-col items-end gap-1 shrink-0">
+                                        <div class="text-left flex flex-col items-end gap-1.5 shrink-0">
                                             <span class="bg-amber-500/10 text-amber-500 text-[10px] px-2 py-0.5 rounded-md font-black uppercase">${venue.name}</span>
                                             <p class="text-[10px] text-slate-300 font-bold font-mono">📅 ${formattedDate}</p>
                                             
-                                            <button onclick="sendVladaClubInvite('${r.phone}')" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black px-3 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1.5 shadow-lg active:scale-95 transition-all mt-1">
-                                                <i data-lucide="message-circle" size="13"></i>
-                                                <span>${t('sendClubInvite')}</span>
-                                            </button>
+                                            <div class="flex items-center gap-1.5 mt-1 flex-wrap justify-end">
+                                                <!-- כפתור 1: הזמנה לשישי הקרוב -->
+                                                <button onclick="sendVladaClubInvite('${r.phone}')" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
+                                                    <i data-lucide="message-circle" size="12"></i>
+                                                    <span>${t('sendClubInvite')}</span>
+                                                </button>
+
+                                                <!-- כפתור 2: איך היה? (הודעת משוב) -->
+                                                <button onclick="sendVladaFeedbackMessage('${r.phone}')" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
+                                                    <i data-lucide="sparkles" size="12"></i>
+                                                    <span>${t('sendFeedback')}</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     ${r.notes ? `<p class="text-[10px] text-slate-500 italic font-bold">💬 ${r.notes}</p>` : ''}
