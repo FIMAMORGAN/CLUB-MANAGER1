@@ -86,6 +86,21 @@
             z-index: 40;
         }
 
+        /* תגית להצגת מספר שולחן שעבר שינוי מעל המפה */
+        .renamed-table-badge {
+            background: #020617;
+            color: #f59e0b;
+            font-size: 8px;
+            font-weight: 900;
+            padding: 1px 3px;
+            border-radius: 3px;
+            border: 1px solid #f59e0b;
+            box-shadow: 0 0 4px #000;
+            pointer-events: none;
+            z-index: 15;
+            white-space: nowrap;
+        }
+
         .client-label-draggable {
             position: absolute;
             color: #ffffff;
@@ -135,7 +150,6 @@
             will-change: transform;
         }
 
-        /* אלמנט גרירה צף מהיר ומוגבר חומרה */
         .drag-ghost-fast {
             position: fixed;
             top: 0;
@@ -281,6 +295,7 @@
         let reservations = [];
         let customTables = [];
         let deletedBaseTableIds = [];
+        let customTableLabels = {}; // מפת שמות/מספרים מותאמים אישית לשולחנות
         let stripFilterText = '';
 
         function goBack() {
@@ -297,7 +312,17 @@
         }
 
         function getAllActiveTablesDef() {
-            const activeBase = BASE_TABLES_DEF.filter(bt => !deletedBaseTableIds.includes(String(bt.id)));
+            const activeBase = BASE_TABLES_DEF
+                .filter(bt => !deletedBaseTableIds.includes(String(bt.id)))
+                .map(bt => {
+                    const renamed = customTableLabels[bt.id];
+                    return {
+                        ...bt,
+                        label: renamed || bt.label,
+                        isRenamed: !!renamed
+                    };
+                });
+
             const dynamicMapped = customTables.map(ct => ({
                 id: ct.tableNumber,
                 top: `${ct.topPercent}%`,
@@ -314,17 +339,23 @@
             return [...activeBase, ...dynamicMapped];
         }
 
-        function getReservationForTable(tblId) {
+        function getReservationForTable(tblId, tblLabel) {
             return reservations.find(r => {
                 if (!r.tableNumber) return false;
                 const tables = String(r.tableNumber).split(',').map(s => s.trim());
-                return tables.includes(String(tblId));
+                return tables.includes(String(tblId)) || (tblLabel && tables.includes(String(tblLabel)));
             });
         }
 
         function initData() {
             db.collection('deleted_tables').doc('shalvata').onSnapshot(doc => {
                 deletedBaseTableIds = doc.exists ? (doc.data().tableIds || []) : [];
+                renderMap();
+            });
+
+            // האזנה למספרי שולחנות שעברו שינוי
+            db.collection('custom_table_labels').doc('shalvata').onSnapshot(doc => {
+                customTableLabels = doc.exists ? (doc.data().labels || {}) : {};
                 renderMap();
             });
 
@@ -360,7 +391,7 @@
             const allTables = getAllActiveTablesDef();
 
             allTables.forEach(tbl => {
-                const occupiedRes = getReservationForTable(tbl.id);
+                const occupiedRes = getReservationForTable(tbl.id, tbl.label);
                 const isOccupied = !!occupiedRes;
                 const hasArrived = isOccupied && occupiedRes.arrived;
 
@@ -371,7 +402,7 @@
                     dynamicEl.style.left = tbl.left;
                     dynamicEl.style.width = tbl.w;
                     dynamicEl.style.height = tbl.h;
-                    dynamicEl.dataset.tableId = tbl.id;
+                    dynamicEl.dataset.tableId = tbl.label;
 
                     dynamicEl.innerHTML = `
                         <span class="text-[10px] font-black text-amber-400 font-mono leading-none z-10 pointer-events-none">${tbl.label}</span>
@@ -387,7 +418,13 @@
                     spot.style.left = tbl.left;
                     spot.style.width = tbl.w;
                     spot.style.height = tbl.h;
-                    spot.dataset.tableId = tbl.id;
+                    spot.dataset.tableId = tbl.label;
+
+                    // הצגת המספר החדש מעל המפה אם שונה ממספר הבסיס
+                    if (tbl.isRenamed) {
+                        spot.innerHTML = `<span class="renamed-table-badge">${tbl.label}</span>`;
+                    }
+
                     spot.onclick = () => openModal(tbl, occupiedRes);
                     spotsContainer.appendChild(spot);
                 }
@@ -501,7 +538,6 @@
             bindDragAndDropGuests();
         }
 
-        // מנגנון גרירה מהיר ומואץ (Zero-Lag Drag & Drop)
         function bindDragAndDropGuests() {
             const items = document.querySelectorAll('.draggable-guest-badge');
             items.forEach(item => {
@@ -517,7 +553,6 @@
                     if (ghost) {
                         ghost.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%) scale(1.08)`;
                         
-                        // בדיקת שולחן ממוקדת באמצעות elementFromPoint רק בזמן תנועה פעילה
                         const elemBelow = document.elementFromPoint(currentX, currentY);
                         const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
 
@@ -545,7 +580,6 @@
                         const deltaX = currentX - startX;
                         const deltaY = currentY - startY;
 
-                        // זיהוי גרירה כלפי מעלה לכיוון המפה
                         if (!isDraggingToTable && deltaY < -12 && Math.abs(deltaY) > Math.abs(deltaX)) {
                             isDraggingToTable = true;
 
@@ -580,7 +614,7 @@
 
                             if (tableTarget && tableTarget.dataset.tableId) {
                                 const targetTableId = tableTarget.dataset.tableId;
-                                const occupiedRes = getReservationForTable(targetTableId);
+                                const occupiedRes = getReservationForTable(targetTableId, targetTableId);
                                 if (occupiedRes) {
                                     alert(`שולחן ${targetTableId} כבר תפוס ע"י ${occupiedRes.name}!`);
                                     return;
@@ -647,7 +681,7 @@
                             topPercent: Math.round(newTop * 10) / 10
                         });
                     } else {
-                        const occupiedRes = getReservationForTable(tableDef.id);
+                        const occupiedRes = getReservationForTable(tableDef.id, tableDef.label);
                         openModal(tableDef, occupiedRes);
                     }
                 };
@@ -660,7 +694,7 @@
 
         async function createNewDynamicTable() {
             if (customTables.length >= 10) return alert("מקסימום 10 שולחנות נוספים.");
-            const existingNumbers = getAllActiveTablesDef().map(t => String(t.id));
+            const existingNumbers = getAllActiveTablesDef().map(t => String(t.label));
             let suggestedNumber = 70;
             while (existingNumbers.includes(String(suggestedNumber))) suggestedNumber++;
 
@@ -682,6 +716,36 @@
             });
         }
 
+        // פונקציה ייעודית לעריכת מספר שולחן (עבור כל שולחן)
+        async function renameTablePrompt(tbl) {
+            const currentName = tbl.label;
+            const newName = prompt(`הזן מספר או שם חדש לשולחן (נוכחי: ${currentName}):`, currentName);
+            if (!newName || newName.trim() === '' || newName.trim() === currentName) return;
+
+            const finalName = newName.trim();
+
+            if (tbl.isCustom) {
+                await db.collection('custom_tables').doc(tbl.docId).update({
+                    tableNumber: finalName
+                });
+            } else {
+                let updated = { ...customTableLabels, [tbl.id]: finalName };
+                await db.collection('custom_table_labels').doc('shalvata').set({ labels: updated }, { merge: true });
+            }
+
+            // עדכון ההזמנה אם השולחן כבר היה משובץ
+            const occupiedRes = getReservationForTable(tbl.id, currentName);
+            if (occupiedRes) {
+                let tables = String(occupiedRes.tableNumber).split(',').map(s => s.trim());
+                tables = tables.map(t => (t === currentName || t === String(tbl.id)) ? finalName : t);
+                await db.collection('reservations').doc(occupiedRes.id).update({
+                    tableNumber: tables.join(', ')
+                });
+            }
+
+            closeModal();
+        }
+
         function openModal(tbl, occupiedRes) {
             const modal = document.getElementById('table-modal');
             const title = document.getElementById('modal-table-title');
@@ -695,7 +759,7 @@
                 body.innerHTML = `
                     <div class="bg-amber-500/10 p-2.5 rounded-2xl border ${hasArrived ? 'border-rose-500/40 bg-rose-500/10' : 'border-amber-500/30'} space-y-1 text-right">
                         <div class="flex items-center justify-between">
-                            <span class="text-amber-400 font-black text-xs">שולחן: ${occupiedRes.tableNumber}</span>
+                            <span class="text-amber-400 font-black text-xs">שולחן: ${tbl.label}</span>
                             <span class="${hasArrived ? 'text-rose-400 font-bold' : 'text-slate-400'} text-[10px] font-mono">
                                 ${hasArrived ? '● הגיע למועדון' : '○ טרם הגיע'}
                             </span>
@@ -708,6 +772,9 @@
                 `;
 
                 actions.innerHTML = `
+                    <button onclick="renameTablePrompt(${JSON.stringify(tbl).replace(/"/g, '&quot;')})" class="w-full bg-amber-500/20 text-amber-300 border border-amber-500/30 py-1.5 rounded-xl font-bold text-xs hover:bg-amber-500/30 transition-colors">
+                        ✏️ שנה מספר שולחן (${tbl.label})
+                    </button>
                     <button onclick="unassignSingleTable('${occupiedRes.id}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-1.5 rounded-xl font-black text-xs uppercase shadow transition-colors">
                         שחרר שיבוץ שולחן זה
                     </button>
@@ -734,8 +801,11 @@
                     </select>
                 `;
                 actions.innerHTML = `
-                    <button onclick="assignSelectedFromModal('${tbl.id}')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-1.5 rounded-xl font-black text-xs uppercase shadow transition-colors">
+                    <button onclick="assignSelectedFromModal('${tbl.label}')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-1.5 rounded-xl font-black text-xs uppercase shadow transition-colors">
                         שבץ לשולחן ${tbl.label}
+                    </button>
+                    <button onclick="renameTablePrompt(${JSON.stringify(tbl).replace(/"/g, '&quot;')})" class="w-full bg-amber-500/20 text-amber-300 border border-amber-500/30 py-1.5 rounded-xl font-bold text-xs hover:bg-amber-500/30 transition-colors">
+                        ✏️ שנה מספר שולחן (${tbl.label})
                     </button>
                     <button onclick="deleteAnyTable('${tbl.id}', ${!!tbl.isCustom}, '${tbl.docId || ''}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-1.5 rounded-xl font-black text-xs uppercase transition-colors">
                         מחק שולחן זה מהמפה
@@ -750,13 +820,13 @@
             lucide.createIcons();
         }
 
-        async function assignSelectedFromModal(tableId) {
+        async function assignSelectedFromModal(tableLabel) {
             const sel = document.getElementById('select-single-res');
             if (!sel || !sel.value) return;
             const resId = sel.value;
 
             await db.collection('reservations').doc(resId).update({
-                tableNumber: String(tableId),
+                tableNumber: String(tableLabel),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             closeModal();
@@ -772,7 +842,7 @@
                 await db.collection('deleted_tables').doc('shalvata').set({ tableIds: updated }, { merge: true });
             }
 
-            const res = getReservationForTable(tableId);
+            const res = getReservationForTable(tableId, tableId);
             if (res) {
                 await db.collection('reservations').doc(res.id).update({
                     tableNumber: firebase.firestore.FieldValue.delete(),
