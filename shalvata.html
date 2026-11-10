@@ -47,26 +47,23 @@
             transition: all 0.15s ease;
         }
 
-        /* שולחן שהגיע בפועל - מסומן באדום קטיפתי עדין */
+        /* שולחן שהגיע בפועל - אדום עדין */
         .spot-arrived {
             background: rgba(244, 63, 94, 0.22) !important;
             border: 1.5px solid rgba(251, 113, 133, 0.7) !important;
             box-shadow: 0 0 12px rgba(244, 63, 94, 0.35) !important;
         }
 
-        /* שולחן משובץ שטרם הגיע */
         .spot-occupied-pending {
             border: 1px dashed rgba(245, 158, 11, 0.45);
         }
 
-        /* יעד גרירה מעליו מרחפים */
         .spot-drag-hover {
             outline: 2.5px solid #38bdf8 !important;
             background: rgba(56, 189, 248, 0.25) !important;
             transform: translate(-50%, -50%) scale(1.06);
         }
 
-        /* שולחן דינמי שנוצר ידנית */
         .custom-dynamic-table {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -91,12 +88,6 @@
             z-index: 40;
         }
 
-        .spot-selected {
-            outline: 2px solid #f59e0b !important;
-            box-shadow: 0 0 14px rgba(245, 158, 11, 0.7) !important;
-        }
-
-        /* שם לקוח קטן, קריא וברור בעין */
         .client-label-fixed {
             position: absolute;
             color: #ffffff;
@@ -111,7 +102,6 @@
             text-align: center;
         }
 
-        /* כרטיסיית מוזמן נגררת */
         .draggable-guest-badge {
             cursor: grab;
             touch-action: none;
@@ -132,13 +122,22 @@
             justify-content: center;
             padding: 1rem;
         }
+
+        #select-multi-res {
+            font-size: 10px !important;
+            line-height: 1.2;
+        }
+        #select-multi-res option {
+            font-size: 10px !important;
+            padding: 3px 6px;
+        }
     </style>
 </head>
 <body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-32">
 
     <!-- סרגל עליון -->
     <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2 rounded-2xl gap-1.5">
-        <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2 py-1.5 rounded-xl border border-white/10">
+        <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
             <i data-lucide="arrow-right" size="13"></i>
             <span>חזור</span>
         </button>
@@ -163,8 +162,8 @@
     <!-- מקרא מצב שולחנות -->
     <div class="w-full max-w-lg mb-2 flex justify-center items-center gap-3 text-[9.5px] font-bold">
         <span class="flex items-center gap-1 text-slate-400"><span class="w-2 h-2 rounded-full border border-white/30"></span> פנוי</span>
-        <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-500"></span> משובץ טרם הגיע</span>
-        <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e]"></span> הגיע למועדון</span>
+        <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-500"></span> משובץ</span>
+        <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_#f43f5e]"></span> הגיע</span>
     </div>
 
     <!-- מפה -->
@@ -177,20 +176,18 @@
         </div>
     </main>
 
-    <!-- מגירת מוזמנים לשיבוץ בגרירה ושחרור (Drag & Drop) -->
+    <!-- מגירת מוזמנים (שולחנות בלבד ללא בר) -->
     <div class="fixed bottom-0 inset-x-0 glass border-t border-amber-500/30 p-2 z-40 max-w-lg mx-auto rounded-t-3xl shadow-2xl">
         <div class="flex justify-between items-center px-1 mb-1.5">
             <span class="text-[10px] font-black text-amber-400 uppercase tracking-wide flex items-center gap-1">
-                <i data-lucide="hand" size="12"></i> גרור מוזמן לשולחן במפה:
+                <i data-lucide="layout-grid" size="12"></i> שולחנות ממתינים לשיבוץ (בלי בר):
             </span>
             <span id="unassigned-counter" class="text-[9px] text-slate-400 font-mono font-bold">0 ממתינים</span>
         </div>
-        <div id="guest-drag-strip" class="flex gap-1.5 overflow-x-auto pb-1 px-1 scrollbar-none">
-            <!-- כרטיסיות נגררות יווצרו דינמית כאן -->
-        </div>
+        <div id="guest-drag-strip" class="flex gap-1.5 overflow-x-auto pb-1 px-1 scrollbar-none"></div>
     </div>
 
-    <!-- מודאל פעולות שולחן -->
+    <!-- מודאל פעולות שולחן / שיבוץ מרשימה -->
     <div id="table-modal" class="overlay hidden">
         <div class="glass p-3.5 rounded-3xl w-full max-w-xs text-center space-y-3 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-white/10 pb-1.5">
@@ -263,6 +260,11 @@
             return fullName.trim().split(/\s+/)[0];
         }
 
+        // סינון רשימת ההזמנות - שולחנות בלבד ללא בר
+        function getTableOnlyReservations() {
+            return reservations.filter(r => r.type !== 'bar');
+        }
+
         function getAllActiveTablesDef() {
             const activeBase = BASE_TABLES_DEF.filter(bt => !deletedBaseTableIds.includes(String(bt.id)));
             const dynamicMapped = customTables.map(ct => ({
@@ -290,13 +292,11 @@
         }
 
         function initData() {
-            // שולחנות שנמחקו
             db.collection('deleted_tables').doc('shalvata').onSnapshot(doc => {
                 deletedBaseTableIds = doc.exists ? (doc.data().tableIds || []) : [];
                 renderMap();
             });
 
-            // האזנה להזמנות
             db.collection('reservations')
                 .where('venueId', '==', 'shalvata')
                 .where('eventDate', '==', selectedDate)
@@ -308,7 +308,6 @@
                     renderGuestDragStrip();
                 });
 
-            // שולחנות דינמיים
             db.collection('custom_tables')
                 .where('venueId', '==', 'shalvata')
                 .onSnapshot(snap => {
@@ -336,7 +335,7 @@
 
                 let stateClass = '';
                 if (hasArrived) {
-                    stateClass = 'spot-arrived'; // אדום עדין למי שהגיע
+                    stateClass = 'spot-arrived';
                 } else if (isOccupied) {
                     stateClass = 'spot-occupied-pending';
                 }
@@ -381,18 +380,18 @@
             });
         }
 
-        // מגירת מוזמנים פנויים הניתנים לגרירה לשולחן
+        // הצגת מוזמנים פנויים במגירה - שולחנות בלבד (ללא בר)
         function renderGuestDragStrip() {
             const strip = document.getElementById('guest-drag-strip');
-            const unassigned = reservations.filter(r => !r.tableNumber);
-            document.getElementById('unassigned-counter').innerText = `${unassigned.length} ממתינים`;
+            const unassignedTableGuests = getTableOnlyReservations().filter(r => !r.tableNumber);
+            document.getElementById('unassigned-counter').innerText = `${unassignedTableGuests.length} ממתינים`;
 
-            if (unassigned.length === 0) {
-                strip.innerHTML = `<span class="text-[10px] text-slate-500 py-1.5 px-2">כל ההזמנות שובצו בהצלחה ✓</span>`;
+            if (unassignedTableGuests.length === 0) {
+                strip.innerHTML = `<span class="text-[10px] text-slate-500 py-1.5 px-2">כל שולחנות האירוע שובצו ✓</span>`;
                 return;
             }
 
-            strip.innerHTML = unassigned.map(res => `
+            strip.innerHTML = unassignedTableGuests.map(res => `
                 <div class="draggable-guest-badge shrink-0 bg-slate-900 border border-amber-500/40 hover:border-amber-400 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow"
                      data-resid="${res.id}" data-name="${res.name}">
                     <span class="text-amber-400 font-black text-[11px]">${res.name}</span>
@@ -403,13 +402,11 @@
             bindDragAndDropGuests();
         }
 
-        // לוגיקת גרירת מוזמן אל שולחן (עובד מעולה במסכי מגע)
         function bindDragAndDropGuests() {
             const items = document.querySelectorAll('.draggable-guest-badge');
             items.forEach(item => {
                 let ghost = null;
                 let resId = item.dataset.resid;
-                let resName = item.dataset.name;
 
                 item.addEventListener('pointerdown', (e) => {
                     e.preventDefault();
@@ -430,7 +427,6 @@
                         ghost.style.left = `${ev.clientX}px`;
                         ghost.style.top = `${ev.clientY}px`;
 
-                        // זיהוי שולחן מתחת
                         document.querySelectorAll('.table-spot, .custom-dynamic-table').forEach(s => s.classList.remove('spot-drag-hover'));
                         const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
                         const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
@@ -459,7 +455,6 @@
                                 return;
                             }
 
-                            // שיבוץ ההזמנה לשולחן
                             await db.collection('reservations').doc(resId).update({
                                 tableNumber: String(targetTableId),
                                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -474,7 +469,6 @@
             });
         }
 
-        // גרירת מיקום עבור שולחן דינמי
         function makeElementDraggable(elmnt, tableDef) {
             let startX = 0, startY = 0;
             let initialLeft = 0, initialTop = 0;
@@ -591,8 +585,25 @@
                     </button>
                 `;
             } else {
-                body.innerHTML = `<p class="text-center text-slate-400 text-xs py-2">שולחן פנוי. ניתן לגרור אליו לקוח מהמגירה למטה.</p>`;
+                // רשימת בחירה לשיבוץ - אך ורק שולחנות (בלי בר)
+                const tableGuests = getTableOnlyReservations();
+                body.innerHTML = `
+                    <p class="text-[10px] text-slate-400 mb-1 text-right font-bold">בחר הזמנה לשיבוץ בשולחן זה (שולחנות בלבד):</p>
+                    <select id="select-single-res" class="w-full bg-slate-900 border border-white/20 rounded-lg py-1 px-1.5 text-white font-bold outline-none focus:border-amber-400 mb-2">
+                        ${tableGuests.map(r => {
+                            const isAssigned = !!r.tableNumber;
+                            const label = isAssigned 
+                                ? `🟢 ${r.name} (${r.pax}) [ש' ${r.tableNumber}]` 
+                                : `🟡 ${r.name} (${r.pax})`;
+                            const styleColor = isAssigned ? 'color: #34d399;' : 'color: #fbbf24;';
+                            return `<option value="${r.id}" style="${styleColor} background-color: #0b1120;">${label}</option>`;
+                        }).join('')}
+                    </select>
+                `;
                 actions.innerHTML = `
+                    <button onclick="assignSelectedFromModal('${tbl.id}')" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black py-1.5 rounded-xl font-black text-xs uppercase shadow transition-colors">
+                        שבץ לשולחן ${tbl.label}
+                    </button>
                     <button onclick="deleteAnyTable('${tbl.id}', ${!!tbl.isCustom}, '${tbl.docId || ''}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-1.5 rounded-xl font-black text-xs uppercase transition-colors">
                         מחק שולחן זה מהמפה
                     </button>
@@ -606,7 +617,18 @@
             lucide.createIcons();
         }
 
-        // מחיקת כל שולחן - מובנה או דינמי
+        async function assignSelectedFromModal(tableId) {
+            const sel = document.getElementById('select-single-res');
+            if (!sel || !sel.value) return;
+            const resId = sel.value;
+
+            await db.collection('reservations').doc(resId).update({
+                tableNumber: String(tableId),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            closeModal();
+        }
+
         async function deleteAnyTable(tableId, isCustom, docId) {
             if (!confirm(`האם אתה בטוח שברצונך למחוק את שולחן ${tableId} מהמפה?`)) return;
 
@@ -617,7 +639,6 @@
                 await db.collection('deleted_tables').doc('shalvata').set({ tableIds: updated }, { merge: true });
             }
 
-            // שחרור הזמנה אם שובצה עליו
             const res = getReservationForTable(tableId);
             if (res) {
                 await db.collection('reservations').doc(res.id).update({
