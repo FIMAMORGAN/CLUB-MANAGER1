@@ -21,6 +21,7 @@
             width: 100%;
             max-width: 580px;
             margin: 0 auto;
+            touch-action: none;
         }
 
         .map-bg {
@@ -30,9 +31,10 @@
             border-radius: 1.2rem;
             box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
             border: 1px solid rgba(245, 158, 11, 0.25);
+            pointer-events: none;
         }
 
-        /* שטח לחיצה שקוף */
+        /* אזורי מגע שקופים לשולחנות המפה המובנים */
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -43,20 +45,44 @@
             z-index: 10;
             background: transparent;
             border-radius: 0.5rem;
-            transition: all 0.15s ease;
+            transition: transform 0.1s ease;
         }
 
         .table-spot:active {
             transform: translate(-50%, -50%) scale(0.95);
         }
 
-        /* שולחן שנבחר במצב מרובה */
-        .spot-selected {
-            outline: 2px solid #f59e0b !important;
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.6) !important;
+        /* שולחן דינמי שנוצר על ידי המשתמש */
+        .custom-dynamic-table {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, rgba(30, 27, 20, 0.95) 0%, rgba(10, 10, 12, 0.98) 100%);
+            border: 1.5px solid #d97706;
+            border-radius: 0.6rem;
+            box-shadow: 0 0 10px rgba(217, 119, 6, 0.35), inset 0 0 4px rgba(251, 191, 36, 0.2);
+            touch-action: none;
         }
 
-        /* שם לקוח (מילה ראשונה בלבד) בקואורדינטה מדויקת */
+        .custom-dynamic-table.is-dragging {
+            cursor: grabbing;
+            opacity: 0.85;
+            transform: translate(-50%, -50%) scale(1.08);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.8);
+            z-index: 40;
+        }
+
+        .spot-selected {
+            outline: 2px solid #f59e0b !important;
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.7) !important;
+        }
+
+        /* שכבת טקסט שם לקוח */
         .client-label-fixed {
             position: absolute;
             color: #ffffff;
@@ -83,7 +109,6 @@
             padding: 1rem;
         }
 
-        /* סגנון מוקטן ומדויק לתיבת הבחירה */
         #select-multi-res {
             font-size: 10px !important;
             line-height: 1.2;
@@ -96,7 +121,7 @@
 </head>
 <body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-24">
 
-    <!-- סרגל עליון כולל כפתור איפוס כל השיבוצים -->
+    <!-- סרגל עליון עם כפתור הוספת שולחן ואיפוס -->
     <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2.5 rounded-2xl">
         <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
             <i data-lucide="arrow-right" size="14"></i>
@@ -109,9 +134,13 @@
         </div>
 
         <div class="flex items-center gap-1.5">
+            <button onclick="createNewDynamicTable()" id="btn-add-table" class="flex items-center gap-1 text-[9px] font-black text-black bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 px-2 py-1 rounded-lg shadow-md transition-all active:scale-95">
+                <i data-lucide="plus-circle" size="11"></i>
+                <span>+ הוסף שולחן (<span id="custom-count-badge">0</span>/10)</span>
+            </button>
             <button onclick="resetAllAssignments()" class="flex items-center gap-1 text-[9px] font-bold text-rose-300 hover:text-white bg-rose-500/20 hover:bg-rose-500/30 px-2 py-1 rounded-lg border border-rose-500/30 transition-colors shadow-sm" title="מחק את כל השיבוצים של תאריך זה">
                 <i data-lucide="rotate-ccw" size="11"></i>
-                <span>אפס שיבוצים</span>
+                <span>אפס</span>
             </button>
         </div>
     </header>
@@ -126,11 +155,12 @@
         <div class="map-wrapper" id="map-container">
             <img src="fashion-map.png" alt="Fashion-Bar Map" class="map-bg">
             <div id="spots-layer"></div>
+            <div id="dynamic-layer"></div>
             <div id="labels-layer"></div>
         </div>
     </main>
 
-    <!-- סרגל תחתון לבחירה מרובה -->
+    <!-- סרגל בחירה מרובה -->
     <div id="multi-select-bar" class="hidden fixed bottom-3 inset-x-3 max-w-md mx-auto glass border border-amber-500/40 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 z-40 animate-in fade-in slide-in-from-bottom duration-200">
         <div>
             <p class="text-[10px] text-slate-400 font-bold uppercase">שולחנות שנבחרו:</p>
@@ -178,7 +208,8 @@
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
-        const TABLES_DEF = [
+        // הגדרת השולחנות המובנים של המפה
+        const BASE_TABLES_DEF = [
             { id: "250", top: "11.5%", left: "13.5%", w: "12%", h: "7.5%", cap: 8, label: "250", labelX: "13.5%", labelY: "18.2%" },
             { id: "240", top: "11.5%", left: "29.5%", w: "10.5%", h: "7.5%", cap: 9, label: "240", labelX: "29.5%", labelY: "18.2%" },
             { id: "230", top: "11.5%", left: "51%", w: "18%", h: "7.5%", cap: 12, label: "230", labelX: "51%", labelY: "19.8%" },
@@ -209,6 +240,7 @@
         ];
 
         let reservations = [];
+        let customTables = [];
         let assignTargetRes = null;
         let selectedTableIds = [];
 
@@ -222,6 +254,23 @@
             return cleaned.split(/\s+/)[0];
         }
 
+        function getAllTablesDef() {
+            const dynamicMapped = customTables.map(ct => ({
+                id: ct.tableNumber,
+                top: `${ct.topPercent}%`,
+                left: `${ct.leftPercent}%`,
+                w: "8.5%",
+                h: "6%",
+                cap: ct.capacity || 4,
+                label: ct.tableNumber,
+                isCustom: true,
+                docId: ct.id,
+                labelX: `${ct.leftPercent}%`,
+                labelY: `${ct.topPercent + 4.2}%`
+            }));
+            return [...BASE_TABLES_DEF, ...dynamicMapped];
+        }
+
         function getReservationForTable(tblId) {
             return reservations.find(r => {
                 if (!r.tableNumber) return false;
@@ -231,6 +280,7 @@
         }
 
         function initData() {
+            // האזנה להזמנות פעילות
             db.collection('reservations')
                 .where('venueId', '==', 'shalvata')
                 .where('eventDate', '==', selectedDate)
@@ -249,28 +299,71 @@
 
                     renderMap();
                 });
+
+            // האזנה לשולחנות דינמיים מותאמים אישית
+            db.collection('custom_tables')
+                .where('venueId', '==', 'shalvata')
+                .onSnapshot(snap => {
+                    customTables = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    document.getElementById('custom-count-badge').innerText = customTables.length;
+                    
+                    const btnAdd = document.getElementById('btn-add-table');
+                    if (customTables.length >= 10) {
+                        btnAdd.classList.add('opacity-50', 'pointer-events-none');
+                    } else {
+                        btnAdd.classList.remove('opacity-50', 'pointer-events-none');
+                    }
+
+                    renderMap();
+                });
         }
 
         function renderMap() {
             const spotsContainer = document.getElementById('spots-layer');
+            const dynamicContainer = document.getElementById('dynamic-layer');
             const labelsContainer = document.getElementById('labels-layer');
+            
             spotsContainer.innerHTML = '';
+            dynamicContainer.innerHTML = '';
             labelsContainer.innerHTML = '';
 
-            TABLES_DEF.forEach(tbl => {
+            const allTables = getAllTablesDef();
+
+            allTables.forEach(tbl => {
                 const occupiedRes = getReservationForTable(tbl.id);
                 const isOccupied = !!occupiedRes;
                 const isSelected = selectedTableIds.includes(String(tbl.id));
 
-                const spot = document.createElement('div');
-                spot.className = `table-spot ${isSelected ? 'spot-selected' : ''}`;
-                spot.style.top = tbl.top;
-                spot.style.left = tbl.left;
-                spot.style.width = tbl.w;
-                spot.style.height = tbl.h;
-                spot.onclick = () => handleTableClick(tbl, occupiedRes);
-                spotsContainer.appendChild(spot);
+                if (tbl.isCustom) {
+                    // שולחן מותאם אישית שניתן לגרירה
+                    const dynamicEl = document.createElement('div');
+                    dynamicEl.className = `custom-dynamic-table ${isSelected ? 'spot-selected' : ''}`;
+                    dynamicEl.style.top = tbl.top;
+                    dynamicEl.style.left = tbl.left;
+                    dynamicEl.style.width = tbl.w;
+                    dynamicEl.style.height = tbl.h;
+                    dynamicEl.id = `dyn-${tbl.docId}`;
 
+                    dynamicEl.innerHTML = `
+                        <span class="text-[10px] font-black text-amber-400 font-mono leading-none">${tbl.label}</span>
+                        <span class="text-[7.5px] font-bold text-slate-400 leading-none mt-0.5">איש ${tbl.cap}</span>
+                    `;
+
+                    makeElementDraggable(dynamicEl, tbl);
+                    dynamicContainer.appendChild(dynamicEl);
+                } else {
+                    // שולחן מובנה של המפה
+                    const spot = document.createElement('div');
+                    spot.className = `table-spot ${isSelected ? 'spot-selected' : ''}`;
+                    spot.style.top = tbl.top;
+                    spot.style.left = tbl.left;
+                    spot.style.width = tbl.w;
+                    spot.style.height = tbl.h;
+                    spot.onclick = () => handleTableClick(tbl, occupiedRes);
+                    spotsContainer.appendChild(spot);
+                }
+
+                // שכבת שם לקוח מילה ראשונה
                 if (isOccupied) {
                     const label = document.createElement('span');
                     label.className = 'client-label-fixed';
@@ -283,6 +376,112 @@
             });
 
             updateMultiSelectBar();
+        }
+
+        // מנגנון גרירה מדויק באחוזים (תמיכה מלאה במסך מגע ועכבר)
+        function makeElementDraggable(elmnt, tableDef) {
+            let startX = 0, startY = 0;
+            let initialLeft = 0, initialTop = 0;
+            let isDragged = false;
+
+            const mapWrapper = document.getElementById('map-container');
+
+            const onPointerDown = (e) => {
+                isDragged = false;
+                elmnt.setPointerCapture(e.pointerId);
+                elmnt.classList.add('is-dragging');
+
+                startX = e.clientX;
+                startY = e.clientY;
+
+                initialLeft = parseFloat(tableDef.left);
+                initialTop = parseFloat(tableDef.top);
+
+                elmnt.addEventListener('pointermove', onPointerMove);
+                elmnt.addEventListener('pointerup', onPointerUp);
+                elmnt.addEventListener('pointercancel', onPointerUp);
+            };
+
+            const onPointerMove = (e) => {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+
+                if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+                    isDragged = true;
+                }
+
+                const rect = mapWrapper.getBoundingClientRect();
+                const deltaPercentX = (deltaX / rect.width) * 100;
+                const deltaPercentY = (deltaY / rect.height) * 100;
+
+                let newLeft = Math.max(5, Math.min(95, initialLeft + deltaPercentX));
+                let newTop = Math.max(5, Math.min(95, initialTop + deltaPercentY));
+
+                elmnt.style.left = `${newLeft.toFixed(1)}%`;
+                elmnt.style.top = `${newTop.toFixed(1)}%`;
+            };
+
+            const onPointerUp = async (e) => {
+                elmnt.releasePointerCapture(e.pointerId);
+                elmnt.classList.remove('is-dragging');
+                elmnt.removeEventListener('pointermove', onPointerMove);
+                elmnt.removeEventListener('pointerup', onPointerUp);
+                elmnt.removeEventListener('pointercancel', onPointerUp);
+
+                if (isDragged) {
+                    // שמירת המיקום החדש ב-Firebase
+                    const newLeft = parseFloat(elmnt.style.left);
+                    const newTop = parseFloat(elmnt.style.top);
+
+                    await db.collection('custom_tables').doc(tableDef.docId).update({
+                        leftPercent: Math.round(newLeft * 10) / 10,
+                        topPercent: Math.round(newTop * 10) / 10
+                    });
+                } else {
+                    // לחיצה רגילה - פתיחת מודאל או בחירה
+                    const occupiedRes = getReservationForTable(tableDef.id);
+                    handleTableClick(tableDef, occupiedRes);
+                }
+            };
+
+            elmnt.addEventListener('pointerdown', onPointerDown);
+        }
+
+        // יצירת שולחן דינמי חדש
+        async function createNewDynamicTable() {
+            if (customTables.length >= 10) {
+                alert("הגעת למגבלה של 10 שולחנות נוספים.");
+                return;
+            }
+
+            // מציאת מספר שולחן פנוי ברירת מחדל (למשל 71, 72 וכו')
+            const existingNumbers = getAllTablesDef().map(t => String(t.id));
+            let suggestedNumber = 70;
+            while (existingNumbers.includes(String(suggestedNumber))) {
+                suggestedNumber++;
+            }
+
+            const inputNumber = prompt("הזן מספר שולחן חדש:", suggestedNumber);
+            if (!inputNumber) return;
+            const tableNumStr = inputNumber.trim();
+
+            if (existingNumbers.includes(tableNumStr)) {
+                alert(`מספר שולחן ${tableNumStr} כבר קיים במפה!`);
+                return;
+            }
+
+            const inputCap = prompt("כמות מקומות (תכולת אנשים):", "4");
+            const capacity = parseInt(inputCap) || 4;
+
+            // יצירת השולחן במרכז המפה במיקום נוח לתזוזה
+            await db.collection('custom_tables').add({
+                venueId: 'shalvata',
+                tableNumber: tableNumStr,
+                capacity: capacity,
+                leftPercent: 50.0,
+                topPercent: 50.0,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
         }
 
         function handleTableClick(tbl, occupiedRes) {
@@ -342,7 +541,6 @@
             openMultiAssignModal(tablesStr);
         }
 
-        // מודאל שיבוץ שולחנות: כתב קטן יותר, עיגול ירוק גדול וברור
         function openMultiAssignModal(tablesStr) {
             const modal = document.getElementById('table-modal');
             const title = document.getElementById('modal-table-title');
@@ -405,34 +603,79 @@
             const body = document.getElementById('modal-body');
             const actions = document.getElementById('modal-actions');
 
-            title.innerText = `שולחן ${tbl.label} (תכולה: ${tbl.cap} איש)`;
+            title.innerText = `שולחן ${tbl.label} (תכולה: ${tbl.cap} איש)${tbl.isCustom ? ' [נוסף ידנית]' : ''}`;
 
-            const bookedTables = String(occupiedRes.tableNumber).split(',').map(s => s.trim()).join(', ');
-            body.innerHTML = `
-                <div class="bg-amber-500/10 p-2.5 rounded-2xl border border-amber-500/30 space-y-1 text-right">
-                    <div class="flex items-center justify-between">
-                        <span class="text-amber-400 font-black text-xs">שולחנות: ${bookedTables}</span>
-                        <span class="text-slate-400 text-[10px] font-mono">${occupiedRes.time || '22:30'}</span>
+            if (occupiedRes) {
+                const bookedTables = String(occupiedRes.tableNumber).split(',').map(s => s.trim()).join(', ');
+                body.innerHTML = `
+                    <div class="bg-amber-500/10 p-2.5 rounded-2xl border border-amber-500/30 space-y-1 text-right">
+                        <div class="flex items-center justify-between">
+                            <span class="text-amber-400 font-black text-xs">שולחנות: ${bookedTables}</span>
+                            <span class="text-slate-400 text-[10px] font-mono">${occupiedRes.time || '22:30'}</span>
+                        </div>
+                        <p class="font-bold text-white text-xs">👤 לקוח: ${occupiedRes.name}</p>
+                        <p class="text-slate-300 font-bold text-xs">👥 כמות: ${occupiedRes.pax} איש</p>
+                        <p class="text-amber-400 font-black text-xs">💰 מינימום: ₪${occupiedRes.minOrder || 0}</p>
+                        ${occupiedRes.phone ? `<p class="text-slate-400 font-mono text-xs">📞 ${occupiedRes.phone}</p>` : ''}
+                        ${occupiedRes.notes ? `<p class="text-slate-300 italic bg-white/5 p-1 rounded-xl border border-white/10 mt-0.5 text-[10px]">💬 ${occupiedRes.notes}</p>` : ''}
                     </div>
-                    <p class="font-bold text-white text-xs">👤 לקוח: ${occupiedRes.name}</p>
-                    <p class="text-slate-300 font-bold text-xs">👥 כמות: ${occupiedRes.pax} איש</p>
-                    <p class="text-amber-400 font-black text-xs">💰 מינימום: ₪${occupiedRes.minOrder || 0}</p>
-                    ${occupiedRes.phone ? `<p class="text-slate-400 font-mono text-xs">📞 ${occupiedRes.phone}</p>` : ''}
-                    ${occupiedRes.notes ? `<p class="text-slate-300 italic bg-white/5 p-1 rounded-xl border border-white/10 mt-0.5 text-[10px]">💬 ${occupiedRes.notes}</p>` : ''}
-                </div>
-            `;
+                `;
 
-            actions.innerHTML = `
-                <button onclick="unassignSingleTable('${occupiedRes.id}', '${tbl.id}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-1.5 rounded-xl font-black text-xs uppercase shadow-md transition-colors">
-                    שחרר שולחן זה (${tbl.label})
-                </button>
-                <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-[10px]">
-                    סגור
-                </button>
-            `;
+                actions.innerHTML = `
+                    <button onclick="unassignSingleTable('${occupiedRes.id}', '${tbl.id}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-1.5 rounded-xl font-black text-xs uppercase shadow-md transition-colors">
+                        שחרר שולחן זה (${tbl.label})
+                    </button>
+                    ${tbl.isCustom ? `
+                        <button onclick="deleteCustomTable('${tbl.docId}', '${tbl.label}')" class="w-full bg-red-950/80 border border-red-500/30 text-rose-300 py-1 rounded-xl font-bold text-[10px] transition-colors">
+                            מחק שולחן זה מהמפה
+                        </button>
+                    ` : ''}
+                    <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-[10px]">
+                        סגור
+                    </button>
+                `;
+            } else {
+                body.innerHTML = `
+                    <p class="text-center text-slate-400 text-xs py-2">שולחן זה פנוי כרגע.</p>
+                `;
+
+                actions.innerHTML = `
+                    ${tbl.isCustom ? `
+                        <button onclick="editCustomTableDetails('${tbl.docId}', '${tbl.label}', ${tbl.cap})" class="w-full bg-amber-500/20 text-amber-300 border border-amber-500/30 py-1.5 rounded-xl font-bold text-xs">
+                            ערוך מספר שולחן ותכולה
+                        </button>
+                        <button onclick="deleteCustomTable('${tbl.docId}', '${tbl.label}')" class="w-full bg-rose-600/80 hover:bg-rose-600 text-white py-1.5 rounded-xl font-black text-xs uppercase transition-colors">
+                            מחק שולחן זה מהמפה
+                        </button>
+                    ` : ''}
+                    <button onclick="closeModal()" class="w-full bg-white/5 hover:bg-white/10 text-slate-400 py-1 rounded-xl font-bold text-[10px]">
+                        סגור
+                    </button>
+                `;
+            }
 
             modal.classList.remove('hidden');
             lucide.createIcons();
+        }
+
+        async function editCustomTableDetails(docId, currentLabel, currentCap) {
+            const newLabel = prompt("ערוך מספר שולחן:", currentLabel);
+            if (!newLabel) return;
+            const newCap = prompt("ערוך כמות מוזמנים:", currentCap);
+            const capNum = parseInt(newCap) || currentCap;
+
+            await db.collection('custom_tables').doc(docId).update({
+                tableNumber: newLabel.trim(),
+                capacity: capNum
+            });
+            closeModal();
+        }
+
+        async function deleteCustomTable(docId, label) {
+            if (confirm(`האם למחוק את שולחן ${label} לחלוטין מהמפה?`)) {
+                await db.collection('custom_tables').doc(docId).delete();
+                closeModal();
+            }
         }
 
         function closeModal() {
