@@ -87,7 +87,6 @@
             z-index: 40;
         }
 
-        /* תגית שם לקוח ניתנת לגרירה חופשית ימינה/שמאלה/למעלה/למטה */
         .client-label-draggable {
             position: absolute;
             color: #ffffff;
@@ -116,10 +115,28 @@
             z-index: 50;
         }
 
+        /* סרגל גלילה מעוצב ונקי */
+        #guest-drag-strip {
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-x;
+        }
+        #guest-drag-strip::-webkit-scrollbar {
+            height: 4px;
+        }
+        #guest-drag-strip::-webkit-scrollbar-thumb {
+            background: rgba(245, 158, 11, 0.5);
+            border-radius: 9999px;
+        }
+        #guest-drag-strip::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
         .draggable-guest-badge {
             cursor: grab;
+            user-select: none;
             touch-action: none;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .draggable-guest-badge:active {
             cursor: grabbing;
@@ -138,7 +155,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-32">
+<body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-36">
 
     <!-- סרגל עליון -->
     <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2 rounded-2xl gap-1.5">
@@ -181,18 +198,27 @@
         </div>
     </main>
 
-    <!-- מגירת מוזמנים (שולחנות בלבד ללא בר) -->
+    <!-- סרגל דפדוף מוזמנים עם כפתורי גלילה וחיפוש -->
     <div class="fixed bottom-0 inset-x-0 glass border-t border-amber-500/30 p-2 z-40 max-w-lg mx-auto rounded-t-3xl shadow-2xl">
-        <div class="flex justify-between items-center px-1 mb-1.5">
-            <span class="text-[10px] font-black text-amber-400 uppercase tracking-wide flex items-center gap-1">
-                <i data-lucide="layout-grid" size="12"></i> שולחנות ממתינים (גרור לשולחן):
+        <div class="flex justify-between items-center px-1 mb-1.5 gap-2">
+            <span class="text-[10px] font-black text-amber-400 uppercase tracking-wide flex items-center gap-1 shrink-0">
+                <i data-lucide="layout-grid" size="12"></i> ממתינים (<span id="unassigned-counter">0</span>):
             </span>
-            <span id="unassigned-counter" class="text-[9px] text-slate-400 font-mono font-bold">0 ממתינים</span>
+            <input type="text" id="strip-search-input" oninput="onSearchFilterStrip(this.value)" placeholder="חפש לקוח..." 
+                   class="bg-slate-900/80 border border-white/10 rounded-lg px-2 py-0.5 text-white text-[10px] outline-none focus:border-amber-400 flex-1 min-w-0">
+            <div class="flex items-center gap-1 shrink-0">
+                <button onclick="scrollStrip(-180)" class="w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white active:bg-amber-500 active:text-black">
+                    <i data-lucide="chevron-right" size="14"></i>
+                </button>
+                <button onclick="scrollStrip(180)" class="w-6 h-6 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:text-white active:bg-amber-500 active:text-black">
+                    <i data-lucide="chevron-left" size="14"></i>
+                </button>
+            </div>
         </div>
-        <div id="guest-drag-strip" class="flex gap-1.5 overflow-x-auto pb-1 px-1 scrollbar-none"></div>
+        <div id="guest-drag-strip" class="flex gap-1.5 pb-2 px-1"></div>
     </div>
 
-    <!-- מודאל פעולות שולחן / שיבוץ מרשימה -->
+    <!-- מודאל פעולות שולחן -->
     <div id="table-modal" class="overlay hidden">
         <div class="glass p-3.5 rounded-3xl w-full max-w-xs text-center space-y-3 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-white/10 pb-1.5">
@@ -255,6 +281,7 @@
         let reservations = [];
         let customTables = [];
         let deletedBaseTableIds = [];
+        let stripFilterText = '';
 
         function goBack() {
             window.location.href = `index.html`;
@@ -372,12 +399,10 @@
                     spotsContainer.appendChild(spot);
                 }
 
-                // שכבת שם לקוח - ניתנת לגרירה חופשית ומדויקת
                 if (isOccupied) {
                     const label = document.createElement('div');
                     label.className = 'client-label-draggable';
                     
-                    // שימוש במיקום מותאם אישית שנשמר, או במיקום ברירת מחדל
                     const posX = occupiedRes.labelCustomX !== undefined ? `${occupiedRes.labelCustomX}%` : tbl.labelX;
                     const posY = occupiedRes.labelCustomY !== undefined ? `${occupiedRes.labelCustomY}%` : tbl.labelY;
                     
@@ -392,7 +417,6 @@
             });
         }
 
-        // גרירה חופשית של שם הלקוח לכל כיוון במפה ושמירה ב-Firebase
         function makeLabelDraggable(elmnt, resId, initLeft, initTop) {
             let startX = 0, startY = 0;
             let currentLeft = initLeft, currentTop = initTop;
@@ -433,7 +457,6 @@
                         const finalX = parseFloat(elmnt.style.left);
                         const finalY = parseFloat(elmnt.style.top);
 
-                        // שמירת המיקום החדש עבור שם הלקוח הזה ב-Firestore
                         await db.collection('reservations').doc(resId).update({
                             labelCustomX: Math.round(finalX * 10) / 10,
                             labelCustomY: Math.round(finalY * 10) / 10
@@ -447,21 +470,39 @@
             });
         }
 
+        function scrollStrip(offset) {
+            const strip = document.getElementById('guest-drag-strip');
+            if (strip) {
+                strip.scrollBy({ left: offset, behavior: 'smooth' });
+            }
+        }
+
+        function onSearchFilterStrip(val) {
+            stripFilterText = (val || '').trim().toLowerCase();
+            renderGuestDragStrip();
+        }
+
+        // רינדור סרגל הלקוחות הממתינים לשיבוץ (גלילה חופשית על כל הרשימה)
         function renderGuestDragStrip() {
             const strip = document.getElementById('guest-drag-strip');
-            const unassignedTableGuests = getTableOnlyReservations().filter(r => !r.tableNumber);
-            document.getElementById('unassigned-counter').innerText = `${unassignedTableGuests.length} ממתינים`;
+            let unassigned = getTableOnlyReservations().filter(r => !r.tableNumber);
+            document.getElementById('unassigned-counter').innerText = unassigned.length;
 
-            if (unassignedTableGuests.length === 0) {
-                strip.innerHTML = `<span class="text-[10px] text-slate-500 py-1.5 px-2">כל שולחנות האירוע שובצו ✓</span>`;
+            if (stripFilterText) {
+                unassigned = unassigned.filter(r => (r.name && r.name.toLowerCase().includes(stripFilterText)) || (r.phone && r.phone.includes(stripFilterText)));
+            }
+
+            if (unassigned.length === 0) {
+                strip.innerHTML = `<span class="text-[10px] text-slate-500 py-1.5 px-2 font-bold">${stripFilterText ? 'לא נמצאו לקוחות מתאימים לחיפוש' : 'כל שולחנות האירוע שובצו ✓'}</span>`;
                 return;
             }
 
-            strip.innerHTML = unassignedTableGuests.map(res => `
-                <div class="draggable-guest-badge shrink-0 bg-slate-900 border border-amber-500/40 hover:border-amber-400 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow"
+            strip.innerHTML = unassigned.map(res => `
+                <div class="draggable-guest-badge shrink-0 bg-slate-900 border border-amber-500/40 hover:border-amber-400 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
                      data-resid="${res.id}" data-name="${res.name}">
-                    <span class="text-amber-400 font-black text-[11px]">${res.name}</span>
-                    <span class="text-[9px] text-slate-400 font-mono">(${res.pax} איש)</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    <span class="text-amber-400 font-black text-[11px] whitespace-nowrap">${res.name}</span>
+                    <span class="text-[9px] text-slate-400 font-mono font-bold">(${res.pax})</span>
                 </div>
             `).join('');
 
@@ -473,31 +514,41 @@
             items.forEach(item => {
                 let ghost = null;
                 let resId = item.dataset.resid;
+                let startX = 0, startY = 0;
+                let isDraggingMode = false;
 
                 item.addEventListener('pointerdown', (e) => {
-                    e.preventDefault();
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    isDraggingMode = false;
+
                     item.setPointerCapture(e.pointerId);
 
-                    ghost = item.cloneNode(true);
-                    ghost.style.position = 'fixed';
-                    ghost.style.zIndex = '9999';
-                    ghost.style.opacity = '0.9';
-                    ghost.style.pointerEvents = 'none';
-                    ghost.style.transform = 'translate(-50%, -50%) scale(1.1)';
-                    ghost.style.left = `${e.clientX}px`;
-                    ghost.style.top = `${e.clientY}px`;
-                    document.body.appendChild(ghost);
-
                     const onMove = (ev) => {
-                        if (!ghost) return;
-                        ghost.style.left = `${ev.clientX}px`;
-                        ghost.style.top = `${ev.clientY}px`;
+                        const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
+                        if (!isDraggingMode && dist > 7) {
+                            isDraggingMode = true;
+                            ghost = item.cloneNode(true);
+                            ghost.style.position = 'fixed';
+                            ghost.style.zIndex = '9999';
+                            ghost.style.opacity = '0.9';
+                            ghost.style.pointerEvents = 'none';
+                            ghost.style.transform = 'translate(-50%, -50%) scale(1.1)';
+                            ghost.style.left = `${ev.clientX}px`;
+                            ghost.style.top = `${ev.clientY}px`;
+                            document.body.appendChild(ghost);
+                        }
 
-                        document.querySelectorAll('.table-spot, .custom-dynamic-table').forEach(s => s.classList.remove('spot-drag-hover'));
-                        const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
-                        const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
-                        if (tableTarget) {
-                            tableTarget.classList.add('spot-drag-hover');
+                        if (ghost) {
+                            ghost.style.left = `${ev.clientX}px`;
+                            ghost.style.top = `${ev.clientY}px`;
+
+                            document.querySelectorAll('.table-spot, .custom-dynamic-table').forEach(s => s.classList.remove('spot-drag-hover'));
+                            const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
+                            const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
+                            if (tableTarget) {
+                                tableTarget.classList.add('spot-drag-hover');
+                            }
                         }
                     };
 
@@ -510,21 +561,24 @@
                         if (ghost) { ghost.remove(); ghost = null; }
 
                         document.querySelectorAll('.table-spot, .custom-dynamic-table').forEach(s => s.classList.remove('spot-drag-hover'));
-                        const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
-                        const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
 
-                        if (tableTarget && tableTarget.dataset.tableId) {
-                            const targetTableId = tableTarget.dataset.tableId;
-                            const occupiedRes = getReservationForTable(targetTableId);
-                            if (occupiedRes) {
-                                alert(`שולחן ${targetTableId} כבר תפוס ע"י ${occupiedRes.name}!`);
-                                return;
+                        if (isDraggingMode) {
+                            const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
+                            const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
+
+                            if (tableTarget && tableTarget.dataset.tableId) {
+                                const targetTableId = tableTarget.dataset.tableId;
+                                const occupiedRes = getReservationForTable(targetTableId);
+                                if (occupiedRes) {
+                                    alert(`שולחן ${targetTableId} כבר תפוס ע"י ${occupiedRes.name}!`);
+                                    return;
+                                }
+
+                                await db.collection('reservations').doc(resId).update({
+                                    tableNumber: String(targetTableId),
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                });
                             }
-
-                            await db.collection('reservations').doc(resId).update({
-                                tableNumber: String(targetTableId),
-                                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                            });
                         }
                     };
 
