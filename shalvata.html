@@ -44,7 +44,7 @@
             z-index: 10;
             background: transparent;
             border-radius: 0.35rem;
-            transition: background-color 0.15s ease;
+            transition: background-color 0.1s ease;
         }
 
         .spot-arrived-bg {
@@ -86,7 +86,6 @@
             z-index: 40;
         }
 
-        /* תגית להצגת מספר שולחן שעבר שינוי מעל המפה */
         .renamed-table-badge {
             background: #020617;
             color: #f59e0b;
@@ -147,18 +146,17 @@
         .draggable-guest-badge {
             user-select: none;
             touch-action: pan-x !important;
-            will-change: transform;
         }
 
-        .drag-ghost-fast {
+        /* אלמנט רפאים קבוע להאצת חומרה מיידית ללא לאגים */
+        #global-drag-ghost {
             position: fixed;
             top: 0;
             left: 0;
-            z-index: 9999;
             pointer-events: none !important;
-            opacity: 0.95;
+            z-index: 99999;
             will-change: transform;
-            transform-origin: center center;
+            display: none;
         }
 
         .overlay {
@@ -175,6 +173,10 @@
     </style>
 </head>
 <body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-40">
+
+    <div id="global-drag-ghost" class="bg-amber-500 text-black font-black text-xs px-3 py-1.5 rounded-xl shadow-2xl border border-white flex items-center gap-1.5">
+        <span id="ghost-guest-name"></span>
+    </div>
 
     <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2 rounded-2xl gap-1.5">
         <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
@@ -295,7 +297,7 @@
         let reservations = [];
         let customTables = [];
         let deletedBaseTableIds = [];
-        let customTableLabels = {}; // מפת שמות/מספרים מותאמים אישית לשולחנות
+        let customTableLabels = {};
         let stripFilterText = '';
 
         function goBack() {
@@ -353,7 +355,6 @@
                 renderMap();
             });
 
-            // האזנה למספרי שולחנות שעברו שינוי
             db.collection('custom_table_labels').doc('shalvata').onSnapshot(doc => {
                 customTableLabels = doc.exists ? (doc.data().labels || {}) : {};
                 renderMap();
@@ -420,7 +421,6 @@
                     spot.style.height = tbl.h;
                     spot.dataset.tableId = tbl.label;
 
-                    // הצגת המספר החדש מעל המפה אם שונה ממספר הבסיס
                     if (tbl.isRenamed) {
                         spot.innerHTML = `<span class="renamed-table-badge">${tbl.label}</span>`;
                     }
@@ -528,7 +528,7 @@
 
             strip.innerHTML = unassigned.map(res => `
                 <div class="draggable-guest-badge shrink-0 bg-slate-900 border border-amber-500/40 hover:border-amber-400 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
-                     data-resid="${res.id}" data-name="${res.name}">
+                     data-resid="${res.id}" data-name="${res.name}" data-pax="${res.pax}">
                     <span class="w-1.5 h-1.5 rounded-full bg-amber-400 pointer-events-none"></span>
                     <span class="text-amber-400 font-black text-[11px] whitespace-nowrap pointer-events-none">${res.name}</span>
                     <span class="text-[9px] text-slate-400 font-mono font-bold pointer-events-none">(${res.pax})</span>
@@ -538,57 +538,38 @@
             bindDragAndDropGuests();
         }
 
+        // מערכת גרירה מבוססת GPU מוחלטת ללא שום Delay
         function bindDragAndDropGuests() {
+            const ghost = document.getElementById('global-drag-ghost');
+            const ghostName = document.getElementById('ghost-guest-name');
             const items = document.querySelectorAll('.draggable-guest-badge');
+
             items.forEach(item => {
-                let ghost = null;
                 let resId = item.dataset.resid;
+                let resName = item.dataset.name;
+                let resPax = item.dataset.pax;
                 let startX = 0, startY = 0;
-                let currentX = 0, currentY = 0;
-                let isDraggingToTable = false;
-                let animFrame = null;
-                let lastTarget = null;
-
-                const updateGhostPosition = () => {
-                    if (ghost) {
-                        ghost.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%) scale(1.08)`;
-                        
-                        const elemBelow = document.elementFromPoint(currentX, currentY);
-                        const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
-
-                        if (tableTarget !== lastTarget) {
-                            if (lastTarget) lastTarget.classList.remove('spot-drag-hover');
-                            if (tableTarget) tableTarget.classList.add('spot-drag-hover');
-                            lastTarget = tableTarget;
-                        }
-
-                        animFrame = requestAnimationFrame(updateGhostPosition);
-                    }
-                };
+                let isDragging = false;
 
                 const onPointerDown = (e) => {
                     startX = e.clientX;
                     startY = e.clientY;
-                    currentX = e.clientX;
-                    currentY = e.clientY;
-                    isDraggingToTable = false;
+                    isDragging = false;
 
                     const onPointerMove = (ev) => {
-                        currentX = ev.clientX;
-                        currentY = ev.clientY;
+                        const dx = ev.clientX - startX;
+                        const dy = ev.clientY - startY;
 
-                        const deltaX = currentX - startX;
-                        const deltaY = currentY - startY;
+                        // הפעלת גרירה ברגע שיש משיכה של 8px כלפי מעלה
+                        if (!isDragging && dy < -8 && Math.abs(dy) > Math.abs(dx)) {
+                            isDragging = true;
+                            ghostName.innerText = `${resName} (${resPax})`;
+                            ghost.style.display = 'flex';
+                        }
 
-                        if (!isDraggingToTable && deltaY < -12 && Math.abs(deltaY) > Math.abs(deltaX)) {
-                            isDraggingToTable = true;
-
-                            ghost = item.cloneNode(true);
-                            ghost.className = item.className + ' drag-ghost-fast';
-                            ghost.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%) scale(1.08)`;
-                            document.body.appendChild(ghost);
-
-                            animFrame = requestAnimationFrame(updateGhostPosition);
+                        if (isDragging) {
+                            // תנועה חלקה ישירות ב-GPU ללא שום חישוב כבד
+                            ghost.style.transform = `translate3d(${ev.clientX}px, ${ev.clientY}px, 0) translate(-50%, -50%)`;
                         }
                     };
 
@@ -597,18 +578,10 @@
                         window.removeEventListener('pointerup', onPointerUp);
                         window.removeEventListener('pointercancel', onPointerUp);
 
-                        if (animFrame) cancelAnimationFrame(animFrame);
+                        if (isDragging) {
+                            ghost.style.display = 'none';
 
-                        if (isDraggingToTable) {
-                            if (ghost) {
-                                ghost.remove();
-                                ghost = null;
-                            }
-
-                            if (lastTarget) {
-                                lastTarget.classList.remove('spot-drag-hover');
-                            }
-
+                            // בדיקה מהירה אחת בלבד ברגע עזיבת האצבע
                             const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
                             const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
 
@@ -716,7 +689,6 @@
             });
         }
 
-        // פונקציה ייעודית לעריכת מספר שולחן (עבור כל שולחן)
         async function renameTablePrompt(tbl) {
             const currentName = tbl.label;
             const newName = prompt(`הזן מספר או שם חדש לשולחן (נוכחי: ${currentName}):`, currentName);
@@ -733,7 +705,6 @@
                 await db.collection('custom_table_labels').doc('shalvata').set({ labels: updated }, { merge: true });
             }
 
-            // עדכון ההזמנה אם השולחן כבר היה משובץ
             const occupiedRes = getReservationForTable(tbl.id, currentName);
             if (occupiedRes) {
                 let tables = String(occupiedRes.tableNumber).split(',').map(s => s.trim());
