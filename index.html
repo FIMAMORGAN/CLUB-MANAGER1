@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V146 - Fashion-Bar & PULSE</title>
+    <title>ClubPro V147 - Fashion-Bar & PULSE</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V146";
+        const APP_VERSION = "V147";
 
         const translations = {
             he: {
@@ -117,7 +117,15 @@
                 sendFeedback: "איך היה?",
                 sendPulseBtn: "PULSE",
                 onlyWithPhoneNotice: "מוצגים רק לקוחות עם טלפון",
-                vladaPanel: "פאנל שיווק - ולדה"
+                vladaPanel: "פאנל שיווק - ולדה",
+                waCounterTitle: "הודעות וואטסאפ שנשלחו",
+                waToday: "היום",
+                waTotal: 'סה"כ',
+                sentAgoPrefix: "נשלחה",
+                justNow: "עכשיו",
+                minsAgo: "דק'",
+                hoursAgo: "שע'",
+                daysAgo: "ימים"
             },
             ru: {
                 tables: "Столы",
@@ -195,7 +203,15 @@
                 sendFeedback: "Как прошло?",
                 sendPulseBtn: "PULSE",
                 onlyWithPhoneNotice: "Показаны только гости с номерами",
-                vladaPanel: "Панель рассылки - Влада"
+                vladaPanel: "Панель рассылки - Влада",
+                waCounterTitle: "Отправлено сообщений WhatsApp",
+                waToday: "Сегодня",
+                waTotal: "Всего",
+                sentAgoPrefix: "Отправлено",
+                justNow: "только что",
+                minsAgo: "мин. назад",
+                hoursAgo: "ч. назад",
+                daysAgo: "дн. назад"
             }
         };
 
@@ -299,6 +315,60 @@
             return (translations[state.lang] && translations[state.lang][key]) || translations['he'][key] || key;
         }
 
+        // פורמט זמן יחסי ("לפני X דקות / שעות / ימים")
+        function formatTimeAgo(timestampMs) {
+            if (!timestampMs) return '';
+            const diffSec = Math.floor((Date.now() - timestampMs) / 1000);
+            if (diffSec < 60) return `${t('sentAgoPrefix')} ${t('justNow')}`;
+            
+            const diffMin = Math.floor(diffSec / 60);
+            if (diffMin < 60) {
+                return state.lang === 'ru'
+                    ? `${t('sentAgoPrefix')} ${diffMin} ${t('minsAgo')}`
+                    : `${t('sentAgoPrefix')} לפני ${diffMin} ${t('minsAgo')}`;
+            }
+
+            const diffHr = Math.floor(diffMin / 60);
+            if (diffHr < 24) {
+                return state.lang === 'ru'
+                    ? `${t('sentAgoPrefix')} ${diffHr} ${t('hoursAgo')}`
+                    : `${t('sentAgoPrefix')} לפני ${diffHr} ${t('hoursAgo')}`;
+            }
+
+            const diffDays = Math.floor(diffHr / 24);
+            return state.lang === 'ru'
+                ? `${t('sentAgoPrefix')} ${diffDays} ${t('daysAgo')}`
+                : `${t('sentAgoPrefix')} לפני ${diffDays} ${t('daysAgo')}`;
+        }
+
+        // רישום ושמירת שליחת הודעת וואטסאפ ב-Firestore ועדכון התצוגה מיד
+        async function logWhatsAppSent(resId, msgTypeLabel) {
+            if (!resId) return;
+            const nowMs = Date.now();
+            
+            // עדכון מיידי בזיכרון המקומי כדי שהמשתמש יראה את החיווי והקאונטר מיד
+            const updateLocalItem = (item) => {
+                if (item.id === resId) {
+                    item.lastWhatsAppSentAt = nowMs;
+                    item.lastWhatsAppType = msgTypeLabel;
+                    item.whatsappSentCount = (item.whatsappSentCount || 0) + 1;
+                }
+            };
+            state.archiveReservations.forEach(updateLocalItem);
+            state.reservations.forEach(updateLocalItem);
+            render();
+
+            try {
+                await db.collection('reservations').doc(resId).update({
+                    lastWhatsAppSentAt: nowMs,
+                    lastWhatsAppType: msgTypeLabel,
+                    whatsappSentCount: firebase.firestore.FieldValue.increment(1)
+                });
+            } catch (err) {
+                console.error("Failed to log WhatsApp timestamp:", err);
+            }
+        }
+
         function setLanguage(lang) {
             state.lang = lang;
             localStorage.setItem('club_lang', lang);
@@ -372,9 +442,12 @@
             render();
         }
 
-        function sendVladaClubInvite(clientPhone) {
+        // שליחה 1: הזמנה לשישי הקרוב
+        function sendVladaClubInvite(resId, clientPhone) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
+
+            logWhatsAppSent(resId, 'הזמנה לשישי');
 
             const message = `Привет 😊 Было приятно видеть вас в FASHION BAR!
 Будем рады снова встретиться в эту пятницу 🥂
@@ -391,9 +464,12 @@ www.fashionbar.co.il
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        function sendVladaFeedbackMessage(clientPhone) {
+        // שליחה 2: איך היה?
+        function sendVladaFeedbackMessage(resId, clientPhone) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
+
+            logWhatsAppSent(resId, 'איך היה?');
 
             const message = `Спасибо, что провели эту пятницу с нами в FASHION BAR! 🥂
 Будем рады узнать, как вам вечер 😊
@@ -408,10 +484,12 @@ www.fashionbar.co.il
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        // כפתור PULSE ייעודי במרכז ההזמנות
-        function sendPulseInvite(clientPhone) {
+        // שליחה 3: PULSE
+        function sendPulseInvite(resId, clientPhone) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
+
+            logWhatsAppSent(resId, 'PULSE');
 
             const message = `Привет! 🥂 Будем рады видеть вас в эту пятницу в PULSE!
 Пока ещё можем забронировать для вас места за столиком. Любимые коктейли, вкусные суши и особенная атмосфера PULSE ждут вас ✨
@@ -425,6 +503,32 @@ Rothschild 19, Tel Aviv
 לשריין לכם מקום?`;
 
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
+        // שליחה 4: פנה ללקוח (Reengagement)
+        function sendReengagementWhatsApp(resId, clientName, clientPhone, eventDateStr) {
+            if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
+            const cleanPhone = clientPhone.replace(/\D/g,'').replace(/^0/,'972');
+
+            logWhatsAppSent(resId, 'פנייה אישית');
+
+            const formattedDate = eventDateStr ? eventDateStr.split('-').reverse().join('.') : '';
+            let daysText = '';
+            if (eventDateStr) {
+                const pastDate = new Date(eventDateStr);
+                const today = new Date();
+                const diffTime = Math.abs(today - pastDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                daysText = state.lang === 'ru' ? `${diffDays} дней назад (${formattedDate})` : `לפני ${diffDays} ימים (${formattedDate})`;
+            } else {
+                daysText = formattedDate;
+            }
+            
+            const msg = state.lang === 'ru'
+                ? `Привет, ${clientName}! В прошлый раз вы отдыхали у нас ${daysText}. Ждем вас в эту пятницу?`
+                : `היי ${clientName}, פעם אחרונה הייתה ${daysText}. מתי נראה אותך שישי הזה?`;
+
+            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank');
         }
 
         async function exportAllPhonesHistoricalWhatsApp() {
@@ -1065,6 +1169,7 @@ Rothschild 19, Tel Aviv
             `;
         }
 
+        // מרכז ההזמנות כולל קאונטר ספירת וואטסאפ וחיווי זמן שליחה לכל לקוח
         function renderArchiveMGMT() {
             if (state.role === 'guest') return '';
             const query = state.archiveSearchQuery.trim().toLowerCase();
@@ -1073,6 +1178,23 @@ Rothschild 19, Tel Aviv
 
             const rawDataSource = state.archiveReservations.length ? state.archiveReservations : state.reservations;
             const dataSource = rawDataSource.filter(r => r.phone && r.phone.replace(/\D/g, '').length >= 9);
+
+            // חישוב קאונטר הודעות וואטסאפ (סה"כ והיום)
+            const startOfTodayMs = new Date().setHours(0, 0, 0, 0);
+            let totalWhatsAppSentCount = 0;
+            let todayWhatsAppSentCount = 0;
+
+            dataSource.forEach(r => {
+                if (r.whatsappSentCount) {
+                    totalWhatsAppSentCount += Number(r.whatsappSentCount);
+                } else if (r.lastWhatsAppSentAt) {
+                    totalWhatsAppSentCount += 1;
+                }
+
+                if (r.lastWhatsAppSentAt && r.lastWhatsAppSentAt >= startOfTodayMs) {
+                    todayWhatsAppSentCount += 1;
+                }
+            });
 
             const bookingFreqMap = {};
             dataSource.forEach(r => {
@@ -1105,7 +1227,7 @@ Rothschild 19, Tel Aviv
             }
 
             return `
-                <div class="space-y-4 p-1 text-white">
+                <div class="space-y-3.5 p-1 text-white">
                     <div class="flex justify-between items-center gap-2">
                         ${!isVlada ? `
                             <button onclick="updateState({showArchiveMGMT: false, archiveSearchQuery: ''})" class="text-xs font-black text-slate-400 flex items-center gap-1 hover:text-white"><i data-lucide="arrow-right" size="14"></i> ${t('back')}</button>
@@ -1127,7 +1249,30 @@ Rothschild 19, Tel Aviv
                         </div>
                     </div>
 
-                    <div class="glass-card p-3 rounded-2xl space-y-2 border border-emerald-500/30 shadow-md">
+                    <!-- קאונטר ספירת הודעות וואטסאפ שנשלחו ממרכז ההזמנות -->
+                    <div class="glass-card p-3 rounded-2xl border border-emerald-500/40 bg-emerald-950/20 flex items-center justify-between shadow-lg">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                                <i data-lucide="message-circle" size="16"></i>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-black text-emerald-300 uppercase">${t('waCounterTitle')}</p>
+                                <p class="text-[9px] text-slate-400">מעקב שליחות חי (הזמנות, משוב ו-PULSE)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="text-center bg-slate-900/80 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+                                <p class="text-[8px] text-slate-400 uppercase font-bold">${t('waToday')}</p>
+                                <p class="text-sm font-black text-emerald-400 font-mono">${todayWhatsAppSentCount}</p>
+                            </div>
+                            <div class="text-center bg-slate-900/80 px-2.5 py-1 rounded-xl border border-white/10">
+                                <p class="text-[8px] text-slate-400 uppercase font-bold">${t('waTotal')}</p>
+                                <p class="text-sm font-black text-white font-mono">${totalWhatsAppSentCount}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-3 rounded-2xl space-y-2 border border-white/10 shadow-md">
                         <div class="flex justify-between items-center">
                             <p class="text-[11px] font-black text-emerald-400 uppercase">${t('exportByDate')}</p>
                             <button onclick="exportToCSV()" class="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1">${t('excel')} <i data-lucide="download" size="12"></i></button>
@@ -1166,16 +1311,17 @@ Rothschild 19, Tel Aviv
 
                     ${state.isArchiveLoading ? `<p class="text-center text-amber-500 font-bold py-6">${state.lang === 'ru' ? 'Загрузка базы данных...' : 'טוען היסטוריית הזמנות...'}</p>` : ''}
 
-                    <div class="glass-card rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[58vh] overflow-y-auto border border-white/10">
+                    <div class="glass-card rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[55vh] overflow-y-auto border border-white/10">
                         ${filtered.map(r => {
                             const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
                             const visitsCount = bookingFreqMap[r.phone.replace(/\D/g, '')] || 1;
                             const isVip = visitsCount >= 5 || r.tag === 'VIP';
                             const orderLabel = state.lang === 'ru' ? 'Бронь' : 'הזמנה';
                             const timesWord = state.lang === 'ru' ? 'раз' : 'פעמים';
+                            const timeAgoStr = r.lastWhatsAppSentAt ? formatTimeAgo(r.lastWhatsAppSentAt) : '';
 
                             return `
-                                <div class="p-3 space-y-1.5 hover:bg-white/[0.02]">
+                                <div class="p-3 space-y-1.5 hover:bg-white/[0.02] ${r.lastWhatsAppSentAt ? 'bg-emerald-950/10' : ''}">
                                     <div class="flex justify-between items-start gap-2">
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2 flex-wrap">
@@ -1186,7 +1332,16 @@ Rothschild 19, Tel Aviv
                                                 ${r.tag && r.tag !== 'רגיל' ? `<span class="text-[8px] bg-slate-800 text-slate-300 border border-white/10 px-1.5 py-0.2 rounded font-bold">${r.tag}</span>` : ''}
                                             </div>
                                             <p class="text-[11px] text-slate-400 font-medium mt-0.5 font-mono">${r.phone}</p>
-                                            ${r.bookedBy ? `<p class="text-[9px] text-slate-500">הוזמן ע"י: <span class="text-slate-300 font-bold">${r.bookedBy}</span></p>` : ''}
+                                            
+                                            <!-- חיווי זמן יחסי מתי נשלחה ההודעה האחרונה + סוג ההודעה -->
+                                            ${timeAgoStr ? `
+                                                <div class="inline-flex items-center gap-1 mt-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-md text-[9.5px] font-bold">
+                                                    <span>✓ ${timeAgoStr}</span>
+                                                    ${r.lastWhatsAppType ? `<span class="text-emerald-400/80 font-normal">(${r.lastWhatsAppType})</span>` : ''}
+                                                </div>
+                                            ` : ''}
+
+                                            ${r.bookedBy ? `<p class="text-[9px] text-slate-500 mt-0.5">הוזמן ע"י: <span class="text-slate-300 font-bold">${r.bookedBy}</span></p>` : ''}
                                         </div>
                                         <div class="text-left flex flex-col items-end gap-1.5 shrink-0">
                                             <span class="bg-amber-500/10 text-amber-500 text-[10px] px-2 py-0.5 rounded-md font-black uppercase">${venue.name}</span>
@@ -1194,19 +1349,19 @@ Rothschild 19, Tel Aviv
                                             
                                             <div class="flex items-center gap-1.5 mt-1 flex-wrap justify-end">
                                                 <!-- כפתור 1: הזמנה לשישי הקרוב -->
-                                                <button onclick="sendVladaClubInvite('${r.phone}')" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
+                                                <button onclick="sendVladaClubInvite('${r.id}', '${r.phone}')" class="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-black px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
                                                     <i data-lucide="message-circle" size="12"></i>
                                                     <span>${t('sendClubInvite')}</span>
                                                 </button>
 
-                                                <!-- כפתור 2: איך היה? (הודעת משוב) -->
-                                                <button onclick="sendVladaFeedbackMessage('${r.phone}')" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
+                                                <!-- כפתור 2: איך היה? -->
+                                                <button onclick="sendVladaFeedbackMessage('${r.id}', '${r.phone}')" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
                                                     <i data-lucide="sparkles" size="12"></i>
                                                     <span>${t('sendFeedback')}</span>
                                                 </button>
 
                                                 <!-- כפתור 3: PULSE -->
-                                                <button onclick="sendPulseInvite('${r.phone}')" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
+                                                <button onclick="sendPulseInvite('${r.id}', '${r.phone}')" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
                                                     <i data-lucide="send" size="12"></i>
                                                     <span>${t('sendPulseBtn')}</span>
                                                 </button>
@@ -1609,6 +1764,9 @@ Rothschild 19, Tel Aviv
         auth.onAuthStateChanged(u => { 
             if(!u) auth.signInAnonymously(); 
             bindDayReservations();
+            if (state.role === 'vlada' || state.showArchiveMGMT) {
+                loadArchiveData();
+            }
         });
 
         render();
