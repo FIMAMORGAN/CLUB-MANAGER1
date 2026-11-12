@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V147 - Fashion-Bar & PULSE</title>
+    <title>ClubPro V148 - Fashion-Bar & PULSE</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V147";
+        const APP_VERSION = "V148";
 
         const translations = {
             he: {
@@ -267,6 +267,10 @@
         let initialSnapshotDone = false;
         let prevResCount = 0;
 
+        // משתני שמירת מיקום גלילה כדי שלא יקפוץ להתחלה
+        let savedArchiveScrollTop = 0;
+        let savedMainScrollTop = 0;
+
         const storedRole = localStorage.getItem('club_role') || null;
         const initialVenue = (storedRole === 'guest' || storedRole === 'vlada') ? 'shalvata' : (localStorage.getItem('last_venue') || null);
 
@@ -315,58 +319,116 @@
             return (translations[state.lang] && translations[state.lang][key]) || translations['he'][key] || key;
         }
 
-        // פורמט זמן יחסי ("לפני X דקות / שעות / ימים")
         function formatTimeAgo(timestampMs) {
             if (!timestampMs) return '';
-            const diffSec = Math.floor((Date.now() - timestampMs) / 1000);
-            if (diffSec < 60) return `${t('sentAgoPrefix')} ${t('justNow')}`;
+            const ts = typeof timestampMs === 'number' ? timestampMs : (timestampMs?.toMillis ? timestampMs.toMillis() : Number(timestampMs));
+            if (!ts || isNaN(ts)) return '';
+
+            const d = new Date(ts);
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            const timeStr = `${hh}:${mm}`;
+
+            const diffSec = Math.floor((Date.now() - ts) / 1000);
+            if (diffSec < 60) return `${t('sentAgoPrefix')} ${t('justNow')} (${timeStr})`;
             
             const diffMin = Math.floor(diffSec / 60);
             if (diffMin < 60) {
                 return state.lang === 'ru'
-                    ? `${t('sentAgoPrefix')} ${diffMin} ${t('minsAgo')}`
-                    : `${t('sentAgoPrefix')} לפני ${diffMin} ${t('minsAgo')}`;
+                    ? `${t('sentAgoPrefix')} ${diffMin} ${t('minsAgo')} (${timeStr})`
+                    : `${t('sentAgoPrefix')} לפני ${diffMin} ${t('minsAgo')} (${timeStr})`;
             }
 
             const diffHr = Math.floor(diffMin / 60);
             if (diffHr < 24) {
                 return state.lang === 'ru'
-                    ? `${t('sentAgoPrefix')} ${diffHr} ${t('hoursAgo')}`
-                    : `${t('sentAgoPrefix')} לפני ${diffHr} ${t('hoursAgo')}`;
+                    ? `${t('sentAgoPrefix')} ${diffHr} ${t('hoursAgo')} (${timeStr})`
+                    : `${t('sentAgoPrefix')} לפני ${diffHr} ${t('hoursAgo')} (${timeStr})`;
             }
 
             const diffDays = Math.floor(diffHr / 24);
+            const dateStr = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
             return state.lang === 'ru'
-                ? `${t('sentAgoPrefix')} ${diffDays} ${t('daysAgo')}`
-                : `${t('sentAgoPrefix')} לפני ${diffDays} ${t('daysAgo')}`;
+                ? `${t('sentAgoPrefix')} ${diffDays} ${t('daysAgo')} (${dateStr} ${timeStr})`
+                : `${t('sentAgoPrefix')} לפני ${diffDays} ${t('daysAgo')} (${dateStr} ${timeStr})`;
         }
 
-        // רישום ושמירת שליחת הודעת וואטסאפ ב-Firestore ועדכון התצוגה מיד
-        async function logWhatsAppSent(resId, msgTypeLabel) {
+        // שמירת מיקום גלילה נוכחי לפני רינדור מחדש
+        function captureScrollPositions() {
+            const archiveListEl = document.getElementById('archive-scroll-list');
+            if (archiveListEl) savedArchiveScrollTop = archiveListEl.scrollTop;
+            const mainEl = document.getElementById('main-scroll-container');
+            if (mainEl) savedMainScrollTop = mainEl.scrollTop;
+        }
+
+        // שחזור מיקום גלילה מיד אחרי רינדור
+        function restoreScrollPositions() {
+            const archiveListEl = document.getElementById('archive-scroll-list');
+            if (archiveListEl && savedArchiveScrollTop > 0) {
+                archiveListEl.scrollTop = savedArchiveScrollTop;
+            }
+            const mainEl = document.getElementById('main-scroll-container');
+            if (mainEl && savedMainScrollTop > 0) {
+                mainEl.scrollTop = savedMainScrollTop;
+            }
+        }
+
+        // רישום ושמירה של שליחת וואטסאפ כולל סנכרון מיידי ו-Firestore
+        async function logWhatsAppSent(resId, msgTypeLabel, clientPhone) {
             if (!resId) return;
             const nowMs = Date.now();
-            
-            // עדכון מיידי בזיכרון המקומי כדי שהמשתמש יראה את החיווי והקאונטר מיד
-            const updateLocalItem = (item) => {
-                if (item.id === resId) {
+            const cleanTargetPhone = clientPhone ? clientPhone.replace(/\D/g, '') : '';
+
+            // 1. עדכון מיידי בזיכרון המקומי (לרשומה הספציפית ולכל רשומות הלקוח לפי טלפון)
+            const applyLocalUpdate = (item) => {
+                const itemPhone = item.phone ? item.phone.replace(/\D/g, '') : '';
+                if (item.id === resId || (cleanTargetPhone && itemPhone === cleanTargetPhone)) {
                     item.lastWhatsAppSentAt = nowMs;
                     item.lastWhatsAppType = msgTypeLabel;
-                    item.whatsappSentCount = (item.whatsappSentCount || 0) + 1;
+                    if (item.id === resId) {
+                        item.whatsappSentCount = (Number(item.whatsappSentCount) || 0) + 1;
+                    }
                 }
             };
-            state.archiveReservations.forEach(updateLocalItem);
-            state.reservations.forEach(updateLocalItem);
+
+            state.archiveReservations.forEach(applyLocalUpdate);
+            state.reservations.forEach(applyLocalUpdate);
+
+            // שמירה ב-localStorage כגיבוי מיידי
+            try {
+                const localLogs = JSON.parse(localStorage.getItem('wa_sent_logs') || '{}');
+                localLogs[resId] = { at: nowMs, type: msgTypeLabel };
+                if (cleanTargetPhone) localLogs['phone_' + cleanTargetPhone] = { at: nowMs, type: msgTypeLabel };
+                localStorage.setItem('wa_sent_logs', JSON.stringify(localLogs));
+            } catch (e) {}
+
+            // רינדור מחדש תוך שמירת מיקום הגלילה המדויק!
             render();
 
+            // 2. כתיבה אמינה ל-Firestore
             try {
-                await db.collection('reservations').doc(resId).update({
+                await db.collection('reservations').doc(resId).set({
                     lastWhatsAppSentAt: nowMs,
                     lastWhatsAppType: msgTypeLabel,
                     whatsappSentCount: firebase.firestore.FieldValue.increment(1)
-                });
+                }, { merge: true });
             } catch (err) {
-                console.error("Failed to log WhatsApp timestamp:", err);
+                console.error("Failed to log WhatsApp timestamp to Firestore:", err);
             }
+        }
+
+        // שליפת מידע משולב (Firestore + גיבוי localStorage) עבור חיווי השליחה
+        function getLastSentInfo(res) {
+            if (res.lastWhatsAppSentAt) {
+                return { at: res.lastWhatsAppSentAt, type: res.lastWhatsAppType || '' };
+            }
+            try {
+                const localLogs = JSON.parse(localStorage.getItem('wa_sent_logs') || '{}');
+                if (localLogs[res.id]) return localLogs[res.id];
+                const cleanP = res.phone ? res.phone.replace(/\D/g, '') : '';
+                if (cleanP && localLogs['phone_' + cleanP]) return localLogs['phone_' + cleanP];
+            } catch (e) {}
+            return null;
         }
 
         function setLanguage(lang) {
@@ -443,11 +505,11 @@
         }
 
         // שליחה 1: הזמנה לשישי הקרוב
-        function sendVladaClubInvite(resId, clientPhone) {
+        async function sendVladaClubInvite(resId, clientPhone) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
 
-            logWhatsAppSent(resId, 'הזמנה לשישי');
+            await logWhatsAppSent(resId, 'הזמנה לשישי', clientPhone);
 
             const message = `Привет 😊 Было приятно видеть вас в FASHION BAR!
 Будем рады снова встретиться в эту пятницу 🥂
@@ -465,11 +527,11 @@ www.fashionbar.co.il
         }
 
         // שליחה 2: איך היה?
-        function sendVladaFeedbackMessage(resId, clientPhone) {
+        async function sendVladaFeedbackMessage(resId, clientPhone) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
 
-            logWhatsAppSent(resId, 'איך היה?');
+            await logWhatsAppSent(resId, 'איך היה?', clientPhone);
 
             const message = `Спасибо, что провели эту пятницу с нами в FASHION BAR! 🥂
 Будем рады узнать, как вам вечер 😊
@@ -485,11 +547,11 @@ www.fashionbar.co.il
         }
 
         // שליחה 3: PULSE
-        function sendPulseInvite(resId, clientPhone) {
+        async function sendPulseInvite(resId, clientPhone) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
 
-            logWhatsAppSent(resId, 'PULSE');
+            await logWhatsAppSent(resId, 'PULSE', clientPhone);
 
             const message = `Привет! 🥂 Будем рады видеть вас в эту пятницу в PULSE!
 Пока ещё можем забронировать для вас места за столиком. Любимые коктейли, вкусные суши и особенная атмосфера PULSE ждут вас ✨
@@ -505,12 +567,12 @@ Rothschild 19, Tel Aviv
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        // שליחה 4: פנה ללקוח (Reengagement)
-        function sendReengagementWhatsApp(resId, clientName, clientPhone, eventDateStr) {
+        // שליחה 4: פנייה אישית
+        async function sendReengagementWhatsApp(resId, clientName, clientPhone, eventDateStr) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g,'').replace(/^0/,'972');
 
-            logWhatsAppSent(resId, 'פנייה אישית');
+            await logWhatsAppSent(resId, 'פנייה אישית', clientPhone);
 
             const formattedDate = eventDateStr ? eventDateStr.split('-').reverse().join('.') : '';
             let daysText = '';
@@ -610,6 +672,12 @@ Rothschild 19, Tel Aviv
         function updateState(newData) { 
             const prevVenue = state.venueId;
             const prevDate = state.selectedDate;
+            
+            // איפוס גלילה רק אם מחליפים טאב או תאריך
+            if (newData.archiveFilterTab !== undefined || newData.showArchiveMGMT !== undefined) {
+                savedArchiveScrollTop = 0;
+            }
+
             state = { ...state, ...newData }; 
             
             if (state.role === 'guest' || state.role === 'vlada') {
@@ -651,6 +719,7 @@ Rothschild 19, Tel Aviv
         function handleSearchInput(val) {
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(() => {
+                savedArchiveScrollTop = 0;
                 state.archiveSearchQuery = val;
                 render();
                 const searchEl = document.getElementById('archive-search');
@@ -830,12 +899,14 @@ Rothschild 19, Tel Aviv
             window.location.href = `tel:${clean}`;
         }
 
-        function sendWhatsAppToClient(id) {
+        async function sendWhatsAppToClient(id) {
             const res = state.reservations.find(r => r.id === id);
             if (!res || !res.phone) return alert(state.lang === 'ru' ? "Нет номера телефона" : "אין מספר טלפון");
             const venue = allVenues.find(v => v.id === state.venueId);
-            let msg = "";
+            
+            await logWhatsAppSent(id, 'אישור הזמנה', res.phone);
 
+            let msg = "";
             if (venue.id === 'shalvata') {
                 msg = `הזמנה מאושרת ל פשיין-בר תל אביב לכמות ${res.pax} אנשים לשעה ${res.time||'22:30'}  , אם יש שינוים יש להודיע מראש, כתובות טברסקי 14 תל אביב:\nקישור ל WAZE : \nhttps://waze.com/ul?q=טברסקי%2014%2C%20תל%20אביב&navigate=yes\nנא לאשר הזמנה`;
             } else if (venue.id === 'q_gallery') {
@@ -906,6 +977,8 @@ Rothschild 19, Tel Aviv
             const isArrived = !!res.arrived;
             const hasNotes = !!(res.notes && res.notes.trim());
             const hasPhone = !!(res.phone && res.phone.trim());
+            const sentInfo = getLastSentInfo(res);
+            const timeAgoStr = sentInfo ? formatTimeAgo(sentInfo.at) : '';
 
             return `
             <div class="px-2.5 py-1.5 border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors ${isArrived ? 'bg-emerald-950/20' : ''}">
@@ -965,6 +1038,14 @@ Rothschild 19, Tel Aviv
                         <button onclick="if(confirm('${t('deleteConfirm')}')) db.collection('reservations').doc('${res.id}').update({status:'deleted'})" class="text-rose-400 p-0.5 hover:bg-rose-500/15 rounded" title="מחיקה"><i data-lucide="trash-2" size="12"></i></button>
                     </div>
                 </div>
+
+                ${timeAgoStr ? `
+                    <div class="pr-6 mt-1">
+                        <span class="inline-flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                            ✓ ${timeAgoStr} ${sentInfo.type ? `(${sentInfo.type})` : ''}
+                        </span>
+                    </div>
+                ` : ''}
 
             </div>`;
         }
@@ -1169,7 +1250,6 @@ Rothschild 19, Tel Aviv
             `;
         }
 
-        // מרכז ההזמנות כולל קאונטר ספירת וואטסאפ וחיווי זמן שליחה לכל לקוח
         function renderArchiveMGMT() {
             if (state.role === 'guest') return '';
             const query = state.archiveSearchQuery.trim().toLowerCase();
@@ -1179,19 +1259,19 @@ Rothschild 19, Tel Aviv
             const rawDataSource = state.archiveReservations.length ? state.archiveReservations : state.reservations;
             const dataSource = rawDataSource.filter(r => r.phone && r.phone.replace(/\D/g, '').length >= 9);
 
-            // חישוב קאונטר הודעות וואטסאפ (סה"כ והיום)
             const startOfTodayMs = new Date().setHours(0, 0, 0, 0);
             let totalWhatsAppSentCount = 0;
             let todayWhatsAppSentCount = 0;
 
             dataSource.forEach(r => {
+                const sentInfo = getLastSentInfo(r);
                 if (r.whatsappSentCount) {
                     totalWhatsAppSentCount += Number(r.whatsappSentCount);
-                } else if (r.lastWhatsAppSentAt) {
+                } else if (sentInfo && sentInfo.at) {
                     totalWhatsAppSentCount += 1;
                 }
 
-                if (r.lastWhatsAppSentAt && r.lastWhatsAppSentAt >= startOfTodayMs) {
+                if (sentInfo && sentInfo.at && sentInfo.at >= startOfTodayMs) {
                     todayWhatsAppSentCount += 1;
                 }
             });
@@ -1249,7 +1329,7 @@ Rothschild 19, Tel Aviv
                         </div>
                     </div>
 
-                    <!-- קאונטר ספירת הודעות וואטסאפ שנשלחו ממרכז ההזמנות -->
+                    <!-- קאונטר ספירת הודעות וואטסאפ שנשלחו -->
                     <div class="glass-card p-3 rounded-2xl border border-emerald-500/40 bg-emerald-950/20 flex items-center justify-between shadow-lg">
                         <div class="flex items-center gap-2">
                             <div class="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
@@ -1311,17 +1391,19 @@ Rothschild 19, Tel Aviv
 
                     ${state.isArchiveLoading ? `<p class="text-center text-amber-500 font-bold py-6">${state.lang === 'ru' ? 'Загрузка базы данных...' : 'טוען היסטוריית הזמנות...'}</p>` : ''}
 
-                    <div class="glass-card rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[55vh] overflow-y-auto border border-white/10">
+                    <!-- רשימה עם ID קבוע לשמירת מיקום גלילה מדויק -->
+                    <div id="archive-scroll-list" onscroll="savedArchiveScrollTop = this.scrollTop" class="glass-card rounded-2xl overflow-hidden divide-y divide-white/5 max-h-[55vh] overflow-y-auto border border-white/10">
                         ${filtered.map(r => {
                             const formattedDate = r.eventDate ? r.eventDate.split('-').reverse().join('.') : '--.--.--';
                             const visitsCount = bookingFreqMap[r.phone.replace(/\D/g, '')] || 1;
                             const isVip = visitsCount >= 5 || r.tag === 'VIP';
                             const orderLabel = state.lang === 'ru' ? 'Бронь' : 'הזמנה';
                             const timesWord = state.lang === 'ru' ? 'раз' : 'פעמים';
-                            const timeAgoStr = r.lastWhatsAppSentAt ? formatTimeAgo(r.lastWhatsAppSentAt) : '';
+                            const sentInfo = getLastSentInfo(r);
+                            const timeAgoStr = sentInfo ? formatTimeAgo(sentInfo.at) : '';
 
                             return `
-                                <div class="p-3 space-y-1.5 hover:bg-white/[0.02] ${r.lastWhatsAppSentAt ? 'bg-emerald-950/10' : ''}">
+                                <div class="p-3 space-y-1.5 hover:bg-white/[0.02] ${sentInfo ? 'bg-emerald-950/15 border-r-2 border-emerald-500' : ''}">
                                     <div class="flex justify-between items-start gap-2">
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2 flex-wrap">
@@ -1333,11 +1415,11 @@ Rothschild 19, Tel Aviv
                                             </div>
                                             <p class="text-[11px] text-slate-400 font-medium mt-0.5 font-mono">${r.phone}</p>
                                             
-                                            <!-- חיווי זמן יחסי מתי נשלחה ההודעה האחרונה + סוג ההודעה -->
+                                            <!-- חיווי זמן יחסי + שעה מדויקת וסוג ההודעה שנשלחה -->
                                             ${timeAgoStr ? `
-                                                <div class="inline-flex items-center gap-1 mt-1 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-md text-[9.5px] font-bold">
+                                                <div class="inline-flex items-center gap-1 mt-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-2 py-0.5 rounded-md text-[9.5px] font-black shadow-sm">
                                                     <span>✓ ${timeAgoStr}</span>
-                                                    ${r.lastWhatsAppType ? `<span class="text-emerald-400/80 font-normal">(${r.lastWhatsAppType})</span>` : ''}
+                                                    ${sentInfo.type ? `<span class="text-emerald-200/90 font-bold">• ${sentInfo.type}</span>` : ''}
                                                 </div>
                                             ` : ''}
 
@@ -1383,7 +1465,6 @@ Rothschild 19, Tel Aviv
             const venue = allVenues.find(v => v.id === state.venueId);
             const initialPrice = d.manualPrice || (Number(d.pax || 0) * venue.minP);
             const currentDateVal = d.eventDate || state.selectedDate;
-            const isGuest = state.role === 'guest';
             const isDeposit = !!d.depositRequired;
             const currentBookedBy = d.bookedBy || localStorage.getItem('last_booked_by') || 'פימה';
 
@@ -1674,6 +1755,8 @@ Rothschild 19, Tel Aviv
         }
 
         function render() {
+            captureScrollPositions();
+
             const root = document.getElementById('app');
             document.getElementById('html-root').setAttribute('dir', state.lang === 'he' ? 'rtl' : 'ltr');
 
@@ -1754,11 +1837,13 @@ Rothschild 19, Tel Aviv
                         </div>
                     </header>
 
-                    <main class="flex-1 overflow-y-auto p-2">
+                    <main id="main-scroll-container" onscroll="savedMainScrollTop = this.scrollTop" class="flex-1 overflow-y-auto p-2">
                         ${state.showArchiveMGMT ? renderArchiveMGMT() : (state.showUsersMGMT ? renderUsersMGMT() : (state.isAdding ? renderForm() : renderDashboard(state.reservations)))}
                     </main>
                 </div>`;
+            
             lucide.createIcons();
+            restoreScrollPositions();
         }
 
         auth.onAuthStateChanged(u => { 
