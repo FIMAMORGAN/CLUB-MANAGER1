@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClubPro V145 - Fashion-Bar</title>
+    <title>ClubPro V146 - Fashion-Bar & PULSE</title>
     
     <meta name="theme-color" content="#020617">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,7 +38,7 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2874/2874-preview.mp3" preload="auto"></audio>
 
     <script>
-        const APP_VERSION = "V145";
+        const APP_VERSION = "V146";
 
         const translations = {
             he: {
@@ -115,6 +115,7 @@
                 bookedBy: "הוזמן על ידי",
                 sendClubInvite: "הזמנה לשישי",
                 sendFeedback: "איך היה?",
+                sendPulseBtn: "PULSE",
                 onlyWithPhoneNotice: "מוצגים רק לקוחות עם טלפון",
                 vladaPanel: "פאנל שיווק - ולדה"
             },
@@ -192,6 +193,7 @@
                 bookedBy: "Кем забронировано",
                 sendClubInvite: "Пригласить на пятницу",
                 sendFeedback: "Как прошло?",
+                sendPulseBtn: "PULSE",
                 onlyWithPhoneNotice: "Показаны только гости с номерами",
                 vladaPanel: "Панель рассылки - Влада"
             }
@@ -389,7 +391,6 @@ www.fashionbar.co.il
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        // הודעת משוב ייעודית: "איך היה?"
         function sendVladaFeedbackMessage(clientPhone) {
             if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
             const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
@@ -403,6 +404,25 @@ www.fashionbar.co.il
 נשמח לשמוע איך הייתה החוויה שלכם 😊
 מה אהבתם ומה לדעתכם אפשר לשפר?
 שתפו אותנו, הדעה שלכם חשובה לנו ❤️`;
+
+            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+        }
+
+        // כפתור PULSE ייעודי במרכז ההזמנות
+        function sendPulseInvite(clientPhone) {
+            if (!clientPhone) return alert(state.lang === 'ru' ? "У клиента нет номера телефона" : "ללקוח זה אין מספר טלפון מעודכן");
+            const cleanPhone = clientPhone.replace(/\D/g, '').replace(/^0/, '972');
+
+            const message = `Привет! 🥂 Будем рады видеть вас в эту пятницу в PULSE!
+Пока ещё можем забронировать для вас места за столиком. Любимые коктейли, вкусные суши и особенная атмосфера PULSE ждут вас ✨
+Забронировать для вас места? 
+
+היי! 🥂 נשמח לארח אתכם בשישי הקרוב ב-PULSE!
+כרגע עדיין אפשר לשמור לכם מקומות סביב שולחן וליהנות מקוקטיילים מפנקים, סושי טעים והאווירה המיוחדת של PULSE ✨
+
+Rothschild 19, Tel Aviv
+
+לשריין לכם מקום?`;
 
             window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
         }
@@ -1183,6 +1203,12 @@ www.fashionbar.co.il
                                                 <button onclick="sendVladaFeedbackMessage('${r.phone}')" class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
                                                     <i data-lucide="sparkles" size="12"></i>
                                                     <span>${t('sendFeedback')}</span>
+                                                </button>
+
+                                                <!-- כפתור 3: PULSE -->
+                                                <button onclick="sendPulseInvite('${r.phone}')" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white px-2.5 py-1.5 rounded-xl text-[10px] font-black flex items-center gap-1 shadow-md active:scale-95 transition-all">
+                                                    <i data-lucide="send" size="12"></i>
+                                                    <span>${t('sendPulseBtn')}</span>
                                                 </button>
                                             </div>
                                         </div>
