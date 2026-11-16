@@ -34,7 +34,7 @@
             pointer-events: none;
         }
 
-        /* שכבת קווים מקווקווים ב-360 מעלות בין שולחן לשם לקוח */
+        /* שכבת קווים מקווקווים ב-360 מעלות */
         #connectors-svg {
             position: absolute;
             inset: 0;
@@ -67,30 +67,29 @@
             outline: 2px solid #38bdf8 !important;
         }
 
-        /* נקודה קטנה וברורה לסימון "תפוס" */
-        .occupied-status-pill {
+        /* תגית "תפוס" שיושבת ישירות על אמצע הקו המקווקו */
+        .line-occupied-pill {
             position: absolute;
-            top: -7px;
-            right: -4px;
+            transform: translate(-50%, -50%);
             display: inline-flex;
             align-items: center;
             gap: 2px;
-            background: rgba(2, 6, 23, 0.92);
-            border: 1px solid rgba(245, 158, 11, 0.7);
+            background: rgba(2, 6, 23, 0.94);
+            border: 1px solid rgba(245, 158, 11, 0.75);
             color: #fbbf24;
             font-size: 6.5px;
             font-weight: 900;
-            padding: 0.5px 3px;
+            padding: 1px 4px;
             border-radius: 9999px;
             pointer-events: none;
-            z-index: 22;
+            z-index: 30;
             white-space: nowrap;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.85);
-            line-height: 1.1;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.9);
+            line-height: 1;
         }
 
-        .occupied-status-pill.is-arrived {
-            border-color: rgba(251, 113, 133, 0.85);
+        .line-occupied-pill.is-arrived {
+            border-color: rgba(251, 113, 133, 0.9);
             color: #fda4af;
         }
 
@@ -102,7 +101,7 @@
             box-shadow: 0 0 4px #f59e0b;
         }
 
-        .occupied-status-pill.is-arrived .occupied-dot {
+        .line-occupied-pill.is-arrived .occupied-dot {
             background-color: #f43f5e;
             box-shadow: 0 0 5px #f43f5e;
         }
@@ -150,7 +149,7 @@
             white-space: nowrap;
         }
 
-        /* תגית שם לקוח נגררת 360 מעלות ומחוברת לשולחן */
+        /* תגית שם לקוח נגררת - מאפשרת סיבוב 360 או העברה לשולחן אחר */
         .client-label-draggable {
             position: absolute;
             color: #ffffff;
@@ -166,16 +165,16 @@
             touch-action: none;
             padding: 2px 5px;
             border-radius: 5px;
-            background: rgba(15, 23, 42, 0.82);
-            border: 1px dashed rgba(245, 158, 11, 0.65);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.75);
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px dashed rgba(245, 158, 11, 0.7);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.8);
         }
 
         .client-label-draggable:active, .client-label-draggable.is-moving {
             cursor: grabbing;
-            background: rgba(245, 158, 11, 0.45);
+            background: rgba(245, 158, 11, 0.55);
             border: 1.5px solid #fbbf24;
-            transform: translate(-50%, -50%) scale(1.15);
+            transform: translate(-50%, -50%) scale(1.18);
             z-index: 50;
         }
 
@@ -247,7 +246,7 @@
         </div>
     </header>
 
-    <!-- באנר לקוח מסומן מהדאשבורד לשיבוץ מיידי -->
+    <!-- באנר לקוח מסומן מהדאשבורד -->
     <div id="target-assign-banner" class="hidden w-full max-w-lg mb-2 bg-gradient-to-r from-amber-500/20 via-amber-500/30 to-amber-500/20 border border-amber-400 p-2 rounded-2xl flex items-center justify-between shadow-lg">
         <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
@@ -261,8 +260,8 @@
     <!-- מקרא -->
     <div class="w-full max-w-lg mb-2 flex justify-center items-center gap-3 text-[9.5px] font-bold">
         <span class="flex items-center gap-1 text-slate-400"><span class="w-2 h-2 rounded-full border border-white/30"></span> פנוי</span>
-        <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-500"></span> ● תפוס</span>
-        <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500"></span> ● תפוס (הגיע)</span>
+        <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-500"></span> ● תפוס על הקו</span>
+        <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500"></span> ● הגיע למועדון</span>
     </div>
 
     <!-- מפה -->
@@ -328,40 +327,40 @@
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
         const BASE_TABLES_DEF = [
-            { id: "250", top: "11.2%", left: "13.5%", w: "8.0%", h: "5.2%", cap: 8, label: "250", labelX: "13.5%", labelY: "18.2%" },
-            { id: "240", top: "11.2%", left: "29.5%", w: "8.0%", h: "5.2%", cap: 9, label: "240", labelX: "29.5%", labelY: "18.2%" },
-            { id: "230", top: "11.2%", left: "51.0%", w: "12.0%", h: "5.2%", cap: 12, label: "230", labelX: "51%", labelY: "19.8%" },
-            { id: "220", top: "11.2%", left: "72.5%", w: "8.0%", h: "5.2%", cap: 10, label: "220", labelX: "72.5%", labelY: "19.8%" },
-            { id: "210", top: "11.2%", left: "87.0%", w: "8.0%", h: "5.2%", cap: 9, label: "210", labelX: "87%", labelY: "6.8%" },
+            { id: "250", top: "11.2%", left: "13.5%", w: "8.0%", h: "5.2%", cap: 8, label: "250", labelX: "13.5%", labelY: "19.5%" },
+            { id: "240", top: "11.2%", left: "29.5%", w: "8.0%", h: "5.2%", cap: 9, label: "240", labelX: "29.5%", labelY: "19.5%" },
+            { id: "230", top: "11.2%", left: "51.0%", w: "12.0%", h: "5.2%", cap: 12, label: "230", labelX: "51%", labelY: "20.8%" },
+            { id: "220", top: "11.2%", left: "72.5%", w: "8.0%", h: "5.2%", cap: 10, label: "220", labelX: "72.5%", labelY: "20.8%" },
+            { id: "210", top: "11.2%", left: "87.0%", w: "8.0%", h: "5.2%", cap: 9, label: "210", labelX: "87%", labelY: "5.5%" },
 
-            { id: "30", top: "26.5%", left: "49.5%", w: "9.2%", h: "4.8%", cap: 5, label: "30", labelX: "49.5%", labelY: "33.2%" },
+            { id: "30", top: "26.5%", left: "49.5%", w: "9.2%", h: "4.8%", cap: 5, label: "30", labelX: "49.5%", labelY: "34.5%" },
 
-            { id: "310", top: "29.5%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 9, label: "310", labelX: "13.5%", labelY: "25.2%" },
-            { id: "320", top: "36.8%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 9, label: "320", labelX: "13.5%", labelY: "43.2%" },
-            { id: "330", top: "50.0%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "330", labelX: "13.5%", labelY: "45.8%" },
-            { id: "340", top: "57.3%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "340", labelX: "13.5%", labelY: "63.8%" },
-            { id: "350", top: "71.5%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "350", labelX: "13.5%", labelY: "66.8%" },
-            { id: "360", top: "78.8%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "360", labelX: "13.5%", labelY: "84.8%" },
+            { id: "310", top: "29.5%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 9, label: "310", labelX: "13.5%", labelY: "23.5%" },
+            { id: "320", top: "36.8%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 9, label: "320", labelX: "13.5%", labelY: "44.0%" },
+            { id: "330", top: "50.0%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "330", labelX: "13.5%", labelY: "44.5%" },
+            { id: "340", top: "57.3%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "340", labelX: "13.5%", labelY: "64.8%" },
+            { id: "350", top: "71.5%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "350", labelX: "13.5%", labelY: "65.8%" },
+            { id: "360", top: "78.8%", left: "13.5%", w: "8.2%", h: "4.6%", cap: 10, label: "360", labelX: "13.5%", labelY: "86.0%" },
 
-            { id: "160", top: "40.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "160", labelX: "86.5%", labelY: "36.2%" },
-            { id: "150", top: "47.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "150", labelX: "86.5%", labelY: "53.2%" },
-            { id: "140", top: "59.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 10, label: "140", labelX: "86.5%", labelY: "54.8%" },
-            { id: "130", top: "65.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 10, label: "130", labelX: "86.5%", labelY: "71.8%" },
-            { id: "120", top: "76.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "120", labelX: "68.5%", labelY: "77.5%" },
-            { id: "110", top: "83.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "110", labelX: "68.5%", labelY: "85.2%" },
+            { id: "160", top: "40.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "160", labelX: "86.5%", labelY: "34.5%" },
+            { id: "150", top: "47.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "150", labelX: "86.5%", labelY: "54.0%" },
+            { id: "140", top: "59.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 10, label: "140", labelX: "86.5%", labelY: "53.5%" },
+            { id: "130", top: "65.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 10, label: "130", labelX: "86.5%", labelY: "72.5%" },
+            { id: "120", top: "76.5%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "120", labelX: "72.0%", labelY: "76.5%" },
+            { id: "110", top: "83.0%", left: "86.5%", w: "8.2%", h: "4.4%", cap: 7, label: "110", labelX: "72.0%", labelY: "84.5%" },
 
-            { id: "40", top: "36.0%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "40", labelX: "26.5%", labelY: "43.5%" },
-            { id: "50", top: "51.5%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "50", labelX: "26.5%", labelY: "59.0%" },
-            { id: "60", top: "67.0%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "60", labelX: "26.5%", labelY: "74.5%" },
-            { id: "20", top: "36.0%", left: "72.5%", w: "6.8%", h: "4.8%", cap: 4, label: "20", labelX: "72.5%", labelY: "29.5%" },
-            { id: "10", top: "67.0%", left: "72.5%", w: "6.8%", h: "4.8%", cap: 4, label: "10", labelX: "63.5%", labelY: "67.0%" }
+            { id: "40", top: "36.0%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "40", labelX: "26.5%", labelY: "44.5%" },
+            { id: "50", top: "51.5%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "50", labelX: "26.5%", labelY: "60.0%" },
+            { id: "60", top: "67.0%", left: "26.5%", w: "6.8%", h: "4.8%", cap: 4, label: "60", labelX: "26.5%", labelY: "75.5%" },
+            { id: "20", top: "36.0%", left: "72.5%", w: "6.8%", h: "4.8%", cap: 4, label: "20", labelX: "72.5%", labelY: "28.0%" },
+            { id: "10", top: "67.0%", left: "72.5%", w: "6.8%", h: "4.8%", cap: 4, label: "10", labelX: "61.0%", labelY: "67.0%" }
         ];
 
         let reservations = [];
         let customTables = [];
         let deletedBaseTableIds = [];
         let customTableLabels = {};
-        let customTablePositions = {}; // שמירת מיקום מותאם לשולחנות אם הוזזו יחד עם השם
+        let customTablePositions = {};
         let stripFilterText = '';
 
         function goBack() {
@@ -434,7 +433,7 @@
                 isCustom: true,
                 docId: ct.id,
                 labelX: `${ct.leftPercent}%`,
-                labelY: `${ct.topPercent + 5.5}%`
+                labelY: `${ct.topPercent + 7.5}%`
             }));
             return [...activeBase, ...dynamicMapped];
         }
@@ -484,13 +483,21 @@
                 });
         }
 
-        function updateConnectorLine(lineId, x1, y1, x2, y2) {
+        // עדכון הקו המקווקו ותגית "תפוס" שיושבת בדיוק על אמצע הקו המקווקו
+        function updateConnectorAndPill(lineId, pillId, x1, y1, x2, y2) {
             const line = document.getElementById(lineId);
             if (line) {
                 line.setAttribute('x1', x1);
                 line.setAttribute('y1', y1);
                 line.setAttribute('x2', x2);
                 line.setAttribute('y2', y2);
+            }
+            const pill = document.getElementById(pillId);
+            if (pill) {
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+                pill.style.left = `${midX.toFixed(1)}%`;
+                pill.style.top = `${midY.toFixed(1)}%`;
             }
         }
 
@@ -514,14 +521,6 @@
                 const tableX = parseFloat(tbl.left);
                 const tableY = parseFloat(tbl.top);
 
-                // תגית נקודה קטנה לציון "תפוס"
-                const occupiedBadgeHtml = isOccupied ? `
-                    <div class="occupied-status-pill ${hasArrived ? 'is-arrived' : ''}">
-                        <span class="occupied-dot"></span>
-                        <span>תפוס</span>
-                    </div>
-                ` : '';
-
                 let tableEl = null;
 
                 if (tbl.isCustom) {
@@ -534,7 +533,6 @@
                     dynamicEl.dataset.tableId = tbl.label;
 
                     dynamicEl.innerHTML = `
-                        ${occupiedBadgeHtml}
                         <span class="text-[10px] font-black text-amber-400 font-mono leading-none z-10 pointer-events-none">${tbl.label}</span>
                         <span class="text-[7px] font-bold text-slate-400 leading-none mt-0.5 z-10 pointer-events-none">איש ${tbl.cap}</span>
                     `;
@@ -551,10 +549,9 @@
                     spot.style.height = tbl.h;
                     spot.dataset.tableId = tbl.label;
 
-                    spot.innerHTML = `
-                        ${occupiedBadgeHtml}
-                        ${tbl.isRenamed ? `<span class="renamed-table-badge">${tbl.label}</span>` : ''}
-                    `;
+                    if (tbl.isRenamed) {
+                        spot.innerHTML = `<span class="renamed-table-badge">${tbl.label}</span>`;
+                    }
 
                     spot.onclick = () => handleTableClick(tbl, occupiedRes);
                     spotsContainer.appendChild(spot);
@@ -565,7 +562,7 @@
                     const posX = occupiedRes.labelCustomX !== undefined ? parseFloat(occupiedRes.labelCustomX) : parseFloat(tbl.labelX);
                     const posY = occupiedRes.labelCustomY !== undefined ? parseFloat(occupiedRes.labelCustomY) : parseFloat(tbl.labelY);
 
-                    // ציור קו מקווקו 360 מעלות בין מרכז השולחן לתגית שם הלקוח
+                    // 1. קו מקווקו 360 מעלות בין מרכז השולחן לתגית שם הלקוח
                     const lineId = `conn-line-${occupiedRes.id}-${tbl.id}`;
                     const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                     lineEl.setAttribute('id', lineId);
@@ -574,33 +571,46 @@
                     lineEl.setAttribute('x2', posX);
                     lineEl.setAttribute('y2', posY);
                     lineEl.setAttribute('stroke', hasArrived ? '#fb7185' : '#f59e0b');
-                    lineEl.setAttribute('stroke-width', '0.45');
+                    lineEl.setAttribute('stroke-width', '0.5');
                     lineEl.setAttribute('stroke-dasharray', '1.2, 0.9');
                     lineEl.setAttribute('stroke-linecap', 'round');
                     svgContainer.appendChild(lineEl);
 
-                    // תגית שם הלקוח שניתנת לגרירה יחד עם השולחן או סיבוב 360 מעלות
+                    // 2. תגית "● תפוס" ממוקמת ישירות על הקו המקווקו (בנקודת האמצע)
+                    const pillId = `conn-pill-${occupiedRes.id}-${tbl.id}`;
+                    const midX = (tableX + posX) / 2;
+                    const midY = (tableY + posY) / 2;
+                    const pillEl = document.createElement('div');
+                    pillEl.id = pillId;
+                    pillEl.className = `line-occupied-pill ${hasArrived ? 'is-arrived' : ''}`;
+                    pillEl.style.left = `${midX.toFixed(1)}%`;
+                    pillEl.style.top = `${midY.toFixed(1)}%`;
+                    pillEl.innerHTML = `<span class="occupied-dot"></span><span>תפוס</span>`;
+                    labelsContainer.appendChild(pillEl);
+
+                    // 3. תגית שם הלקוח (סיבוב 360 מעלות סביב השולחן או גרירה לשולחן אחר לסנכרון בדאשבורד)
                     const label = document.createElement('div');
                     label.className = 'client-label-draggable';
                     label.id = `client-label-${occupiedRes.id}-${tbl.id}`;
                     label.style.left = `${posX}%`;
                     label.style.top = `${posY}%`;
                     label.innerText = getFirstNameOnly(occupiedRes.name);
-                    label.title = `גרור להזיז את ${occupiedRes.name} והשולחן`;
+                    label.title = `סובב 360° סביב השולחן או גרור לשולחן אחר כדי להעביר`;
 
-                    makeLabelAndTableSyncDraggable(label, tableEl, tbl, occupiedRes.id, posX, posY, tableX, tableY, lineId);
+                    makeLabelReassignOrOrbitDraggable(label, tbl, occupiedRes.id, posX, posY, tableX, tableY, lineId, pillId);
                     labelsContainer.appendChild(label);
                 }
             });
         }
 
-        // לחיצה על שולחן: אם יש לקוח נבחר לסימון - משבץ אותו מיד; אחרת פותח מודאל
         async function handleTableClick(tbl, occupiedRes) {
             if (assignToResId && !occupiedRes) {
                 const targetRes = reservations.find(r => r.id === assignToResId);
                 if (targetRes) {
                     await db.collection('reservations').doc(assignToResId).update({
                         tableNumber: String(tbl.label),
+                        labelCustomX: firebase.firestore.FieldValue.delete(),
+                        labelCustomY: firebase.firestore.FieldValue.delete(),
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                     clearAssignTarget();
@@ -610,15 +620,19 @@
             openModal(tbl, occupiedRes);
         }
 
-        // גרירת שם הלקוח: מזיזה את השם ב-360 מעלות עם קו מקווקו + מזיזה איתו גם את השולחן עצמו!
-        function makeLabelAndTableSyncDraggable(labelEl, tableEl, tblDef, resId, initLabelX, initLabelY, initTableX, initTableY, lineId) {
+        // גרירת שם לקוח:
+        // - אם נזרק על שולחן אחר -> מעביר את הלקוח לשולחן החדש ומעדכן מיד גם בדאשבורד!
+        // - אם נזרק באזור פתוח -> מסתובב 360 מעלות סביב השולחן המקורי עם הקו המקווקו ותגית "תפוס" על הקו.
+        function makeLabelReassignOrOrbitDraggable(labelEl, currentTblDef, resId, initLabelX, initLabelY, initTableX, initTableY, lineId, pillId) {
             let startX = 0, startY = 0;
             let isMoved = false;
+            let hoveredTableEl = null;
             const mapWrapper = document.getElementById('map-container');
 
             labelEl.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
                 isMoved = false;
+                hoveredTableEl = null;
                 labelEl.setPointerCapture(e.pointerId);
                 labelEl.classList.add('is-moving');
 
@@ -641,18 +655,30 @@
                     labelEl.style.left = `${newLabelX.toFixed(1)}%`;
                     labelEl.style.top = `${newLabelY.toFixed(1)}%`;
 
-                    // הזזה מסונכרנת של השולחן עצמו יחד עם השם
-                    let currentTblX = initTableX;
-                    let currentTblY = initTableY;
-                    if (tableEl) {
-                        currentTblX = Math.max(4, Math.min(96, initTableX + dPctX));
-                        currentTblY = Math.max(4, Math.min(96, initTableY + dPctY));
-                        tableEl.style.left = `${currentTblX.toFixed(1)}%`;
-                        tableEl.style.top = `${currentTblY.toFixed(1)}%`;
+                    // זמנית מסתירים אירועי עכבר על התגית כדי לזהות אם מרחפים מעל שולחן אחר
+                    labelEl.style.pointerEvents = 'none';
+                    const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
+                    labelEl.style.pointerEvents = 'auto';
+
+                    const targetSpot = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
+
+                    if (hoveredTableEl && hoveredTableEl !== targetSpot) {
+                        hoveredTableEl.classList.remove('spot-drag-hover');
                     }
 
-                    // עדכון הקו המקווקו בזמן אמת ב-360 מעלות
-                    updateConnectorLine(lineId, currentTblX, currentTblY, newLabelX, newLabelY);
+                    if (targetSpot && targetSpot.dataset.tableId !== String(currentTblDef.label)) {
+                        targetSpot.classList.add('spot-drag-hover');
+                        hoveredTableEl = targetSpot;
+
+                        // הקו המקווקו ותגית "תפוס" נמשכים לשולחן היעד החדש!
+                        const targetX = parseFloat(targetSpot.style.left);
+                        const targetY = parseFloat(targetSpot.style.top);
+                        updateConnectorAndPill(lineId, pillId, targetX, targetY, newLabelX, newLabelY);
+                    } else {
+                        hoveredTableEl = null;
+                        // סיבוב חופשי 360 מעלות סביב השולחן הנוכחי
+                        updateConnectorAndPill(lineId, pillId, initTableX, initTableY, newLabelX, newLabelY);
+                    }
                 };
 
                 const onUp = async (ev) => {
@@ -662,32 +688,39 @@
                     labelEl.removeEventListener('pointerup', onUp);
                     labelEl.removeEventListener('pointercancel', onUp);
 
-                    if (isMoved) {
-                        const finalLabelX = Math.round(parseFloat(labelEl.style.left) * 10) / 10;
-                        const finalLabelY = Math.round(parseFloat(labelEl.style.top) * 10) / 10;
+                    if (hoveredTableEl) {
+                        hoveredTableEl.classList.remove('spot-drag-hover');
+                    }
 
+                    if (!isMoved) return;
+
+                    const finalLabelX = Math.round(parseFloat(labelEl.style.left) * 10) / 10;
+                    const finalLabelY = Math.round(parseFloat(labelEl.style.top) * 10) / 10;
+
+                    // בדיקה אם הלקוח הועבר לשולחן אחר במפה
+                    if (hoveredTableEl && hoveredTableEl.dataset.tableId) {
+                        const newTableLabel = hoveredTableEl.dataset.tableId;
+                        const existingOccupant = getReservationForTable(newTableLabel, newTableLabel);
+
+                        if (existingOccupant && existingOccupant.id !== resId) {
+                            alert(`שולחן ${newTableLabel} כבר תפוס ע"י ${existingOccupant.name}!`);
+                            renderMap();
+                            return;
+                        }
+
+                        // עדכון השולחן החדש ב-Firestore -> מסנכרן אוטומטית גם את הדאשבורד הראשי!
+                        await db.collection('reservations').doc(resId).update({
+                            tableNumber: String(newTableLabel),
+                            labelCustomX: finalLabelX,
+                            labelCustomY: finalLabelY,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        // עדכון מיקום 360 מעלות סביב אותו שולחן
                         await db.collection('reservations').doc(resId).update({
                             labelCustomX: finalLabelX,
                             labelCustomY: finalLabelY
                         });
-
-                        if (tableEl) {
-                            const finalTblX = Math.round(parseFloat(tableEl.style.left) * 10) / 10;
-                            const finalTblY = Math.round(parseFloat(tableEl.style.top) * 10) / 10;
-
-                            if (tblDef.isCustom && tblDef.docId) {
-                                await db.collection('custom_tables').doc(tblDef.docId).update({
-                                    leftPercent: finalTblX,
-                                    topPercent: finalTblY
-                                });
-                            } else {
-                                const updatedPositions = {
-                                    ...customTablePositions,
-                                    [tblDef.id]: { left: finalTblX, top: finalTblY }
-                                };
-                                await db.collection('custom_table_positions').doc('shalvata').set({ positions: updatedPositions }, { merge: true });
-                            }
-                        }
                     }
                 };
 
@@ -836,8 +869,9 @@
                     if (occupiedRes) {
                         const labelEl = document.getElementById(`client-label-${occupiedRes.id}-${tableDef.id}`);
                         const lineId = `conn-line-${occupiedRes.id}-${tableDef.id}`;
+                        const pillId = `conn-pill-${occupiedRes.id}-${tableDef.id}`;
                         if (labelEl) {
-                            updateConnectorLine(lineId, newLeft, newTop, parseFloat(labelEl.style.left), parseFloat(labelEl.style.top));
+                            updateConnectorAndPill(lineId, pillId, newLeft, newTop, parseFloat(labelEl.style.left), parseFloat(labelEl.style.top));
                         }
                     }
                 };
@@ -1006,6 +1040,8 @@
 
             await db.collection('reservations').doc(resId).update({
                 tableNumber: String(tableLabel),
+                labelCustomX: firebase.firestore.FieldValue.delete(),
+                labelCustomY: firebase.firestore.FieldValue.delete(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
             if (assignToResId === resId) clearAssignTarget();
@@ -1060,7 +1096,7 @@
             });
             await batch.commit();
             await db.collection('custom_table_positions').doc('shalvata').delete();
-            alert("כל השיבוצים ומיקומי השולחנות אופסו!");
+            alert("כל השיבוצים אופסו!");
         }
 
         function closeModal() {
