@@ -34,6 +34,16 @@
             pointer-events: none;
         }
 
+        /* שכבת קווים מקווקווים ב-360 מעלות בין שולחן לשם לקוח */
+        #connectors-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 28;
+        }
+
         .table-spot {
             position: absolute;
             transform: translate(-50%, -50%);
@@ -55,6 +65,46 @@
         .spot-drag-hover {
             background-color: rgba(56, 189, 248, 0.35) !important;
             outline: 2px solid #38bdf8 !important;
+        }
+
+        /* נקודה קטנה וברורה לסימון "תפוס" */
+        .occupied-status-pill {
+            position: absolute;
+            top: -7px;
+            right: -4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            background: rgba(2, 6, 23, 0.92);
+            border: 1px solid rgba(245, 158, 11, 0.7);
+            color: #fbbf24;
+            font-size: 6.5px;
+            font-weight: 900;
+            padding: 0.5px 3px;
+            border-radius: 9999px;
+            pointer-events: none;
+            z-index: 22;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.85);
+            line-height: 1.1;
+        }
+
+        .occupied-status-pill.is-arrived {
+            border-color: rgba(251, 113, 133, 0.85);
+            color: #fda4af;
+        }
+
+        .occupied-dot {
+            width: 4.5px;
+            height: 4.5px;
+            border-radius: 9999px;
+            background-color: #f59e0b;
+            box-shadow: 0 0 4px #f59e0b;
+        }
+
+        .occupied-status-pill.is-arrived .occupied-dot {
+            background-color: #f43f5e;
+            box-shadow: 0 0 5px #f43f5e;
         }
 
         .custom-dynamic-table {
@@ -100,6 +150,7 @@
             white-space: nowrap;
         }
 
+        /* תגית שם לקוח נגררת 360 מעלות ומחוברת לשולחן */
         .client-label-draggable {
             position: absolute;
             color: #ffffff;
@@ -113,17 +164,17 @@
             text-align: center;
             cursor: grab;
             touch-action: none;
-            padding: 2px 4px;
-            border-radius: 4px;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+            padding: 2px 5px;
+            border-radius: 5px;
+            background: rgba(15, 23, 42, 0.82);
+            border: 1px dashed rgba(245, 158, 11, 0.65);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.75);
         }
 
         .client-label-draggable:active, .client-label-draggable.is-moving {
             cursor: grabbing;
-            background: rgba(245, 158, 11, 0.4);
-            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.45);
+            border: 1.5px solid #fbbf24;
             transform: translate(-50%, -50%) scale(1.15);
             z-index: 50;
         }
@@ -135,20 +186,14 @@
             touch-action: pan-x !important;
             overscroll-behavior-x: contain;
         }
-        #guest-drag-strip::-webkit-scrollbar {
-            height: 3px;
-        }
-        #guest-drag-strip::-webkit-scrollbar-thumb {
-            background: rgba(245, 158, 11, 0.4);
-            border-radius: 9999px;
-        }
+        #guest-drag-strip::-webkit-scrollbar { height: 3px; }
+        #guest-drag-strip::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.4); border-radius: 9999px; }
 
         .draggable-guest-badge {
             user-select: none;
             touch-action: pan-x !important;
         }
 
-        /* אלמנט רפאים קבוע להאצת חומרה מיידית ללא לאגים */
         #global-drag-ghost {
             position: fixed;
             top: 0;
@@ -172,12 +217,13 @@
         }
     </style>
 </head>
-<body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-40">
+<body class="min-h-screen p-2 sm:p-3 flex flex-col items-center pb-44">
 
     <div id="global-drag-ghost" class="bg-amber-500 text-black font-black text-xs px-3 py-1.5 rounded-xl shadow-2xl border border-white flex items-center gap-1.5">
         <span id="ghost-guest-name"></span>
     </div>
 
+    <!-- סרגל עליון -->
     <header class="w-full max-w-lg mb-2 flex justify-between items-center glass p-2 rounded-2xl gap-1.5">
         <button onclick="goBack()" class="flex items-center gap-1 text-slate-300 hover:text-white font-bold text-xs bg-white/5 px-2.5 py-1.5 rounded-xl border border-white/10">
             <i data-lucide="arrow-right" size="13"></i>
@@ -201,21 +247,36 @@
         </div>
     </header>
 
-    <div class="w-full max-w-lg mb-2 flex justify-center items-center gap-3 text-[9.5px] font-bold">
-        <span class="flex items-center gap-1 text-slate-400"><span class="w-2 h-2 rounded-full border border-white/30"></span> פנוי</span>
-        <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-500"></span> משובץ</span>
-        <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-sm bg-rose-500/40 border border-rose-400"></span> רקע אדום = הגיע</span>
+    <!-- באנר לקוח מסומן מהדאשבורד לשיבוץ מיידי -->
+    <div id="target-assign-banner" class="hidden w-full max-w-lg mb-2 bg-gradient-to-r from-amber-500/20 via-amber-500/30 to-amber-500/20 border border-amber-400 p-2 rounded-2xl flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+            <span class="text-xs font-black text-white">לקוח לסימון: <span id="target-assign-name" class="text-amber-300 underline"></span></span>
+        </div>
+        <button onclick="clearAssignTarget()" class="text-[10px] font-black bg-black/50 text-slate-300 hover:text-white px-2.5 py-1 rounded-xl border border-white/15">
+            בטל סימון ✕
+        </button>
     </div>
 
+    <!-- מקרא -->
+    <div class="w-full max-w-lg mb-2 flex justify-center items-center gap-3 text-[9.5px] font-bold">
+        <span class="flex items-center gap-1 text-slate-400"><span class="w-2 h-2 rounded-full border border-white/30"></span> פנוי</span>
+        <span class="flex items-center gap-1 text-amber-400"><span class="w-2 h-2 rounded-full bg-amber-500"></span> ● תפוס</span>
+        <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500"></span> ● תפוס (הגיע)</span>
+    </div>
+
+    <!-- מפה -->
     <main class="w-full flex-1 flex items-center justify-center">
         <div class="map-wrapper" id="map-container">
             <img src="fashion-map.png" alt="Fashion-Bar Map" class="map-bg">
+            <svg id="connectors-svg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
             <div id="spots-layer"></div>
             <div id="dynamic-layer"></div>
             <div id="labels-layer"></div>
         </div>
     </main>
 
+    <!-- מגירת מוזמנים -->
     <div class="fixed bottom-3 inset-x-2 glass border border-amber-500/30 p-2.5 z-40 max-w-lg mx-auto rounded-3xl shadow-2xl">
         <div class="flex justify-between items-center px-1 mb-1.5 gap-2">
             <span class="text-[10px] font-black text-amber-400 uppercase tracking-wide flex items-center gap-1 shrink-0">
@@ -235,6 +296,7 @@
         <div id="guest-drag-strip" class="flex gap-2 pb-1 px-1"></div>
     </div>
 
+    <!-- מודאל פעולות שולחן -->
     <div id="table-modal" class="overlay hidden">
         <div class="glass p-3.5 rounded-3xl w-full max-w-xs text-center space-y-3 border border-amber-500/40 shadow-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b border-white/10 pb-1.5">
@@ -261,6 +323,7 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const selectedDate = urlParams.get('date') || localStorage.getItem('last_date') || new Date().toLocaleDateString('sv-SE');
+        let assignToResId = urlParams.get('assignTo') || null;
 
         document.getElementById('date-display').innerText = 'תאריך: ' + selectedDate.split('-').reverse().join('.');
 
@@ -298,10 +361,42 @@
         let customTables = [];
         let deletedBaseTableIds = [];
         let customTableLabels = {};
+        let customTablePositions = {}; // שמירת מיקום מותאם לשולחנות אם הוזזו יחד עם השם
         let stripFilterText = '';
 
         function goBack() {
             window.location.href = `index.html`;
+        }
+
+        function clearAssignTarget() {
+            assignToResId = null;
+            const url = new URL(window.location);
+            url.searchParams.delete('assignTo');
+            window.history.replaceState({}, '', url);
+            updateTargetAssignBanner();
+            renderGuestDragStrip();
+        }
+
+        function updateTargetAssignBanner() {
+            const banner = document.getElementById('target-assign-banner');
+            const nameEl = document.getElementById('target-assign-name');
+            if (!assignToResId) {
+                banner.classList.add('hidden');
+                return;
+            }
+            const targetRes = reservations.find(r => r.id === assignToResId);
+            if (targetRes) {
+                nameEl.innerText = `${targetRes.name} (${targetRes.pax} איש)`;
+                banner.classList.remove('hidden');
+            } else {
+                banner.classList.add('hidden');
+            }
+        }
+
+        function selectGuestForAssign(resId) {
+            assignToResId = (assignToResId === resId) ? null : resId;
+            updateTargetAssignBanner();
+            renderGuestDragStrip();
         }
 
         function getFirstNameOnly(fullName) {
@@ -318,8 +413,11 @@
                 .filter(bt => !deletedBaseTableIds.includes(String(bt.id)))
                 .map(bt => {
                     const renamed = customTableLabels[bt.id];
+                    const movedPos = customTablePositions[bt.id];
                     return {
                         ...bt,
+                        top: movedPos ? `${movedPos.top}%` : bt.top,
+                        left: movedPos ? `${movedPos.left}%` : bt.left,
                         label: renamed || bt.label,
                         isRenamed: !!renamed
                     };
@@ -336,7 +434,7 @@
                 isCustom: true,
                 docId: ct.id,
                 labelX: `${ct.leftPercent}%`,
-                labelY: `${ct.topPercent + 4.2}%`
+                labelY: `${ct.topPercent + 5.5}%`
             }));
             return [...activeBase, ...dynamicMapped];
         }
@@ -360,6 +458,11 @@
                 renderMap();
             });
 
+            db.collection('custom_table_positions').doc('shalvata').onSnapshot(doc => {
+                customTablePositions = doc.exists ? (doc.data().positions || {}) : {};
+                renderMap();
+            });
+
             db.collection('reservations')
                 .where('venueId', '==', 'shalvata')
                 .where('eventDate', '==', selectedDate)
@@ -367,6 +470,7 @@
                     reservations = snap.docs
                         .map(d => ({ id: d.id, ...d.data() }))
                         .filter(r => r.status === 'active');
+                    updateTargetAssignBanner();
                     renderMap();
                     renderGuestDragStrip();
                 });
@@ -380,14 +484,26 @@
                 });
         }
 
+        function updateConnectorLine(lineId, x1, y1, x2, y2) {
+            const line = document.getElementById(lineId);
+            if (line) {
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+            }
+        }
+
         function renderMap() {
             const spotsContainer = document.getElementById('spots-layer');
             const dynamicContainer = document.getElementById('dynamic-layer');
             const labelsContainer = document.getElementById('labels-layer');
+            const svgContainer = document.getElementById('connectors-svg');
             
             spotsContainer.innerHTML = '';
             dynamicContainer.innerHTML = '';
             labelsContainer.innerHTML = '';
+            svgContainer.innerHTML = '';
 
             const allTables = getAllActiveTablesDef();
 
@@ -395,6 +511,18 @@
                 const occupiedRes = getReservationForTable(tbl.id, tbl.label);
                 const isOccupied = !!occupiedRes;
                 const hasArrived = isOccupied && occupiedRes.arrived;
+                const tableX = parseFloat(tbl.left);
+                const tableY = parseFloat(tbl.top);
+
+                // תגית נקודה קטנה לציון "תפוס"
+                const occupiedBadgeHtml = isOccupied ? `
+                    <div class="occupied-status-pill ${hasArrived ? 'is-arrived' : ''}">
+                        <span class="occupied-dot"></span>
+                        <span>תפוס</span>
+                    </div>
+                ` : '';
+
+                let tableEl = null;
 
                 if (tbl.isCustom) {
                     const dynamicEl = document.createElement('div');
@@ -406,12 +534,14 @@
                     dynamicEl.dataset.tableId = tbl.label;
 
                     dynamicEl.innerHTML = `
+                        ${occupiedBadgeHtml}
                         <span class="text-[10px] font-black text-amber-400 font-mono leading-none z-10 pointer-events-none">${tbl.label}</span>
                         <span class="text-[7px] font-bold text-slate-400 leading-none mt-0.5 z-10 pointer-events-none">איש ${tbl.cap}</span>
                     `;
 
-                    makeElementDraggable(dynamicEl, tbl);
+                    makeElementDraggable(dynamicEl, tbl, occupiedRes);
                     dynamicContainer.appendChild(dynamicEl);
+                    tableEl = dynamicEl;
                 } else {
                     const spot = document.createElement('div');
                     spot.className = `table-spot ${hasArrived ? 'spot-arrived-bg' : ''}`;
@@ -421,43 +551,76 @@
                     spot.style.height = tbl.h;
                     spot.dataset.tableId = tbl.label;
 
-                    if (tbl.isRenamed) {
-                        spot.innerHTML = `<span class="renamed-table-badge">${tbl.label}</span>`;
-                    }
+                    spot.innerHTML = `
+                        ${occupiedBadgeHtml}
+                        ${tbl.isRenamed ? `<span class="renamed-table-badge">${tbl.label}</span>` : ''}
+                    `;
 
-                    spot.onclick = () => openModal(tbl, occupiedRes);
+                    spot.onclick = () => handleTableClick(tbl, occupiedRes);
                     spotsContainer.appendChild(spot);
+                    tableEl = spot;
                 }
 
                 if (isOccupied) {
+                    const posX = occupiedRes.labelCustomX !== undefined ? parseFloat(occupiedRes.labelCustomX) : parseFloat(tbl.labelX);
+                    const posY = occupiedRes.labelCustomY !== undefined ? parseFloat(occupiedRes.labelCustomY) : parseFloat(tbl.labelY);
+
+                    // ציור קו מקווקו 360 מעלות בין מרכז השולחן לתגית שם הלקוח
+                    const lineId = `conn-line-${occupiedRes.id}-${tbl.id}`;
+                    const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    lineEl.setAttribute('id', lineId);
+                    lineEl.setAttribute('x1', tableX);
+                    lineEl.setAttribute('y1', tableY);
+                    lineEl.setAttribute('x2', posX);
+                    lineEl.setAttribute('y2', posY);
+                    lineEl.setAttribute('stroke', hasArrived ? '#fb7185' : '#f59e0b');
+                    lineEl.setAttribute('stroke-width', '0.45');
+                    lineEl.setAttribute('stroke-dasharray', '1.2, 0.9');
+                    lineEl.setAttribute('stroke-linecap', 'round');
+                    svgContainer.appendChild(lineEl);
+
+                    // תגית שם הלקוח שניתנת לגרירה יחד עם השולחן או סיבוב 360 מעלות
                     const label = document.createElement('div');
                     label.className = 'client-label-draggable';
-                    
-                    const posX = occupiedRes.labelCustomX !== undefined ? `${occupiedRes.labelCustomX}%` : tbl.labelX;
-                    const posY = occupiedRes.labelCustomY !== undefined ? `${occupiedRes.labelCustomY}%` : tbl.labelY;
-                    
-                    label.style.left = posX;
-                    label.style.top = posY;
+                    label.id = `client-label-${occupiedRes.id}-${tbl.id}`;
+                    label.style.left = `${posX}%`;
+                    label.style.top = `${posY}%`;
                     label.innerText = getFirstNameOnly(occupiedRes.name);
-                    label.title = `גרור להזזה: ${occupiedRes.name}`;
+                    label.title = `גרור להזיז את ${occupiedRes.name} והשולחן`;
 
-                    makeLabelDraggable(label, occupiedRes.id, parseFloat(posX), parseFloat(posY));
+                    makeLabelAndTableSyncDraggable(label, tableEl, tbl, occupiedRes.id, posX, posY, tableX, tableY, lineId);
                     labelsContainer.appendChild(label);
                 }
             });
         }
 
-        function makeLabelDraggable(elmnt, resId, initLeft, initTop) {
+        // לחיצה על שולחן: אם יש לקוח נבחר לסימון - משבץ אותו מיד; אחרת פותח מודאל
+        async function handleTableClick(tbl, occupiedRes) {
+            if (assignToResId && !occupiedRes) {
+                const targetRes = reservations.find(r => r.id === assignToResId);
+                if (targetRes) {
+                    await db.collection('reservations').doc(assignToResId).update({
+                        tableNumber: String(tbl.label),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    clearAssignTarget();
+                    return;
+                }
+            }
+            openModal(tbl, occupiedRes);
+        }
+
+        // גרירת שם הלקוח: מזיזה את השם ב-360 מעלות עם קו מקווקו + מזיזה איתו גם את השולחן עצמו!
+        function makeLabelAndTableSyncDraggable(labelEl, tableEl, tblDef, resId, initLabelX, initLabelY, initTableX, initTableY, lineId) {
             let startX = 0, startY = 0;
-            let currentLeft = initLeft, currentTop = initTop;
             let isMoved = false;
             const mapWrapper = document.getElementById('map-container');
 
-            elmnt.addEventListener('pointerdown', (e) => {
+            labelEl.addEventListener('pointerdown', (e) => {
                 e.stopPropagation();
                 isMoved = false;
-                elmnt.setPointerCapture(e.pointerId);
-                elmnt.classList.add('is-moving');
+                labelEl.setPointerCapture(e.pointerId);
+                labelEl.classList.add('is-moving');
 
                 startX = e.clientX;
                 startY = e.clientY;
@@ -469,42 +632,74 @@
                     if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) isMoved = true;
 
                     const rect = mapWrapper.getBoundingClientRect();
-                    const newLeft = Math.max(3, Math.min(97, currentLeft + (deltaX / rect.width) * 100));
-                    const newTop = Math.max(3, Math.min(97, currentTop + (deltaY / rect.height) * 100));
+                    const dPctX = (deltaX / rect.width) * 100;
+                    const dPctY = (deltaY / rect.height) * 100;
 
-                    elmnt.style.left = `${newLeft.toFixed(1)}%`;
-                    elmnt.style.top = `${newTop.toFixed(1)}%`;
+                    const newLabelX = Math.max(3, Math.min(97, initLabelX + dPctX));
+                    const newLabelY = Math.max(3, Math.min(97, initLabelY + dPctY));
+
+                    labelEl.style.left = `${newLabelX.toFixed(1)}%`;
+                    labelEl.style.top = `${newLabelY.toFixed(1)}%`;
+
+                    // הזזה מסונכרנת של השולחן עצמו יחד עם השם
+                    let currentTblX = initTableX;
+                    let currentTblY = initTableY;
+                    if (tableEl) {
+                        currentTblX = Math.max(4, Math.min(96, initTableX + dPctX));
+                        currentTblY = Math.max(4, Math.min(96, initTableY + dPctY));
+                        tableEl.style.left = `${currentTblX.toFixed(1)}%`;
+                        tableEl.style.top = `${currentTblY.toFixed(1)}%`;
+                    }
+
+                    // עדכון הקו המקווקו בזמן אמת ב-360 מעלות
+                    updateConnectorLine(lineId, currentTblX, currentTblY, newLabelX, newLabelY);
                 };
 
                 const onUp = async (ev) => {
-                    elmnt.releasePointerCapture(ev.pointerId);
-                    elmnt.classList.remove('is-moving');
-                    elmnt.removeEventListener('pointermove', onMove);
-                    elmnt.removeEventListener('pointerup', onUp);
-                    elmnt.removeEventListener('pointercancel', onUp);
+                    labelEl.releasePointerCapture(ev.pointerId);
+                    labelEl.classList.remove('is-moving');
+                    labelEl.removeEventListener('pointermove', onMove);
+                    labelEl.removeEventListener('pointerup', onUp);
+                    labelEl.removeEventListener('pointercancel', onUp);
 
                     if (isMoved) {
-                        const finalX = parseFloat(elmnt.style.left);
-                        const finalY = parseFloat(elmnt.style.top);
+                        const finalLabelX = Math.round(parseFloat(labelEl.style.left) * 10) / 10;
+                        const finalLabelY = Math.round(parseFloat(labelEl.style.top) * 10) / 10;
 
                         await db.collection('reservations').doc(resId).update({
-                            labelCustomX: Math.round(finalX * 10) / 10,
-                            labelCustomY: Math.round(finalY * 10) / 10
+                            labelCustomX: finalLabelX,
+                            labelCustomY: finalLabelY
                         });
+
+                        if (tableEl) {
+                            const finalTblX = Math.round(parseFloat(tableEl.style.left) * 10) / 10;
+                            const finalTblY = Math.round(parseFloat(tableEl.style.top) * 10) / 10;
+
+                            if (tblDef.isCustom && tblDef.docId) {
+                                await db.collection('custom_tables').doc(tblDef.docId).update({
+                                    leftPercent: finalTblX,
+                                    topPercent: finalTblY
+                                });
+                            } else {
+                                const updatedPositions = {
+                                    ...customTablePositions,
+                                    [tblDef.id]: { left: finalTblX, top: finalTblY }
+                                };
+                                await db.collection('custom_table_positions').doc('shalvata').set({ positions: updatedPositions }, { merge: true });
+                            }
+                        }
                     }
                 };
 
-                elmnt.addEventListener('pointermove', onMove);
-                elmnt.addEventListener('pointerup', onUp);
-                elmnt.addEventListener('pointercancel', onUp);
+                labelEl.addEventListener('pointermove', onMove);
+                labelEl.addEventListener('pointerup', onUp);
+                labelEl.addEventListener('pointercancel', onUp);
             });
         }
 
         function scrollStrip(offset) {
             const strip = document.getElementById('guest-drag-strip');
-            if (strip) {
-                strip.scrollBy({ left: offset, behavior: 'smooth' });
-            }
+            if (strip) strip.scrollBy({ left: offset, behavior: 'smooth' });
         }
 
         function onSearchFilterStrip(val) {
@@ -526,19 +721,21 @@
                 return;
             }
 
-            strip.innerHTML = unassigned.map(res => `
-                <div class="draggable-guest-badge shrink-0 bg-slate-900 border border-amber-500/40 hover:border-amber-400 px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            strip.innerHTML = unassigned.map(res => {
+                const isSelectedTarget = (assignToResId === res.id);
+                return `
+                <div onclick="selectGuestForAssign('${res.id}')"
+                     class="draggable-guest-badge shrink-0 cursor-pointer ${isSelectedTarget ? 'bg-amber-500 text-black border-white ring-2 ring-amber-400' : 'bg-slate-900 border-amber-500/40 text-amber-400 hover:border-amber-400'} border px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
                      data-resid="${res.id}" data-name="${res.name}" data-pax="${res.pax}">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 pointer-events-none"></span>
-                    <span class="text-amber-400 font-black text-[11px] whitespace-nowrap pointer-events-none">${res.name}</span>
-                    <span class="text-[9px] text-slate-400 font-mono font-bold pointer-events-none">(${res.pax})</span>
+                    <span class="w-1.5 h-1.5 rounded-full ${isSelectedTarget ? 'bg-black animate-ping' : 'bg-amber-400'} pointer-events-none"></span>
+                    <span class="font-black text-[11px] whitespace-nowrap pointer-events-none">${res.name}</span>
+                    <span class="text-[9px] ${isSelectedTarget ? 'text-black/80' : 'text-slate-400'} font-mono font-bold pointer-events-none">(${res.pax})</span>
                 </div>
-            `).join('');
+            `}).join('');
 
             bindDragAndDropGuests();
         }
 
-        // מערכת גרירה מבוססת GPU מוחלטת ללא שום Delay
         function bindDragAndDropGuests() {
             const ghost = document.getElementById('global-drag-ghost');
             const ghostName = document.getElementById('ghost-guest-name');
@@ -560,7 +757,6 @@
                         const dx = ev.clientX - startX;
                         const dy = ev.clientY - startY;
 
-                        // הפעלת גרירה ברגע שיש משיכה של 8px כלפי מעלה
                         if (!isDragging && dy < -8 && Math.abs(dy) > Math.abs(dx)) {
                             isDragging = true;
                             ghostName.innerText = `${resName} (${resPax})`;
@@ -568,7 +764,6 @@
                         }
 
                         if (isDragging) {
-                            // תנועה חלקה ישירות ב-GPU ללא שום חישוב כבד
                             ghost.style.transform = `translate3d(${ev.clientX}px, ${ev.clientY}px, 0) translate(-50%, -50%)`;
                         }
                     };
@@ -581,7 +776,6 @@
                         if (isDragging) {
                             ghost.style.display = 'none';
 
-                            // בדיקה מהירה אחת בלבד ברגע עזיבת האצבע
                             const elemBelow = document.elementFromPoint(ev.clientX, ev.clientY);
                             const tableTarget = elemBelow ? elemBelow.closest('.table-spot, .custom-dynamic-table') : null;
 
@@ -597,6 +791,7 @@
                                     tableNumber: String(targetTableId),
                                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                                 });
+                                if (assignToResId === resId) clearAssignTarget();
                             }
                         }
                     };
@@ -610,7 +805,7 @@
             });
         }
 
-        function makeElementDraggable(elmnt, tableDef) {
+        function makeElementDraggable(elmnt, tableDef, occupiedRes) {
             let startX = 0, startY = 0;
             let initialLeft = 0, initialTop = 0;
             let isDragged = false;
@@ -637,6 +832,14 @@
 
                     elmnt.style.left = `${newLeft.toFixed(1)}%`;
                     elmnt.style.top = `${newTop.toFixed(1)}%`;
+
+                    if (occupiedRes) {
+                        const labelEl = document.getElementById(`client-label-${occupiedRes.id}-${tableDef.id}`);
+                        const lineId = `conn-line-${occupiedRes.id}-${tableDef.id}`;
+                        if (labelEl) {
+                            updateConnectorLine(lineId, newLeft, newTop, parseFloat(labelEl.style.left), parseFloat(labelEl.style.top));
+                        }
+                    }
                 };
 
                 const onUp = async (ev) => {
@@ -654,8 +857,8 @@
                             topPercent: Math.round(newTop * 10) / 10
                         });
                     } else {
-                        const occupiedRes = getReservationForTable(tableDef.id, tableDef.label);
-                        openModal(tableDef, occupiedRes);
+                        const currentOcc = getReservationForTable(tableDef.id, tableDef.label);
+                        handleTableClick(tableDef, currentOcc);
                     }
                 };
 
@@ -697,9 +900,7 @@
             const finalName = newName.trim();
 
             if (tbl.isCustom) {
-                await db.collection('custom_tables').doc(tbl.docId).update({
-                    tableNumber: finalName
-                });
+                await db.collection('custom_tables').doc(tbl.docId).update({ tableNumber: finalName });
             } else {
                 let updated = { ...customTableLabels, [tbl.id]: finalName };
                 await db.collection('custom_table_labels').doc('shalvata').set({ labels: updated }, { merge: true });
@@ -727,10 +928,14 @@
             title.innerText = `שולחן ${tbl.label} (תכולה: ${tbl.cap} איש)`;
 
             if (occupiedRes) {
+                const depositStatusHtml = occupiedRes.depositRequired
+                    ? `<span class="text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">נדרש פיקדון אשראי</span>`
+                    : `<span class="text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">ללא פיקדון</span>`;
+
                 body.innerHTML = `
-                    <div class="bg-amber-500/10 p-2.5 rounded-2xl border ${hasArrived ? 'border-rose-500/40 bg-rose-500/10' : 'border-amber-500/30'} space-y-1 text-right">
+                    <div class="bg-amber-500/10 p-2.5 rounded-2xl border ${hasArrived ? 'border-rose-500/40 bg-rose-500/10' : 'border-amber-500/30'} space-y-1.5 text-right">
                         <div class="flex items-center justify-between">
-                            <span class="text-amber-400 font-black text-xs">שולחן: ${tbl.label}</span>
+                            <span class="text-amber-400 font-black text-xs">● תפוס • שולחן ${tbl.label}</span>
                             <span class="${hasArrived ? 'text-rose-400 font-bold' : 'text-slate-400'} text-[10px] font-mono">
                                 ${hasArrived ? '● הגיע למועדון' : '○ טרם הגיע'}
                             </span>
@@ -738,6 +943,8 @@
                         <p class="font-bold text-white text-xs">👤 לקוח: ${occupiedRes.name}</p>
                         <p class="text-slate-300 font-bold text-xs">👥 כמות: ${occupiedRes.pax} איש</p>
                         <p class="text-amber-400 font-black text-xs">💰 מינימום: ₪${occupiedRes.minOrder || 0}</p>
+                        <p class="text-slate-300 font-bold text-[11px]">💳 פיקדון: ${depositStatusHtml}</p>
+                        ${occupiedRes.bookedBy ? `<p class="text-slate-400 text-[10px]">🏷️ הוזמן ע"י: <span class="text-white font-bold">${occupiedRes.bookedBy}</span></p>` : ''}
                         ${occupiedRes.phone ? `<p class="text-slate-400 font-mono text-xs">📞 ${occupiedRes.phone}</p>` : ''}
                     </div>
                 `;
@@ -763,11 +970,12 @@
                     <select id="select-single-res" class="w-full bg-slate-900 border border-white/20 rounded-lg py-1 px-1.5 text-white font-bold outline-none focus:border-amber-400 mb-2">
                         ${tableGuests.map(r => {
                             const isAssigned = !!r.tableNumber;
+                            const isPreselected = (r.id === assignToResId);
                             const label = isAssigned 
                                 ? `🟢 ${r.name} (${r.pax}) [ש' ${r.tableNumber}]` 
                                 : `🟡 ${r.name} (${r.pax})`;
                             const styleColor = isAssigned ? 'color: #34d399;' : 'color: #fbbf24;';
-                            return `<option value="${r.id}" style="${styleColor} background-color: #0b1120;">${label}</option>`;
+                            return `<option value="${r.id}" ${isPreselected ? 'selected' : ''} style="${styleColor} background-color: #0b1120;">${label}</option>`;
                         }).join('')}
                     </select>
                 `;
@@ -800,6 +1008,7 @@
                 tableNumber: String(tableLabel),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            if (assignToResId === resId) clearAssignTarget();
             closeModal();
         }
 
@@ -850,7 +1059,8 @@
                 });
             });
             await batch.commit();
-            alert("כל השיבוצים אופסו!");
+            await db.collection('custom_table_positions').doc('shalvata').delete();
+            alert("כל השיבוצים ומיקומי השולחנות אופסו!");
         }
 
         function closeModal() {
